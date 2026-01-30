@@ -4,7 +4,7 @@ A comprehensive, production-ready data management system for your game. Manages 
 
 ## ✨ Features
 
-### 🗂️ Master Data System
+### 🗂️ GameData System
 - **Visual Data Type Editor** - Define data schemas (Level, Achievement, Item, etc.)
 - **Spreadsheet-Style Instance Editor** - Edit game data in bulk
 - **Auto-Generated Resource Classes** - Use custom types in Inspector
@@ -50,17 +50,17 @@ Open [`DATA_SYSTEMS_GUIDE.md`](./DATA_SYSTEMS_GUIDE.md) for complete documentati
 
 ```
 data-systems-2/
-├── addons/data_systems/          # 📦 Plugin (do not modify manually)
+├── addons/diablohumastudio/          # 📦 Plugin (do not modify manually)
 │   ├── plugin.gd                 # Main plugin entry point
 │   ├── core/                     # Core utilities
-│   ├── master_data/              # Master Data System
+│   ├── game_data/              # GameData System
 │   │   ├── ui/                   # Visual editors
 │   │   └── resources/            # Generated Resource classes (auto-created)
 │   ├── user_data/                # User Data System
 │   └── actions/                  # Actions System
 │
 ├── data/                         # 📊 Your Game Data (edit these!)
-│   ├── master_data_types.json    # Data type definitions
+│   ├── game_data_types.json    # Data type definitions
 │   ├── level.json                # Example: Level data
 │   ├── achievement.json          # Example: Achievement data
 │   └── actions.json              # Action handler configurations
@@ -133,9 +133,9 @@ print(level_data.complete)  # true/false
 
 ## 🎯 Key Concepts
 
-### Master Data vs User Data
+### GameData vs User Data
 
-- **Master Data**: Game content (levels, items, enemies) - same for all players
+- **GameData**: Game content (levels, items, enemies) - same for all players
 - **User Data**: Player progress (unlocks, completion, stats) - unique per player
 
 ### Actions System Benefits
@@ -174,7 +174,7 @@ The Actions System handles:
 - JSON persistence layer
 - Resource class generation
 
-✅ **Master Data System**
+✅ **GameData System**
 - Visual data type editor
 - Spreadsheet-style instance editor
 - Auto-generated custom Resources
@@ -220,9 +220,9 @@ The following features are designed but not yet implemented (you can add them as
 ## ⚠️ Important Notes
 
 - **Enable the plugin first** in Project Settings → Plugins
-- **Don't modify** files in `addons/data_systems/` directly
+- **Don't modify** files in `addons/diablohumastudio/` directly
 - **Edit data** in `data/` folder or via the visual editors
-- **Generated Resources** are created in `addons/data_systems/master_data/resources/`
+- **Generated Resources** are created in `addons/diablohumastudio/game_data/resources/`
 - **User save files** are stored in `user://data_systems/`
 
 ## 🎮 Try It Now!

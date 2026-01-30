@@ -1,13 +1,13 @@
 # Data Systems Plugin - User Guide
 
 A comprehensive data management system for Godot 4.6 games with three core subsystems:
-- **Master Data System**: CRUD for game data types and instances
+- **GameData System**: CRUD for game data types and instances
 - **User Data System**: User progress, preferences, and persistence
 - **Actions System**: Event-driven system for decoupled game logic
 
 ## Installation
 
-1. The plugin is located in `addons/data_systems/`
+1. The plugin is located in `addons/diablohumastudio/`
 2. Enable it in Project → Project Settings → Plugins
 3. The following autoloads are registered automatically:
    - `UserDataSystem` - User data management
@@ -28,7 +28,7 @@ Access the data editors via **Window Menu** (top menu bar):
 
 ### 3. Define Data Types
 
-**Master Data** - Game content (levels, items, achievements):
+**GameData** - Game content (levels, items, achievements):
 ```
 Type: Level
 Properties:
@@ -114,22 +114,22 @@ func _on_level_completed_action(action_type: String, data: Dictionary):
 
 ## System Architecture
 
-### Master Data System
+### GameData System
 
 **Purpose**: Manage game content (levels, items, achievements, enemies, etc.)
 
 **Key Classes**:
-- `MasterDataSystem` - Core system
+- `GameDataSystem` - Core system
 - `DataTypeRegistry` - Type definitions
 - `DataTypeDefinition` - Schema for data types
 - `ResourceGenerator` - Creates custom Resource classes
 
 **File Storage**: `res://data/`
-- `master_data_types.json` - Type definitions
+- `game_data_types.json` - Type definitions
 - `level.json`, `achievement.json`, etc. - Data instances
 
 **Generated Resources**:
-Each master data type generates a GDScript Resource class in `addons/data_systems/master_data/resources/`.
+Each master data type generates a GDScript Resource class in `addons/diablohumastudio/game_data/resources/`.
 You can use these in the Inspector:
 
 ```gdscript
@@ -196,8 +196,8 @@ func _ready():
 
 func _initialize_user_levels():
     # Get all level master data
-    var master_data_system = MasterDataSystem.new()
-    var levels = master_data_system.get_instances("Level")
+    var game_data_system = GameDataSystem.new()
+    var levels = game_data_system.get_instances("Level")
 
     # Create user level data for each
     for level in levels:
@@ -349,10 +349,10 @@ UserDataSystem.set_active_user("user_12345")
 
 ```
 project/
-├── addons/data_systems/          # Plugin files
+├── addons/diablohumastudio/          # Plugin files
 │   ├── plugin.gd                 # Main plugin
 │   ├── core/                     # Core utilities
-│   ├── master_data/              # Master Data System
+│   ├── game_data/              # GameData System
 │   │   ├── ui/                   # Visual editors
 │   │   └── resources/            # Generated Resource classes
 │   ├── user_data/                # User Data System
@@ -360,7 +360,7 @@ project/
 │   └── actions/                  # Actions System
 │       └── handlers/             # Action handlers
 └── data/                         # Data storage
-    ├── master_data_types.json    # Type schemas
+    ├── game_data_types.json    # Type schemas
     ├── level.json                # Level data
     ├── achievement.json          # Achievement data
     └── actions.json              # Action configurations
@@ -381,7 +381,7 @@ project/
 ### Type not found errors
 - Regenerate resources: Open Data Type Editor and re-save types
 - Check that type_name matches between definition and usage
-- Verify master_data_types.json syntax
+- Verify game_data_types.json syntax
 
 ## Advanced: Custom Action Handlers
 

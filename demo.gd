@@ -1,7 +1,7 @@
 extends Control
 
 ## Data Systems Demo
-## Demonstrates master data, user data, and actions
+## Demonstrates game data, user data, and actions
 
 @onready var output_label: Label = $VBox/ScrollContainer/OutputLabel
 @onready var init_btn: Button = $VBox/Buttons/InitBtn
@@ -45,7 +45,7 @@ func _on_init_pressed() -> void:
 		_log("Initializing user level data...")
 
 		# For demo, we'll manually create user level data
-		# In real game, you'd load from master data
+		# In real game, you'd load from game data
 		for i in range(1, 6):
 			var user_level = {
 				"level_id": i,

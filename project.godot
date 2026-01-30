@@ -17,12 +17,12 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-UserDataSystem="*res://addons/data_systems/user_data/user_data_system.gd"
-ActionsSystem="*res://addons/data_systems/actions/actions_system.gd"
+UserDataSystem="*res://addons/diablohumastudio/user_data_system/user_data_system.gd"
+ActionsSystem="*res://addons/diablohumastudio/actions_system/actions_system.gd"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/data_systems/plugin.cfg")
+enabled=PackedStringArray("res://addons/diablohumastudio/plugin.cfg")
 
 [physics]
 

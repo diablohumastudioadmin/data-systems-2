@@ -1,0 +1,129 @@
+[gd_scene format=3 uid="uid://d22bbxwjb5sxe"]
+
+[ext_resource type="Script" path="res://addons/diablohumastudio/data_manager/ui/data_type_tab.gd" id="1"]
+
+[node name="DataTypeTab" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBox"]
+layout_mode = 2
+
+[node name="TypeListPanel" type="PanelContainer" parent="VBox/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="VBox/VBoxContainer/TypeListPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBox/VBoxContainer/TypeListPanel/VBox"]
+layout_mode = 2
+text = "Data Types"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBox/VBoxContainer/TypeListPanel/VBox"]
+layout_mode = 2
+
+[node name="NewTypeBtn" type="Button" parent="VBox/VBoxContainer/TypeListPanel/VBox/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "New Type"
+
+[node name="RefreshBtn" type="Button" parent="VBox/VBoxContainer/TypeListPanel/VBox/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Refresh"
+
+[node name="HBox" type="HSplitContainer" parent="VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+split_offset = -105
+
+[node name="TypeList" type="ItemList" parent="VBox/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="EditorPanel" type="Panel" parent="VBox/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(900, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="VBox/HBox/EditorPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="EditorVBox" type="VBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TypeNameBox" type="HBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/TypeNameBox"]
+layout_mode = 2
+text = "Type Name:"
+
+[node name="TypeNameEdit" type="LineEdit" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/TypeNameBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "MyDataType"
+
+[node name="PropertiesLabel" type="Label" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox"]
+layout_mode = 2
+text = "Properties:"
+
+[node name="PropertiesScroll" type="ScrollContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PropertiesContainer" type="VBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/PropertiesScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="AddPropertyBtn" type="Button" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Add Property"
+
+[node name="ButtonBox" type="HBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox"]
+layout_mode = 2
+
+[node name="SaveTypeBtn" type="Button" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Save Type"
+
+[node name="DeleteTypeBtn" type="Button" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Delete Type"

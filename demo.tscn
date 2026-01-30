@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://dtxk5w0lnwya0"]
 
-[ext_resource type="Script" path="res://demo.gd" id="1"]
+[ext_resource type="Script" uid="uid://c56mt3id36tm6" path="res://demo.gd" id="1"]
 
-[node name="Demo" type="Control"]
+[node name="Demo" type="Control" unique_id=324066804]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 
-[node name="VBox" type="VBoxContainer" parent="."]
+[node name="VBox" type="VBoxContainer" parent="." unique_id=44759833]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,55 +23,55 @@ offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Title" type="Label" parent="VBox"]
+[node name="Title" type="Label" parent="VBox" unique_id=1652360343]
 layout_mode = 2
 text = "Data Systems Demo"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HSeparator" type="HSeparator" parent="VBox"]
+[node name="HSeparator" type="HSeparator" parent="VBox" unique_id=1402796279]
 layout_mode = 2
 
-[node name="Buttons" type="HBoxContainer" parent="VBox"]
+[node name="Buttons" type="HBoxContainer" parent="VBox" unique_id=1753416221]
 layout_mode = 2
 
-[node name="InitBtn" type="Button" parent="VBox/Buttons"]
+[node name="InitBtn" type="Button" parent="VBox/Buttons" unique_id=707781366]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Initialize Data"
 
-[node name="CompleteLevelBtn" type="Button" parent="VBox/Buttons"]
+[node name="CompleteLevelBtn" type="Button" parent="VBox/Buttons" unique_id=258373464]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Complete Level 1"
 
-[node name="CheckDataBtn" type="Button" parent="VBox/Buttons"]
+[node name="CheckDataBtn" type="Button" parent="VBox/Buttons" unique_id=1313363986]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Check Data"
 
-[node name="SaveBtn" type="Button" parent="VBox/Buttons"]
+[node name="SaveBtn" type="Button" parent="VBox/Buttons" unique_id=1749280033]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Save"
 
-[node name="LoadBtn" type="Button" parent="VBox/Buttons"]
+[node name="LoadBtn" type="Button" parent="VBox/Buttons" unique_id=832158173]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Load"
 
-[node name="HSeparator2" type="HSeparator" parent="VBox"]
+[node name="HSeparator2" type="HSeparator" parent="VBox" unique_id=1179211039]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="VBox"]
+[node name="Label" type="Label" parent="VBox" unique_id=1106771338]
 layout_mode = 2
 text = "Output:"
 
-[node name="ScrollContainer" type="ScrollContainer" parent="VBox"]
+[node name="ScrollContainer" type="ScrollContainer" parent="VBox" unique_id=1756007927]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="OutputLabel" type="Label" parent="VBox/ScrollContainer"]
+[node name="OutputLabel" type="Label" parent="VBox/ScrollContainer" unique_id=75467596]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
