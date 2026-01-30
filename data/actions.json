@@ -1,0 +1,51 @@
+{
+	"version": 1,
+	"actions": {
+		"level_completed": {
+			"handlers": [
+				{
+					"type": "direct_data",
+					"name": "Mark Level Complete",
+					"enabled": true,
+					"data_type": "UserLevel",
+					"property_to_match": "level_id",
+					"property_source": "level_id",
+					"properties_to_set": {
+						"complete": true
+					}
+				},
+				{
+					"type": "notification",
+					"name": "Notify UI",
+					"enabled": true,
+					"notification_type": "level_completed"
+				}
+			]
+		},
+		"level_unlocked": {
+			"handlers": [
+				{
+					"type": "direct_data",
+					"name": "Unlock Level",
+					"enabled": true,
+					"data_type": "UserLevel",
+					"property_to_match": "level_id",
+					"property_source": "level_id",
+					"properties_to_set": {
+						"unlocked": true
+					}
+				}
+			]
+		},
+		"enemy_killed": {
+			"handlers": [
+				{
+					"type": "notification",
+					"name": "Enemy Killed Notification",
+					"enabled": true,
+					"notification_type": "enemy_killed"
+				}
+			]
+		}
+	}
+}

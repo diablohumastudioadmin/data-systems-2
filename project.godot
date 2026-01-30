@@ -11,8 +11,18 @@ config_version=5
 [application]
 
 config/name="DataSystems2"
+run/main_scene="uid://dtxk5w0lnwya0"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+UserDataSystem="*res://addons/data_systems/user_data/user_data_system.gd"
+ActionsSystem="*res://addons/data_systems/actions/actions_system.gd"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/data_systems/plugin.cfg")
 
 [physics]
 

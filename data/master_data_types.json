@@ -1,0 +1,131 @@
+{
+	"master_types": {
+		"Level": {
+			"type_name": "Level",
+			"is_user_data": false,
+			"properties": [
+				{
+					"name": "id",
+					"type": "int",
+					"default": 0
+				},
+				{
+					"name": "name",
+					"type": "String",
+					"default": ""
+				},
+				{
+					"name": "difficulty",
+					"type": "int",
+					"default": 1
+				},
+				{
+					"name": "unlocked_by_default",
+					"type": "bool",
+					"default": false
+				}
+			]
+		},
+		"Achievement": {
+			"type_name": "Achievement",
+			"is_user_data": false,
+			"properties": [
+				{
+					"name": "id",
+					"type": "String",
+					"default": ""
+				},
+				{
+					"name": "name",
+					"type": "String",
+					"default": ""
+				},
+				{
+					"name": "description",
+					"type": "String",
+					"default": ""
+				},
+				{
+					"name": "reward_coins",
+					"type": "int",
+					"default": 0
+				}
+			]
+		}
+	},
+	"user_types": {
+		"UserLevel": {
+			"type_name": "UserLevel",
+			"is_user_data": true,
+			"properties": [
+				{
+					"name": "level_id",
+					"type": "int",
+					"default": 0
+				},
+				{
+					"name": "unlocked",
+					"type": "bool",
+					"default": false
+				},
+				{
+					"name": "complete",
+					"type": "bool",
+					"default": false
+				},
+				{
+					"name": "completed_no_deaths",
+					"type": "bool",
+					"default": false
+				},
+				{
+					"name": "best_time",
+					"type": "float",
+					"default": 0.0
+				}
+			]
+		},
+		"AchievementProgress": {
+			"type_name": "AchievementProgress",
+			"is_user_data": true,
+			"properties": [
+				{
+					"name": "achievement_id",
+					"type": "String",
+					"default": ""
+				},
+				{
+					"name": "achieved",
+					"type": "bool",
+					"default": false
+				},
+				{
+					"name": "progress",
+					"type": "float",
+					"default": 0.0
+				}
+			]
+		},
+		"PlayerStats": {
+			"type_name": "PlayerStats",
+			"is_user_data": true,
+			"properties": [
+				{
+					"name": "enemies_killed",
+					"type": "int",
+					"default": 0
+				},
+				{
+					"name": "levels_completed",
+					"type": "int",
+					"default": 0
+				},
+				{
+					"name": "total_playtime",
+					"type": "float",
+					"default": 0.0
+				}
+			]
+		}
+	}
+}
