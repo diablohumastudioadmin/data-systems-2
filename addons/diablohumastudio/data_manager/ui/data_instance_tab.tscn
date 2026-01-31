@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bn4rk4ufqq05h"]
 
-[ext_resource type="Script" path="res://addons/diablohumastudio/data_manager/ui/data_instance_tab.gd" id="1"]
+[ext_resource type="Script" uid="uid://dhudo2n2y4n6w" path="res://addons/diablohumastudio/data_manager/ui/data_instance_tab.gd" id="1"]
 
 [node name="DataInstanceEditor" type="Control" unique_id=1244572209]
 layout_mode = 3
@@ -30,11 +30,13 @@ text = "Data Type:"
 layout_mode = 2
 size_flags_horizontal = 3
 selected = 0
-item_count = 2
-popup/item_0/text = "Level"
+item_count = 3
+popup/item_0/text = "Achievement"
 popup/item_0/id = 0
-popup/item_1/text = "Achievement"
+popup/item_1/text = "Character"
 popup/item_1/id = 1
+popup/item_2/text = "Level"
+popup/item_2/id = 2
 
 [node name="AddInstanceBtn" type="Button" parent="VBox/Toolbar" unique_id=1852025185]
 layout_mode = 2

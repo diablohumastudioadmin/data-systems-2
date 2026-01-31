@@ -22,7 +22,7 @@ ActionsSystem="*res://addons/diablohumastudio/actions_system/actions_system.gd"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/diablohumastudio/plugin.cfg")
+enabled=PackedStringArray("res://addons/diablohumastudio/core/main_toolbar_plugin/plugin.cfg")
 
 [physics]
 

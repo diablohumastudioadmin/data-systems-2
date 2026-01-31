@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://d22bbxwjb5sxe"]
 
-[ext_resource type="Script" path="res://addons/diablohumastudio/data_manager/ui/data_type_tab.gd" id="1"]
+[ext_resource type="Script" uid="uid://djaig0fj0inuq" path="res://addons/diablohumastudio/data_manager/ui/data_type_tab.gd" id="1"]
 
-[node name="DataTypeTab" type="Control"]
+[node name="DataTypeTab" type="Control" unique_id=1155608775]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 
-[node name="VBox" type="VBoxContainer" parent="."]
+[node name="VBox" type="VBoxContainer" parent="." unique_id=2044332414]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -20,52 +20,60 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="VBox"]
+[node name="VBoxContainer" type="VBoxContainer" parent="VBox" unique_id=1588433979]
 layout_mode = 2
 
-[node name="TypeListPanel" type="PanelContainer" parent="VBox/VBoxContainer"]
+[node name="TypeListPanel" type="PanelContainer" parent="VBox/VBoxContainer" unique_id=1870177249]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="VBox" type="VBoxContainer" parent="VBox/VBoxContainer/TypeListPanel"]
+[node name="VBox" type="VBoxContainer" parent="VBox/VBoxContainer/TypeListPanel" unique_id=576778555]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="VBox/VBoxContainer/TypeListPanel/VBox"]
+[node name="Label" type="Label" parent="VBox/VBoxContainer/TypeListPanel/VBox" unique_id=146599143]
 layout_mode = 2
 text = "Data Types"
 horizontal_alignment = 1
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBox/VBoxContainer/TypeListPanel/VBox"]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBox/VBoxContainer/TypeListPanel/VBox" unique_id=1564982939]
 layout_mode = 2
 
-[node name="NewTypeBtn" type="Button" parent="VBox/VBoxContainer/TypeListPanel/VBox/HBoxContainer"]
+[node name="NewTypeBtn" type="Button" parent="VBox/VBoxContainer/TypeListPanel/VBox/HBoxContainer" unique_id=1379905897]
 unique_name_in_owner = true
 layout_mode = 2
 text = "New Type"
 
-[node name="RefreshBtn" type="Button" parent="VBox/VBoxContainer/TypeListPanel/VBox/HBoxContainer"]
+[node name="RefreshBtn" type="Button" parent="VBox/VBoxContainer/TypeListPanel/VBox/HBoxContainer" unique_id=696588396]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Refresh"
 
-[node name="HBox" type="HSplitContainer" parent="VBox"]
+[node name="HBox" type="HSplitContainer" parent="VBox" unique_id=797661523]
 layout_mode = 2
 size_flags_vertical = 3
+split_offsets = PackedInt32Array(-105)
 split_offset = -105
 
-[node name="TypeList" type="ItemList" parent="VBox/HBox"]
+[node name="TypeList" type="ItemList" parent="VBox/HBox" unique_id=918138876]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+item_count = 6
+item_0/text = "[Game] Achievement"
+item_1/text = "[Game] Character"
+item_2/text = "[Game] Level"
+item_3/text = "[User] AchievementProgress"
+item_4/text = "[User] PlayerStats"
+item_5/text = "[User] UserLevel"
 
-[node name="EditorPanel" type="Panel" parent="VBox/HBox"]
+[node name="EditorPanel" type="Panel" parent="VBox/HBox" unique_id=780970423]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(900, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="MarginContainer" type="MarginContainer" parent="VBox/HBox/EditorPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="VBox/HBox/EditorPanel" unique_id=1738952435]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -77,52 +85,52 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="EditorVBox" type="VBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer"]
+[node name="EditorVBox" type="VBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer" unique_id=914904400]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="TypeNameBox" type="HBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox"]
+[node name="TypeNameBox" type="HBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=221818124]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/TypeNameBox"]
+[node name="Label" type="Label" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/TypeNameBox" unique_id=876315060]
 layout_mode = 2
 text = "Type Name:"
 
-[node name="TypeNameEdit" type="LineEdit" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/TypeNameBox"]
+[node name="TypeNameEdit" type="LineEdit" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/TypeNameBox" unique_id=1994086198]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "MyDataType"
 
-[node name="PropertiesLabel" type="Label" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox"]
+[node name="PropertiesLabel" type="Label" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=515102613]
 layout_mode = 2
 text = "Properties:"
 
-[node name="PropertiesScroll" type="ScrollContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox"]
+[node name="PropertiesScroll" type="ScrollContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=2062318375]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="PropertiesContainer" type="VBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/PropertiesScroll"]
+[node name="PropertiesContainer" type="VBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/PropertiesScroll" unique_id=1513230450]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="AddPropertyBtn" type="Button" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox"]
+[node name="AddPropertyBtn" type="Button" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=210335099]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Add Property"
 
-[node name="ButtonBox" type="HBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox"]
+[node name="ButtonBox" type="HBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=995686921]
 layout_mode = 2
 
-[node name="SaveTypeBtn" type="Button" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox"]
+[node name="SaveTypeBtn" type="Button" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox" unique_id=1018830183]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Save Type"
 
-[node name="DeleteTypeBtn" type="Button" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox"]
+[node name="DeleteTypeBtn" type="Button" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox" unique_id=356307835]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
