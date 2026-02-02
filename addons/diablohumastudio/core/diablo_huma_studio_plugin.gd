@@ -21,12 +21,15 @@ func _remove_tool_bar():
 
 func move_tool_bar_to_dhs_toolbar():
 	remove_tool_menu_item(tool_bar_name) 
-	tool_bar_menu = PopupMenu.new()
+	create_toolbar_menu()
 	MainToolBarPlugin.instance.add_toolbar_shubmenu(tool_bar_name, tool_bar_menu)
 	print("[DiabloHumaStudioPlugin] Moved to Diablo Huma Toolbar")
 
 func move_tool_bar_to_editor_toolbar():
 	MainToolBarPlugin.instance.remove_toolbar_submenu(tool_bar_name, tool_bar_menu)
-	tool_bar_menu = PopupMenu.new()
+	create_toolbar_menu()
 	add_tool_submenu_item(tool_bar_name, tool_bar_menu) 
 	print("[DiabloHumaStudioPlugin] Moved to Editor Toolbar")
+
+func create_toolbar_menu():
+	tool_bar_menu = PopupMenu.new()

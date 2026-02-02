@@ -16,8 +16,6 @@ func _enter_tree() -> void:
 	tool_bar_name = "DataManager"
 	_add_tool_bar()
 
-
-
 func _exit_tree() -> void:
 	_remove_tool_bar()
 	## Close window if open
