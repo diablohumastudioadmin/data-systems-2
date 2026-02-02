@@ -1,5 +1,5 @@
 @tool
-extends EditorPlugin
+extends DiabloHumaStudioPlugin
 
 ## DataManager Sub-Plugin
 ## Provides CRUD interface for game data types and instances
@@ -10,14 +10,32 @@ extends EditorPlugin
 #var game_data_system: GameDataSystem
 #var data_manager_window: Window
 
+var tool_bar_name: String = "Data Manager"
+var tool_bar_menu: PopupMenu
 
 func _enter_tree() -> void:
 	# Initialize game data system
 	#game_data_system = GameDataSystem.new()
-	print("[DataManager] Plugin initialized")
+	_add_tool_bar()
 
+func _add_tool_bar():
+	tool_bar_menu = PopupMenu.new()
+	if MainToolBarPlugin.instance:
+		MainToolBarPlugin.instance.add_toolbar_shubmenu(tool_bar_name, tool_bar_menu)
+	else: 
+		add_tool_submenu_item(tool_bar_name, tool_bar_menu)
 
-#func _exit_tree() -> void:
+func _remove_tool_bar():
+	if MainToolBarPlugin.instance:
+		MainToolBarPlugin.instance.remove_toolbar_submenu(tool_bar_name, tool_bar_menu)
+	else: 
+		remove_tool_menu_item(tool_bar_name)
+
+func move_tool_bar_to_dhs_toolbar():
+	pass
+
+func _exit_tree() -> void:
+	_remove_tool_bar()
 	## Close window if open
 	#if data_manager_window and is_instance_valid(data_manager_window):
 		#data_manager_window.queue_free()
