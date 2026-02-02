@@ -7,27 +7,33 @@ var _tool_bar_name: String = "DiabloHumaStudioMenu"
 
 static var instance: MainToolBarPlugin
 
-func _enable_plugin() -> void:
-	print("enabled")
-
-func _disable_plugin() -> void:
-	print("disabled")
-
 func _enter_tree() -> void:
-	print("enter")
 	instance = self
 	_add_main_toolbar_menu()
-	_add_inner_toolbars()
+	_relocate_inner_to_diablohuma_tb()
 
 func _exit_tree() -> void:
-	print("exit")
+	_relocate_inner_to_editor_tb()
 	remove_tool_menu_item(_tool_bar_name)
 
 func _add_main_toolbar_menu() -> void:
 	_diablo_huma_toolbar_menu = PopupMenu.new()
 	add_tool_submenu_item(_tool_bar_name, _diablo_huma_toolbar_menu)
 
-func _add_inner_toolbars():
+func _relocate_inner_to_editor_tb():
+	var plugins: Array[DiabloHumaStudioPlugin] = _get_active_diablohuma_plugins()
+	for plugin in plugins:
+		plugin.move_tool_bar_to_editor_toolbar()
+
+func _relocate_inner_to_diablohuma_tb():
+	var plugins: Array[DiabloHumaStudioPlugin] = _get_active_diablohuma_plugins()
+	print("relocate to huma")
+	for plugin in plugins:
+		print(plugin)
+		plugin.move_tool_bar_to_dhs_toolbar()
+	
+func _get_active_diablohuma_plugins() -> Array[DiabloHumaStudioPlugin]:
+	var plugins: Array[DiabloHumaStudioPlugin]
 	var active_plugins_paths: PackedStringArray = ProjectSettings.get_setting("editor_plugins/enabled")
 	for plugins_path in active_plugins_paths:
 		if !plugins_path.begins_with("res://addons/diablohumastudio/"): continue
@@ -35,9 +41,9 @@ func _add_inner_toolbars():
 		var plugin_script_path: String = _get_config_value(plugins_path, "plugin", "script")
 		var full_path: String = plugins_folder_path.path_join(plugin_script_path)
 		var plugin_instance: Node = _get_active_plugin_instance_by_path(full_path)
-		if plugin_instance: 
-			(plugin_instance as DiabloHumaStudioPlugin).move_tool_bar_to_dhs_toolbar()
-			print(plugin_instance, full_path)
+		if plugin_instance and plugin_instance is DiabloHumaStudioPlugin: 
+			plugins.append(plugin_instance)
+	return plugins
 
 func _get_config_value(path: String, section: String, key: String) -> Variant:
 	var plugin_cfg_file:= ConfigFile.new()
