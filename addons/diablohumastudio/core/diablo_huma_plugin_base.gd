@@ -6,16 +6,16 @@ extends EditorPlugin
 var tool_bar_name: String = ""
 var tool_bar_menu: PopupMenu
 
-func _add_tool_bar():
-	tool_bar_menu = PopupMenu.new()
+func _add_tool_bar_menu():
+	create_toolbar_menu()
 	if MainToolBarPlugin.instance:
 		MainToolBarPlugin.instance.add_toolbar_shubmenu(tool_bar_name, tool_bar_menu)
 	else: 
 		add_tool_submenu_item(tool_bar_name, tool_bar_menu)
 
-func _remove_tool_bar():
+func _remove_tool_bar_menu():
 	if MainToolBarPlugin.instance:
-		MainToolBarPlugin.instance.remove_toolbar_submenu(tool_bar_name, tool_bar_menu)
+		MainToolBarPlugin.instance.remove_toolbar_submenu(tool_bar_name)
 	else: 
 		remove_tool_menu_item(tool_bar_name)
 
@@ -26,10 +26,10 @@ func move_tool_bar_to_dhs_toolbar():
 	print("[DiabloHumaStudioPlugin] Moved to Diablo Huma Toolbar")
 
 func move_tool_bar_to_editor_toolbar():
-	MainToolBarPlugin.instance.remove_toolbar_submenu(tool_bar_name, tool_bar_menu)
+	MainToolBarPlugin.instance.remove_toolbar_submenu(tool_bar_name)
 	create_toolbar_menu()
 	add_tool_submenu_item(tool_bar_name, tool_bar_menu) 
 	print("[DiabloHumaStudioPlugin] Moved to Editor Toolbar")
 
-func create_toolbar_menu():
-	tool_bar_menu = PopupMenu.new()
+@abstract
+func create_toolbar_menu()
