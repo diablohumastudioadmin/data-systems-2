@@ -14,10 +14,14 @@ func _enter_tree() -> void:
 	# Initialize game data system
 	#game_data_system = GameDataSystem.new()
 	tool_bar_name = "DataManager"
-	_add_tool_bar()
+	_add_tool_bar_menu()
+
+func create_toolbar_menu():
+	tool_bar_menu = PopupMenu.new()
+	tool_bar_menu.add_item("Launch Data Manager", 1, KEY_F10)
 
 func _exit_tree() -> void:
-	_remove_tool_bar()
+	_remove_tool_bar_menu()
 	## Close window if open
 	#if data_manager_window and is_instance_valid(data_manager_window):
 		#data_manager_window.queue_free()

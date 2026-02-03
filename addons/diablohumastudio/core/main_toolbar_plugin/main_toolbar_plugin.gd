@@ -61,15 +61,15 @@ func add_toolbar_item(name: String, callable: Callable):
 	_diablo_huma_toolbar_menu.add_item(name)
 
 func remove_toolvar_item(name: String):
-	_remove_item_by_name(name)
+	_remove_item_in_dh_by_name(name)
 
 func add_toolbar_shubmenu(name: String, sub_menu: PopupMenu):
 	_diablo_huma_toolbar_menu.add_submenu_node_item(name, sub_menu)
 
-func remove_toolbar_submenu(name: String, sub_menu: PopupMenu):
-	_remove_item_by_name(name)
+func remove_toolbar_submenu(name: String):
+	_remove_item_in_dh_by_name(name)
 
-func _remove_item_by_name(name: String):
+func _remove_item_in_dh_by_name(name: String):
 	for ii in _diablo_huma_toolbar_menu.item_count:
 		if _diablo_huma_toolbar_menu.get_item_text(ii) == name:
 			_diablo_huma_toolbar_menu.remove_item(ii)
