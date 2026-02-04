@@ -18,8 +18,8 @@ func _enter_tree() -> void:
 
 func _load_scenes():
 	if !ResourceLoader.exists(saved_scenes_resource_path):
-		ResourceSaver.save(CSRScenes.new(), saved_scenes_resource_path)
-	var scenes_resources: CSRScenes = ResourceLoader.load(saved_scenes_resource_path, "", ResourceLoader.CACHE_MODE_REPLACE)
+		ResourceSaver.save(RunnerScenes.new(), saved_scenes_resource_path)
+	var scenes_resources: RunnerScenes = ResourceLoader.load(saved_scenes_resource_path, "", ResourceLoader.CACHE_MODE_REPLACE)
 	scenes = scenes_resources.scenes
 
 func _rebuild_menu() -> void:

@@ -29,16 +29,16 @@ func _on_close_requested() -> void:
 	queue_free()
 
 func save_config() -> void:
-	var scenes_resource: CSRScenes = CSRScenes.new()
+	var scenes_resource: RunnerScenes = RunnerScenes.new()
 	scenes_resource.scenes = _scenes
 	ResourceSaver.save(scenes_resource, saved_scenes_resource_path)
 
 func load_scenes():
-	var scenes_resource: CSRScenes
+	var scenes_resource: RunnerScenes
 	if ResourceLoader.exists(saved_scenes_resource_path):
 		scenes_resource = ResourceLoader.load(saved_scenes_resource_path, "", ResourceLoader.CACHE_MODE_REPLACE)
 	else:
-		scenes_resource = CSRScenes.new()
+		scenes_resource = RunnerScenes.new()
 	_scenes = scenes_resource.scenes
 
 func _set_items_from_scenes():
