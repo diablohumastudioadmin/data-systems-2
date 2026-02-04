@@ -1,6 +1,6 @@
 @tool
 class_name ScenesAndResourcesResaverToolbar
-extends PopupMenu
+extends DiablohumaStudioToolMenu
 
 func _enter_tree() -> void:
 	add_item("Resave Scenes", 0)
