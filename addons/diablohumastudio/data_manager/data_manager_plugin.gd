@@ -4,6 +4,7 @@ extends DiabloHumaStudioPlugin
 ## DataManager Sub-Plugin
 ## Provides CRUD interface for game data types and instances
 
+const TOOLBAR_MENU_NAME: String = "DataManager"
 #const GameDataSystem = preload("res://addons/diablohumastudio/data_manager/game_data_system.gd")
 #const DataManagerWindowScene = preload("res://addons/diablohumastudio/data_manager/ui/data_manager_window.tscn")
 #
@@ -13,15 +14,15 @@ extends DiabloHumaStudioPlugin
 func _enter_tree() -> void:
 	# Initialize game data system
 	#game_data_system = GameDataSystem.new()
-	tool_bar_name = "DataManager"
-	_add_tool_bar_menu()
+	add_toolbar_menu()
 
-func create_toolbar_menu():
-	tool_bar_menu = PopupMenu.new()
+func add_toolbar_menu():
+	var tool_bar_menu := DiablohumaStudioToolMenu.new()
 	tool_bar_menu.add_item("Launch Data Manager", 1, KEY_F10)
+	DiabloHumaMainToolBarPlugin.add_toolbar_shubmenu(TOOLBAR_MENU_NAME, tool_bar_menu, self)
 
 func _exit_tree() -> void:
-	_remove_tool_bar_menu()
+	DiabloHumaMainToolBarPlugin.remove_toolbar_submenu(TOOLBAR_MENU_NAME, self)
 	## Close window if open
 	#if data_manager_window and is_instance_valid(data_manager_window):
 		#data_manager_window.queue_free()
