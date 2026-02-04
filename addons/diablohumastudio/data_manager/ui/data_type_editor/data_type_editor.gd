@@ -115,7 +115,7 @@ func _on_new_type_pressed() -> void:
 
 
 func _add_property_row(prop_name: String = "", prop_type: DataTypeDefinition.PropertyType = DataTypeDefinition.PropertyType.STRING, default_value: Variant = null) -> void:
-	var row = preload("res://addons/diablohumastudio/data_manager/ui/property_editor_row.gd").new()
+	var row = preload("uid://ddwwxemdroyaa").new()
 	row.set_property(prop_name, prop_type, default_value)
 	row.remove_requested.connect(_on_property_remove_requested.bind(row))
 
