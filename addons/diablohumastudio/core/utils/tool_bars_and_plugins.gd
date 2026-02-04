@@ -52,6 +52,7 @@ static func remove_item_in_toolbar_by_name(tool_bar: PopupMenu ,name: String):
 	for ii in tool_bar.item_count:
 		if tool_bar.get_item_text(ii) == name:
 			tool_bar.remove_item(ii)
+			break  # Exit after removing to avoid index out of bounds
 
 ## Properly duplicate a PopupMenu with all properties including shortcuts
 static func duplicate_menu(source: PopupMenu) -> PopupMenu:
