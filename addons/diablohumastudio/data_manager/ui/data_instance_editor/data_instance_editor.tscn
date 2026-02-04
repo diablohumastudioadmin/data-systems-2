@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bn4rk4ufqq05h"]
 
-[ext_resource type="Script" uid="uid://dhudo2n2y4n6w" path="res://addons/diablohumastudio/data_manager/ui/data_instance_tab.gd" id="1"]
+[ext_resource type="Script" uid="uid://dhudo2n2y4n6w" path="res://addons/diablohumastudio/data_manager/ui/data_instance_editor/data_instance_editor.gd" id="1_ugsc3"]
 
 [node name="DataInstanceEditor" type="Control" unique_id=1244572209]
 layout_mode = 3
@@ -9,7 +9,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1")
+script = ExtResource("1_ugsc3")
 
 [node name="VBox" type="VBoxContainer" parent="." unique_id=357381077]
 layout_mode = 1

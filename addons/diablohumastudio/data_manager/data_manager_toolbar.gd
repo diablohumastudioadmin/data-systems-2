@@ -7,7 +7,6 @@ const DataManagerWindowPksc = preload("uid://dwdqpra1ov4q6")
 var data_manager_window: Window
 
 func _enter_tree() -> void:
-	print("enter data toolbar")
 	clear()
 	game_data_system = GameDataSystem.new()
 	add_item("Launch Data Manager", 0, KEY_F10)

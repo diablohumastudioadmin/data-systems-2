@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://dwdqpra1ov4q6"]
 
 [ext_resource type="Script" uid="uid://c6uvppx2u86l6" path="res://addons/diablohumastudio/data_manager/ui/data_manager_window.gd" id="1"]
-[ext_resource type="PackedScene" uid="uid://d22bbxwjb5sxe" path="res://addons/diablohumastudio/data_manager/ui/data_type_tab.tscn" id="2"]
-[ext_resource type="PackedScene" uid="uid://bn4rk4ufqq05h" path="res://addons/diablohumastudio/data_manager/ui/data_instance_tab.tscn" id="3"]
+[ext_resource type="PackedScene" uid="uid://d22bbxwjb5sxe" path="res://addons/diablohumastudio/data_manager/ui/data_type_editor/data_type_editor.tscn" id="2"]
+[ext_resource type="PackedScene" uid="uid://bn4rk4ufqq05h" path="res://addons/diablohumastudio/data_manager/ui/data_instance_editor/data_instance_editor.tscn" id="3"]
 
 [node name="DataManagerWindow" type="Window" unique_id=443183502]
 oversampling_override = 1.0
@@ -24,11 +24,13 @@ grow_horizontal = 2
 grow_vertical = 2
 current_tab = 0
 
-[node name="Data Types" parent="TabContainer" unique_id=881148496 instance=ExtResource("2")]
+[node name="DataTypeEditor" parent="TabContainer" unique_id=881148496 instance=ExtResource("2")]
+unique_name_in_owner = true
 layout_mode = 2
 metadata/_tab_index = 0
 
-[node name="Data Instances" parent="TabContainer" unique_id=848057581 instance=ExtResource("3")]
+[node name="DataInstanceEditor" parent="TabContainer" unique_id=848057581 instance=ExtResource("3")]
+unique_name_in_owner = true
 visible = false
 layout_mode = 2
 metadata/_tab_index = 1
