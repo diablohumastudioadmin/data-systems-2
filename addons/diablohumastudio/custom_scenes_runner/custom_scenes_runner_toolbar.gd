@@ -9,7 +9,7 @@ var scenes: Array[RunnerSceneData] = []
 var saved_scenes_resource_path: String:
 	get:
 		var script_path: String = get_script().resource_path
-		return script_path.get_base_dir().path_join("scenes.tres")
+		return script_path.get_base_dir().path_join("data/scenes.tres")
 
 func _enter_tree() -> void:
 	_load_scenes()
