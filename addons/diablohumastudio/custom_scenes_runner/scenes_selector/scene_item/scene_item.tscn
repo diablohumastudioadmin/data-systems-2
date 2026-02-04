@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://70e3ag4jq3k6"]
+
+[ext_resource type="Script" uid="uid://clm0a3us4b2sf" path="res://addons/diablo_huma_studio/toolbar_menus/custom_scenes_runner/scenes_selector/scene_item/scene_item.gd" id="1_script"]
+
+[node name="SceneItem" type="HBoxContainer" unique_id=1882530660]
+script = ExtResource("1_script")
+
+[node name="NameEdit" type="LineEdit" parent="." unique_id=356157888]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Scene Name"
+
+[node name="SceneButton" type="Button" parent="." unique_id=1112815095]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Select Scene..."
+
+[node name="ShortcutButton" type="Button" parent="." unique_id=1919282527]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Set Shortcut..."
+
+[node name="RemoveButton" type="Button" parent="." unique_id=1470412545]
+unique_name_in_owner = true
+layout_mode = 2
+text = "X"
+
+[node name="FileDialog" type="FileDialog" parent="." unique_id=2034979504]
+unique_name_in_owner = true
+oversampling_override = 1.0
+title = "Open a File"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.tscn ; Scene Files")
+
+[connection signal="text_changed" from="NameEdit" to="." method="_on_name_edit_text_changed"]
+[connection signal="pressed" from="SceneButton" to="." method="_on_scene_button_pressed"]
+[connection signal="pressed" from="ShortcutButton" to="." method="_on_shortcut_button_pressed"]
+[connection signal="pressed" from="RemoveButton" to="." method="_on_remove_button_pressed"]
+[connection signal="file_selected" from="FileDialog" to="." method="_on_file_dialog_file_selected"]

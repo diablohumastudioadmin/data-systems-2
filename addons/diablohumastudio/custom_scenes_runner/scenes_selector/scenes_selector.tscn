@@ -1,0 +1,54 @@
+[gd_scene format=3 uid="uid://dlfttbd1xdwe8"]
+
+[ext_resource type="Script" uid="uid://cxrj680q3j6xt" path="res://addons/diablo_huma_studio/toolbar_menus/custom_scenes_runner/scenes_selector/scenes_selector.gd" id="1_r7scd"]
+
+[node name="ScenesSelector" type="Window" unique_id=951100600]
+oversampling_override = 1.0
+title = "Scene Shortcuts"
+position = Vector2i(0, 36)
+size = Vector2i(500, 400)
+script = ExtResource("1_r7scd")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=427477954]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="VBoxContainer" unique_id=292114269]
+layout_mode = 2
+text = "Select scenes to have play shortcuts"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer" unique_id=2140495472]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ItemsContainer" type="VBoxContainer" parent="VBoxContainer/ScrollContainer" unique_id=1889694924]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BottomButtons" type="HBoxContainer" parent="VBoxContainer" unique_id=71614611]
+layout_mode = 2
+
+[node name="AddButton" type="Button" parent="VBoxContainer/BottomButtons" unique_id=914670361]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "+ Add Scene"
+
+[node name="SaveButton" type="Button" parent="VBoxContainer/BottomButtons" unique_id=175325981]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Save"
+
+[connection signal="close_requested" from="." to="." method="_on_close_requested"]
+[connection signal="pressed" from="VBoxContainer/BottomButtons/AddButton" to="." method="_on_add_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/BottomButtons/SaveButton" to="." method="_on_save_button_pressed"]
