@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://bljqup04nyd01" path="res://addons/diablohumastudio/custom_scenes_runner/scenes_data_models/runner_scene_data.gd" id="1_1t3c1"]
 [ext_resource type="Script" uid="uid://chfiai4gtie1p" path="res://addons/diablohumastudio/custom_scenes_runner/scenes_data_models/runner_scenes.gd" id="2_gjiem"]
 
-[sub_resource type="Resource" id="Resource_j8awe"]
+[sub_resource type="Resource" id="Resource_kqteu"]
 script = ExtResource("1_1t3c1")
 name = "demo"
 keyboard_shortcut = 4194343
@@ -11,3 +11,4 @@ scene_path = "/Users/fernandobarahona/Documents/DiabloHumaStudio/tools/data-syst
 
 [resource]
 script = ExtResource("2_gjiem")
+scenes = Array[ExtResource("1_1t3c1")]([SubResource("Resource_kqteu")])
