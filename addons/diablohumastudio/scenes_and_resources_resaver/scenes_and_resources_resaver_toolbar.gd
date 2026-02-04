@@ -1,5 +1,5 @@
 @tool
-class_name ScenesAndResourcesResaver
+class_name ScenesAndResourcesResaverToolbar
 extends PopupMenu
 
 func _enter_tree() -> void:

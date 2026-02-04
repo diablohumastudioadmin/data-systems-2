@@ -45,6 +45,11 @@ static func _get_scene_paths_from_dir(_path_dir) -> Array[String]:
 			file_name = dir.get_next()
 			continue
 
+		# Skip addons folder
+		if file_name == "addons":
+			file_name = dir.get_next()
+			continue
+
 		if dir.current_is_dir():
 			# Recursively search subdirectories
 			files.append_array(_get_scene_paths_from_dir(full_path))
