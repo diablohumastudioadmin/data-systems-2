@@ -1,23 +1,20 @@
 @tool
-class_name CustomScenesRunner
+class_name CustomScenesRunnerToolbar
 extends DiablohumaStudioToolMenu
 
 const SELECT_SCENES_ITEM_ID := 1000
 
-var select_scenes_popup: PackedScene = preload("uid://dlfttbd1xdwe8")
+const SELECT_SCENES_POPUP_PKSC: PackedScene = preload("uid://dlfttbd1xdwe8")
 var scenes: Array[RunSceneData] = []
-var saved_scenes_resource_path: String
+var saved_scenes_resource_path: String:
+	get:
+		var script_path: String = get_script().resource_path
+		return script_path.get_base_dir().path_join("scenes.tres")
 
 func _enter_tree() -> void:
-	saved_scenes_resource_path = _get_scenes_resource_path()
 	_load_scenes()
 	_rebuild_menu()
 	id_pressed.connect(_on_menu_id_pressed)
-
-func _get_scenes_resource_path() -> String:
-	var script_path: String = get_script().resource_path
-	var script_dir: String = script_path.get_base_dir()
-	return script_dir.path_join("scenes.tres")
 
 func _load_scenes():
 	if !ResourceLoader.exists(saved_scenes_resource_path):
@@ -27,16 +24,14 @@ func _load_scenes():
 
 func _rebuild_menu() -> void:
 	clear()
-	var ii := 0
-	for scene in scenes:
-		add_item("Run " + scene.name, ii, scene.keyboard_shortcut)
-		ii += 1
-	add_separator()
+	for ii in scenes.size():
+		add_item("Run " + scenes[ii].name, ii, scenes[ii].keyboard_shortcut)
+	add_separator()	
 	add_item("Select Scenes", SELECT_SCENES_ITEM_ID)
 
 func _on_menu_id_pressed(id: int) -> void:
 	if id == SELECT_SCENES_ITEM_ID:
-		var select_scenes_popup_instance: ScenesSelector = select_scenes_popup.instantiate()
+		var select_scenes_popup_instance: ScenesSelector = SELECT_SCENES_POPUP_PKSC.instantiate()
 		select_scenes_popup_instance.saved_scenes_resource_path = saved_scenes_resource_path
 		select_scenes_popup_instance.scenes_updated.connect(_on_scenes_updated)
 		EditorInterface.get_base_control().add_child(select_scenes_popup_instance)

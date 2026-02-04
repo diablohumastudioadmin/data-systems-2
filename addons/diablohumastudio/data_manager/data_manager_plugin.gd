@@ -19,10 +19,10 @@ func _enter_tree() -> void:
 func add_toolbar_menu():
 	var tool_bar_menu := DiablohumaStudioToolMenu.new()
 	tool_bar_menu.add_item("Launch Data Manager", 1, KEY_F10)
-	DiabloHumaMainToolBarPlugin.add_toolbar_shubmenu(TOOLBAR_MENU_NAME, tool_bar_menu, self)
+	MainToolbarPlugin.add_toolbar_shubmenu(TOOLBAR_MENU_NAME, tool_bar_menu, self)
 
 func _exit_tree() -> void:
-	DiabloHumaMainToolBarPlugin.remove_toolbar_submenu(TOOLBAR_MENU_NAME, self)
+	MainToolbarPlugin.remove_toolbar_submenu(TOOLBAR_MENU_NAME, self)
 	## Close window if open
 	#if data_manager_window and is_instance_valid(data_manager_window):
 		#data_manager_window.queue_free()

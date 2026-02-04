@@ -1,11 +1,11 @@
 @tool
-class_name DiabloHumaMainToolBarPlugin
+class_name MainToolbarPlugin
 extends EditorPlugin
 
 var _diablo_huma_toolbar_menu: MainToolBarPopupMenu
 var _tool_bar_name: String = "DiabloHumaSuit"
 
-static var instance: DiabloHumaMainToolBarPlugin
+static var instance: MainToolbarPlugin
 
 func _enter_tree() -> void:
 	instance = self
