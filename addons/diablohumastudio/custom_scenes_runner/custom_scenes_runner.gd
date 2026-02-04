@@ -1,6 +1,6 @@
 @tool
 class_name CustomScenesRunner
-extends PopupMenu
+extends DiablohumaStudioToolMenu
 
 const SELECT_SCENES_ITEM_ID := 1000
 
@@ -13,7 +13,6 @@ func _enter_tree() -> void:
 	_load_scenes()
 	_rebuild_menu()
 	id_pressed.connect(_on_menu_id_pressed)
-
 
 func _get_scenes_resource_path() -> String:
 	var script_path: String = get_script().resource_path

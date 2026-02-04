@@ -1,7 +1,13 @@
 [gd_resource type="Resource" script_class="CSRScenes" format=3 uid="uid://dm7d56wow5n01"]
 
-[ext_resource type="Script" uid="uid://bljqup04nyd01" path="res://addons/diablo_huma_studio/toolbar_menus/custom_scenes_runner/scenes_data_models/run_scene_data.gd" id="1_1t3c1"]
-[ext_resource type="Script" uid="uid://chfiai4gtie1p" path="res://addons/diablo_huma_studio/toolbar_menus/custom_scenes_runner/scenes_data_models/scenes.gd" id="2_gjiem"]
+[ext_resource type="Script" uid="uid://bljqup04nyd01" path="res://addons/diablohumastudio/custom_scenes_runner/scenes_data_models/run_scene_data.gd" id="1_1t3c1"]
+[ext_resource type="Script" uid="uid://chfiai4gtie1p" path="res://addons/diablohumastudio/custom_scenes_runner/scenes_data_models/scenes.gd" id="2_gjiem"]
+
+[sub_resource type="Resource" id="Resource_j8awe"]
+script = ExtResource("1_1t3c1")
+name = "demo"
+keyboard_shortcut = 4194343
+scene_path = "/Users/fernandobarahona/Documents/DiabloHumaStudio/tools/data-systems-2/demo.tscn"
 
 [resource]
 script = ExtResource("2_gjiem")
