@@ -5,7 +5,7 @@ extends DiablohumaStudioToolMenu
 const SELECT_SCENES_ITEM_ID := 1000
 
 const SELECT_SCENES_POPUP_PKSC: PackedScene = preload("uid://dlfttbd1xdwe8")
-var scenes: Array[RunSceneData] = []
+var scenes: Array[RunnerSceneData] = []
 var saved_scenes_resource_path: String:
 	get:
 		var script_path: String = get_script().resource_path

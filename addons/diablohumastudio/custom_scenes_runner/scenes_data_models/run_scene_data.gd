@@ -1,4 +1,4 @@
-class_name RunSceneData 
+class_name RunnerSceneData 
 extends Resource
 
 @export var name: String

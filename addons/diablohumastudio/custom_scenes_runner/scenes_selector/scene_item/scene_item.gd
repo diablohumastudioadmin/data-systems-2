@@ -6,7 +6,7 @@ signal scene_button_pressed
 signal shortcut_button_pressed
 signal remove_pressed
 
-var run_scene_data: RunSceneData = RunSceneData.new()
+var run_scene_data: RunnerSceneData = RunnerSceneData.new()
 var _capturing_shortcut: bool = false
 
 @onready var name_edit: LineEdit = %NameEdit
@@ -29,7 +29,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_capturing_shortcut = false
 		set_process_unhandled_key_input(false)
 
-func set_data(new_data: RunSceneData) -> void:
+func set_data(new_data: RunnerSceneData) -> void:
 	run_scene_data = new_data
 	_update_ui()
 

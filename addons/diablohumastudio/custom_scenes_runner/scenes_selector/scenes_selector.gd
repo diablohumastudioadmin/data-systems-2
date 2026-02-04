@@ -6,7 +6,7 @@ signal scenes_updated
 
 var saved_scenes_resource_path: String
 var item_scene: PackedScene = preload("uid://70e3ag4jq3k6")
-var _scenes: Array[RunSceneData]
+var _scenes: Array[RunnerSceneData]
 var _current_item: SceneItem = null
 
 @onready var items_container: VBoxContainer = %ItemsContainer
@@ -17,7 +17,7 @@ func _ready() -> void:
 	_set_items_from_scenes()
 
 func _on_add_button_pressed() -> void:
-	_scenes.append(RunSceneData.new())
+	_scenes.append(RunnerSceneData.new())
 	_set_items_from_scenes()
 
 func _on_save_button_pressed() -> void:

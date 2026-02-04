@@ -1,4 +1,4 @@
 class_name CSRScenes
 extends Resource
 
-@export var scenes: Array[RunSceneData]
+@export var scenes: Array[RunnerSceneData]
