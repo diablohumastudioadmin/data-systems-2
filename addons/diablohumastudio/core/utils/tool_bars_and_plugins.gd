@@ -52,3 +52,36 @@ static func remove_item_in_toolbar_by_name(tool_bar: PopupMenu ,name: String):
 	for ii in tool_bar.item_count:
 		if tool_bar.get_item_text(ii) == name:
 			tool_bar.remove_item(ii)
+
+## Properly duplicate a PopupMenu with all properties including shortcuts
+static func duplicate_menu(source: PopupMenu) -> PopupMenu:
+	var new_menu = source.duplicate()
+
+	# Clear and rebuild to ensure shortcuts are preserved
+	new_menu.clear()
+
+	for i in source.item_count:
+		var text = source.get_item_text(i)
+		var icon = source.get_item_icon(i)
+		var id = source.get_item_id(i)
+		var accel = source.get_item_accelerator(i)  # This is the shortcut
+		var submenu = source.get_item_submenu(i)
+
+		if submenu:
+			# It's a submenu item
+			var submenu_node = source.get_node(submenu)
+			new_menu.add_submenu_node_item(text, submenu_node)
+		else:
+			# Regular item
+			new_menu.add_item(text, id)
+			if icon:
+				new_menu.set_item_icon(i, icon)
+			if accel != 0:
+				new_menu.set_item_accelerator(i, accel)
+
+		# Copy other properties
+		new_menu.set_item_disabled(i, source.is_item_disabled(i))
+		new_menu.set_item_checked(i, source.is_item_checked(i))
+		new_menu.set_item_tooltip(i, source.get_item_tooltip(i))
+
+	return new_menu

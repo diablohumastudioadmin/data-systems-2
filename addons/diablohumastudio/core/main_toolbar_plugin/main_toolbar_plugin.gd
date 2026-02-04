@@ -34,13 +34,13 @@ func _relocate_inner_to_diablohuma():
 		_move_tool_bar_to_diablohuma(key, active_toolbars[key])
 
 func _move_tool_bar_to_base(name: String, tool_bar: DiablohumaStudioToolMenu):
-	var duplicated_tool_bar = tool_bar.duplicate()
+	var duplicated_tool_bar = ToolBarsAndPlugins.duplicate_menu(tool_bar)
 	ToolBarsAndPlugins.remove_item_in_toolbar_by_name(_diablo_huma_toolbar_menu, name)
-	add_tool_submenu_item(name, duplicated_tool_bar) 
+	add_tool_submenu_item(name, duplicated_tool_bar)
 
 func _move_tool_bar_to_diablohuma(name: String, tool_bar: DiablohumaStudioToolMenu):
-	var duplicated_tool_bar = tool_bar.duplicate()
-	remove_tool_menu_item(name) 
+	var duplicated_tool_bar = ToolBarsAndPlugins.duplicate_menu(tool_bar)
+	remove_tool_menu_item(name)
 	_diablo_huma_toolbar_menu.add_submenu_node_item(name, duplicated_tool_bar)
 
 static func add_toolbar_shubmenu(name: String, sub_menu: PopupMenu, plugin: EditorPlugin):
