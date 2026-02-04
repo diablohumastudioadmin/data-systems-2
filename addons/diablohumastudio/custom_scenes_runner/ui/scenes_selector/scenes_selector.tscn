@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://dlfttbd1xdwe8"]
 
-[ext_resource type="Script" uid="uid://cxrj680q3j6xt" path="res://addons/diablohumastudio/custom_scenes_runner/scenes_selector/scenes_selector.gd" id="1_r7scd"]
+[ext_resource type="Script" uid="uid://cxrj680q3j6xt" path="res://addons/diablohumastudio/custom_scenes_runner/ui/scenes_selector/scenes_selector.gd" id="1_r7scd"]
 
 [node name="ScenesSelector" type="Window" unique_id=951100600]
 oversampling_override = 1.0

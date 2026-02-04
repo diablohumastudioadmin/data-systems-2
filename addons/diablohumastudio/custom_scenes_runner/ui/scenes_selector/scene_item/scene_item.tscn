@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://70e3ag4jq3k6"]
 
-[ext_resource type="Script" uid="uid://clm0a3us4b2sf" path="res://addons/diablohumastudio/custom_scenes_runner/scenes_selector/scene_item/scene_item.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://clm0a3us4b2sf" path="res://addons/diablohumastudio/custom_scenes_runner/ui/scenes_selector/scene_item/scene_item.gd" id="1_script"]
 
 [node name="SceneItem" type="HBoxContainer" unique_id=1882530660]
 script = ExtResource("1_script")
