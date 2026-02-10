@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://dwdqpra1ov4q6"]
 
-[ext_resource type="Script" uid="uid://c6uvppx2u86l6" path="res://addons/diablohumastudio/data_manager/ui/data_manager_window.gd" id="1"]
-[ext_resource type="PackedScene" uid="uid://d22bbxwjb5sxe" path="res://addons/diablohumastudio/data_manager/ui/data_type_editor/data_type_editor.tscn" id="2"]
-[ext_resource type="PackedScene" uid="uid://bn4rk4ufqq05h" path="res://addons/diablohumastudio/data_manager/ui/data_instance_editor/data_instance_editor.tscn" id="3"]
+[ext_resource type="Script" uid="uid://c6uvppx2u86l6" path="res://addons/diablohumastudio/db_manager/ui/db_manager_window.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://d22bbxwjb5sxe" path="res://addons/diablohumastudio/db_manager/ui/data_type_editor/data_type_editor.tscn" id="2"]
+[ext_resource type="PackedScene" uid="uid://bn4rk4ufqq05h" path="res://addons/diablohumastudio/db_manager/ui/data_instance_editor/data_instance_editor.tscn" id="3"]
 
 [node name="DataManagerWindow" type="Window" unique_id=443183502]
 oversampling_override = 1.0
