@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="GameDatabase" format=3 uid="uid://cluupso6wuip3"]
+
+[ext_resource type="Script" uid="uid://co8stjolrhw25" path="res://addons/diablohumastudio/database_manager/core/game_database.gd" id="1_2hyy8"]
+[ext_resource type="Script" uid="uid://uf1e0gtp7nmi" path="res://addons/diablohumastudio/database_manager/core/data_item.gd" id="1_gxtdu"]
+[ext_resource type="Script" uid="uid://bao5vfygmrcu6" path="res://addons/diablohumastudio/database_manager/resources/sss.gd" id="2_76mw0"]
+
+[sub_resource type="Resource" id="Resource_h7q3s"]
+script = ExtResource("2_76mw0")
+
+[resource]
+script = ExtResource("1_2hyy8")
+schemas = {
+"sss": {
+"is_user_data": false,
+"properties": [{
+"default": "",
+"name": "aaa",
+"type": "String"
+}],
+"type_name": "sss"
+}
+}
+instances = {
+"sss": Array[ExtResource("1_gxtdu")]([SubResource("Resource_h7q3s")])
+}
+last_modified = "2026-02-10T09:38:34"

@@ -8,79 +8,79 @@ extends RefCounted
 signal data_changed(type_name: String)  # Emitted when data instances change
 
 var type_registry: DataTypeRegistry
-var data_instances: Dictionary = {}  # type_name -> Array[Dictionary]
+var _instances: Dictionary = {}  # type_name -> Array[DataItem] (private)
+var _storage_adapter: StorageAdapter
 
 
 func _init() -> void:
-	type_registry = DataTypeRegistry.new()
+	# Create storage adapter first
+	_storage_adapter = ResourceStorageAdapter.new()
+	# Pass storage adapter to registry so they share the same database
+	type_registry = DataTypeRegistry.new(_storage_adapter)
 	load_all_instances()
 
 
 ## Load all data instances for all types
 func load_all_instances() -> void:
-	data_instances.clear()
+	_instances.clear()
 
 	for type_name in type_registry.get_game_type_names():
 		load_instances(type_name)
 
-	print("[GameDataSystem] Loaded instances for %d types" % data_instances.size())
+	print("[GameDataSystem] Loaded instances for %d types" % _instances.size())
 
 
 ## Load data instances for a specific type
 func load_instances(type_name: String) -> Error:
-	var file_path = _get_data_file_path(type_name)
-
-	if !JSONPersistence.file_exists(file_path):
-		# Create empty data file
-		data_instances[type_name] = []
-		save_instances(type_name)
-		return OK
-
-	var data = JSONPersistence.load_json(file_path)
-	if data == null:
-		push_error("Failed to load instances for type: %s" % type_name)
-		data_instances[type_name] = []
-		return ERR_FILE_CORRUPT
-
-	data_instances[type_name] = data.get("instances", [])
-	print("[GameDataSystem] Loaded %d instances of %s" % [data_instances[type_name].size(), type_name])
+	_instances[type_name] = _storage_adapter.load_instances(type_name)
+	print("[GameDataSystem] Loaded %d instances of %s" % [_instances[type_name].size(), type_name])
 	return OK
 
 
 ## Save data instances for a specific type
 func save_instances(type_name: String) -> Error:
-	var file_path = _get_data_file_path(type_name)
-	var instances = data_instances.get(type_name, [])
+	if not _instances.has(type_name):
+		return OK
 
-	var data = {
-		"type": type_name,
-		"instances": instances
-	}
+	# Convert to typed array properly
+	var items: Array[DataItem] = []
+	items.assign(_instances[type_name])
 
-	var error = JSONPersistence.save_json(file_path, data)
-	if error == OK:
-		print("[GameDataSystem] Saved %d instances of %s" % [instances.size(), type_name])
+	var err := _storage_adapter.save_instances(type_name, items)
+	if err == OK:
+		print("[GameDataSystem] Saved %d instances of %s" % [items.size(), type_name])
 	else:
 		push_error("Failed to save instances for type: %s" % type_name)
-
-	return error
+	return err
 
 
 ## Add a new data instance
 func add_instance(type_name: String, instance_data: Dictionary) -> bool:
-	if !data_instances.has(type_name):
-		data_instances[type_name] = []
+	# Ensure typed array exists
+	if not _instances.has(type_name):
+		var empty: Array[DataItem] = []
+		_instances[type_name] = empty
 
 	# Validate against type definition
-	var type_def = type_registry.get_type(type_name)
+	var type_def := type_registry.get_type(type_name)
 	if type_def == null:
 		push_error("Type not found: %s" % type_name)
 		return false
 
-	if !type_def.validate_instance(instance_data):
+	if not type_def.validate_instance(instance_data):
 		push_warning("Instance validation failed for type: %s" % type_name)
 
-	data_instances[type_name].append(instance_data)
+	# Convert Dictionary -> DataItem Resource
+	var item := _create_data_item(type_name, instance_data)
+	if item == null:
+		return false
+
+	# Get as typed array, append, and store back
+	var items: Array[DataItem] = []
+	items.assign(_instances[type_name])
+	items.append(item)
+	_instances[type_name] = items
+
 	save_instances(type_name)
 	data_changed.emit(type_name)
 	return true
@@ -88,14 +88,17 @@ func add_instance(type_name: String, instance_data: Dictionary) -> bool:
 
 ## Remove a data instance by index
 func remove_instance(type_name: String, index: int) -> bool:
-	if !data_instances.has(type_name):
+	if not _instances.has(type_name):
 		return false
 
-	var instances = data_instances[type_name]
-	if index < 0 or index >= instances.size():
+	var items: Array[DataItem] = []
+	items.assign(_instances[type_name])
+
+	if index < 0 or index >= items.size():
 		return false
 
-	instances.remove_at(index)
+	items.remove_at(index)
+	_instances[type_name] = items
 	save_instances(type_name)
 	data_changed.emit(type_name)
 	return true
@@ -103,20 +106,25 @@ func remove_instance(type_name: String, index: int) -> bool:
 
 ## Update a data instance
 func update_instance(type_name: String, index: int, instance_data: Dictionary) -> bool:
-	if !data_instances.has(type_name):
+	if not _instances.has(type_name):
 		return false
 
-	var instances = data_instances[type_name]
-	if index < 0 or index >= instances.size():
+	var items: Array[DataItem] = []
+	items.assign(_instances[type_name])
+
+	if index < 0 or index >= items.size():
 		return false
 
 	# Validate against type definition
-	var type_def = type_registry.get_type(type_name)
+	var type_def := type_registry.get_type(type_name)
 	if type_def != null:
-		if !type_def.validate_instance(instance_data):
+		if not type_def.validate_instance(instance_data):
 			push_warning("Instance validation failed for type: %s" % type_name)
 
-	instances[index] = instance_data
+	# Update existing DataItem in place
+	items[index].from_dict(instance_data)
+	_instances[type_name] = items
+
 	save_instances(type_name)
 	data_changed.emit(type_name)
 	return true
@@ -124,7 +132,18 @@ func update_instance(type_name: String, index: int, instance_data: Dictionary) -
 
 ## Get all instances for a type
 func get_instances(type_name: String) -> Array:
-	return data_instances.get(type_name, [])
+	# Convert DataItem -> Dictionary for UI
+	if not _instances.has(type_name):
+		return []
+
+	var items: Array[DataItem] = []
+	items.assign(_instances[type_name])
+
+	var result: Array = []
+	for item in items:
+		result.append(item.to_dict())
+
+	return result
 
 
 ## Get instance by index
@@ -154,15 +173,11 @@ func create_default_instance(type_name: String) -> Dictionary:
 	return type_def.create_default_instance()
 
 
-## Get data file path for a type
-func _get_data_file_path(type_name: String) -> String:
-	return "res://data/%s.json" % type_name.to_lower()
-
-
 ## Delete all instances for a type
 func clear_instances(type_name: String) -> void:
-	if data_instances.has(type_name):
-		data_instances[type_name].clear()
+	if _instances.has(type_name):
+		var empty: Array[DataItem] = []
+		_instances[type_name] = empty
 		save_instances(type_name)
 		data_changed.emit(type_name)
 
@@ -170,3 +185,21 @@ func clear_instances(type_name: String) -> void:
 ## Get count of instances for a type
 func get_instance_count(type_name: String) -> int:
 	return get_instances(type_name).size()
+
+
+## Helper method to create DataItem instances
+func _create_data_item(type_name: String, data: Dictionary) -> DataItem:
+	# Load the generated Resource class
+	var script_path := "res://addons/diablohumastudio/database_manager/resources/%s.gd" % type_name.to_lower()
+
+	if not ResourceLoader.exists(script_path):
+		push_error("Resource script not found: %s" % script_path)
+		return null
+
+	var script := load(script_path) as GDScript
+	if script == null:
+		return null
+
+	var item: DataItem = script.new()
+	item.from_dict(data)
+	return item
