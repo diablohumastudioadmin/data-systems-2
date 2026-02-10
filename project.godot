@@ -15,11 +15,6 @@ run/main_scene="uid://dtxk5w0lnwya0"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
-[autoload]
-
-UserDataSystem="*res://addons/diablohumastudio/user_data_system/user_data_system.gd"
-ActionsSystem="*res://addons/diablohumastudio/actions_system/actions_system.gd"
-
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/aaa/plugin.cfg", "res://addons/diablohumastudio/core/main_toolbar_plugin/plugin.cfg", "res://addons/diablohumastudio/custom_scenes_runner/plugin.cfg", "res://addons/diablohumastudio/data_manager/plugin.cfg", "res://addons/diablohumastudio/scenes_and_resources_resaver/plugin.cfg")
