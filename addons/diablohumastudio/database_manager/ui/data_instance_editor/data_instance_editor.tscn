@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bn4rk4ufqq05h"]
 
-[ext_resource type="Script" uid="uid://dhudo2n2y4n6w" path="res://addons/diablohumastudio/db_manager/ui/data_instance_editor/data_instance_editor.gd" id="1_ugsc3"]
+[ext_resource type="Script" uid="uid://dhudo2n2y4n6w" path="res://addons/diablohumastudio/database_manager/ui/data_instance_editor/data_instance_editor.gd" id="1_ugsc3"]
 
 [node name="DataInstanceEditor" type="Control" unique_id=1244572209]
 layout_mode = 3
