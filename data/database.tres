@@ -2,25 +2,50 @@
 
 [ext_resource type="Script" uid="uid://co8stjolrhw25" path="res://addons/diablohumastudio/database_manager/core/game_database.gd" id="1_2hyy8"]
 [ext_resource type="Script" uid="uid://uf1e0gtp7nmi" path="res://addons/diablohumastudio/database_manager/core/data_item.gd" id="1_gxtdu"]
-[ext_resource type="Script" uid="uid://bao5vfygmrcu6" path="res://addons/diablohumastudio/database_manager/resources/sss.gd" id="2_76mw0"]
+[ext_resource type="Script" uid="uid://d3ctvbbcp4pp7" path="res://addons/diablohumastudio/database_manager/resources/level.gd" id="2_gxtdu"]
+
+[sub_resource type="Resource" id="Resource_76mw0"]
+script = ExtResource("2_gxtdu")
+reward = 600
+unlock_conditions = [true, false]
+
+[sub_resource type="Resource" id="Resource_gxtdu"]
+script = ExtResource("2_gxtdu")
+reward = 600
 
 [sub_resource type="Resource" id="Resource_h7q3s"]
-script = ExtResource("2_76mw0")
+script = ExtResource("2_gxtdu")
+reward = 600
+unlock_conditions = [false]
 
 [resource]
 script = ExtResource("1_2hyy8")
 schemas = {
-"sss": {
+"Level": {
+"is_user_data": false,
+"properties": [{
+"default": 0.0,
+"name": "reward",
+"type": "int"
+}, {
+"default": [],
+"name": "unlock_conditions",
+"type": "Array"
+}],
+"type_name": "Level"
+},
+"sdfsdf": {
 "is_user_data": false,
 "properties": [{
 "default": "",
-"name": "aaa",
+"name": "a",
 "type": "String"
 }],
-"type_name": "sss"
+"type_name": "sdfsdf"
 }
 }
 instances = {
-"sss": Array[ExtResource("1_gxtdu")]([SubResource("Resource_h7q3s")])
+"Level": Array[ExtResource("1_gxtdu")]([SubResource("Resource_76mw0"), SubResource("Resource_gxtdu"), SubResource("Resource_h7q3s")]),
+"sss": []
 }
-last_modified = "2026-02-10T09:38:34"
+last_modified = "2026-02-11T10:36:47"

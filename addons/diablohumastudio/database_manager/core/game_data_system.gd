@@ -146,6 +146,16 @@ func get_instances(type_name: String) -> Array:
 	return result
 
 
+## Get actual DataItem resources for a type (for direct Inspector editing)
+## Unlike get_instances() which returns dictionaries, this returns the live Resources
+func get_data_items(type_name: String) -> Array[DataItem]:
+	if not _instances.has(type_name):
+		return []
+	var items: Array[DataItem] = []
+	items.assign(_instances[type_name])
+	return items
+
+
 ## Get instance by index
 func get_instance(type_name: String, index: int) -> Dictionary:
 	var instances = get_instances(type_name)
