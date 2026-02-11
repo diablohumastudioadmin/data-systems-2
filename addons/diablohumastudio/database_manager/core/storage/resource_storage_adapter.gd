@@ -7,7 +7,7 @@ extends StorageAdapter
 
 const DATABASE_PATH := "res://data/database.tres"
 
-var _database: GameDatabase
+var _database: Database
 var _is_loaded: bool = false
 
 
@@ -30,12 +30,12 @@ func _ensure_database_loaded() -> void:
 	# Load existing database or create new one
 	if ResourceLoader.exists(DATABASE_PATH):
 		_database = ResourceLoader.load(DATABASE_PATH)
-		if _database == null or not _database is GameDatabase:
+		if _database == null or not _database is Database:
 			push_error("[ResourceStorageAdapter] Failed to load database, creating new one")
-			_database = GameDatabase.new()
+			_database = Database.new()
 	else:
 		print("[ResourceStorageAdapter] Creating new database at: %s" % DATABASE_PATH)
-		_database = GameDatabase.new()
+		_database = Database.new()
 		_save_database()
 
 	_is_loaded = true
@@ -81,7 +81,7 @@ func get_data_path(type_name: String) -> String:
 
 
 ## Get the centralized database (for DataTypeRegistry to access schemas)
-func get_database() -> GameDatabase:
+func get_database() -> Database:
 	_ensure_database_loaded()
 	return _database
 

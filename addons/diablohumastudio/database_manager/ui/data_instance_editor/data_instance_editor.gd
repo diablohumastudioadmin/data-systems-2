@@ -17,7 +17,7 @@ const BulkEditProxyScript = preload("bulk_edit_proxy.gd")
 @onready var refresh_btn: Button = $VBox/Toolbar/RefreshBtn
 @onready var status_label: Label = $VBox/StatusBar/StatusLabel
 
-var game_data_system: GameDataSystem
+var database_system: DatabaseSystem
 var current_type_name: String = ""
 
 ## Live references to the actual DataItem Resources (not dictionaries)
@@ -37,8 +37,8 @@ var _inspector_connected: bool = false
 # --- Lifecycle ---------------------------------------------------------------
 
 func _ready() -> void:
-	if !game_data_system:
-		game_data_system = GameDataSystem.new()
+	if !database_system:
+		database_system = DatabaseSystem.new()
 
 	_setup_ui()
 	_connect_signals()
@@ -95,7 +95,7 @@ func _disconnect_inspector() -> void:
 
 func _refresh_type_selector() -> void:
 	type_selector.clear()
-	var types = game_data_system.type_registry.get_game_type_names()
+	var types = database_system.type_registry.get_game_type_names()
 	for i in range(types.size()):
 		type_selector.add_item(types[i], i)
 
@@ -114,7 +114,7 @@ func _load_type(type_name: String) -> void:
 	_end_bulk_edit()
 	_clear_inspected_item()
 
-	var type_def = game_data_system.type_registry.get_type(type_name)
+	var type_def = database_system.type_registry.get_type(type_name)
 	if type_def == null:
 		push_error("Type not found: %s" % type_name)
 		return
@@ -142,12 +142,12 @@ func _refresh_instances() -> void:
 	if current_type_name.is_empty():
 		return
 
-	var type_def = game_data_system.type_registry.get_type(current_type_name)
+	var type_def = database_system.type_registry.get_type(current_type_name)
 	if type_def == null:
 		return
 
 	# Get ACTUAL DataItem resources (not dictionaries)
-	_data_items = game_data_system.get_data_items(current_type_name)
+	_data_items = database_system.get_data_items(current_type_name)
 
 	for idx in range(_data_items.size()):
 		var data_item := _data_items[idx]
@@ -230,13 +230,13 @@ func _on_inspector_property_edited(property: String) -> void:
 		return
 
 	# Guard: only react if the property belongs to our type definition
-	var type_def = game_data_system.type_registry.get_type(current_type_name)
+	var type_def = database_system.type_registry.get_type(current_type_name)
 	if type_def == null or not type_def.has_property(property):
 		return
 
 	# The Inspector already modified the DataItem in-place (it's a Resource).
 	# We just need to save and refresh the Tree display.
-	game_data_system.save_instances(current_type_name)
+	database_system.save_instances(current_type_name)
 	_refresh_instances()
 
 
@@ -249,7 +249,7 @@ func _setup_bulk_edit_menu() -> void:
 	if popup.id_pressed.is_connected(_on_bulk_edit_property_selected):
 		popup.id_pressed.disconnect(_on_bulk_edit_property_selected)
 
-	var type_def = game_data_system.type_registry.get_type(current_type_name)
+	var type_def = database_system.type_registry.get_type(current_type_name)
 	if type_def == null:
 		return
 
@@ -260,7 +260,7 @@ func _setup_bulk_edit_menu() -> void:
 
 
 func _on_bulk_edit_property_selected(id: int) -> void:
-	var type_def = game_data_system.type_registry.get_type(current_type_name)
+	var type_def = database_system.type_registry.get_type(current_type_name)
 	if type_def == null or id >= type_def.properties.size():
 		return
 	_start_bulk_edit(type_def.properties[id])
@@ -296,7 +296,7 @@ func _on_bulk_value_changed(property_name: String, new_value: Variant) -> void:
 			_data_items[idx].set(property_name, new_value)
 
 	# Persist and refresh
-	game_data_system.save_instances(current_type_name)
+	database_system.save_instances(current_type_name)
 	_refresh_instances()
 
 
@@ -314,8 +314,8 @@ func _end_bulk_edit() -> void:
 func _on_add_instance_pressed() -> void:
 	if current_type_name.is_empty():
 		return
-	var instance_data := game_data_system.create_default_instance(current_type_name)
-	game_data_system.add_instance(current_type_name, instance_data)
+	var instance_data: Dictionary = database_system.create_default_instance(current_type_name)
+	database_system.add_instance(current_type_name, instance_data)
 	_refresh_instances()
 	_update_status("Added new instance")
 
@@ -336,7 +336,7 @@ func _on_delete_instance_pressed() -> void:
 		indices.reverse()
 
 		for idx in indices:
-			game_data_system.remove_instance(current_type_name, idx)
+			database_system.remove_instance(current_type_name, idx)
 
 		_clear_inspected_item()
 		_end_bulk_edit()
@@ -350,13 +350,13 @@ func _on_delete_instance_pressed() -> void:
 
 func _on_save_all_pressed() -> void:
 	if not current_type_name.is_empty():
-		game_data_system.save_instances(current_type_name)
+		database_system.save_instances(current_type_name)
 		_update_status("Saved all instances")
 
 
 func _on_refresh_pressed() -> void:
 	if not current_type_name.is_empty():
-		game_data_system.load_instances(current_type_name)
+		database_system.load_instances(current_type_name)
 		_refresh_instances()
 		_update_status("Refreshed from disk")
 

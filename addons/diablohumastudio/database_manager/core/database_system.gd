@@ -1,8 +1,8 @@
 @tool
-class_name GameDataSystem
+class_name DatabaseSystem
 extends RefCounted
 
-## Game Data System
+## Database System
 ## Manages data type definitions and data instances
 
 signal data_changed(type_name: String)  # Emitted when data instances change
@@ -27,13 +27,13 @@ func load_all_instances() -> void:
 	for type_name in type_registry.get_game_type_names():
 		load_instances(type_name)
 
-	print("[GameDataSystem] Loaded instances for %d types" % _instances.size())
+	print("[DatabaseSystem] Loaded instances for %d types" % _instances.size())
 
 
 ## Load data instances for a specific type
 func load_instances(type_name: String) -> Error:
 	_instances[type_name] = _storage_adapter.load_instances(type_name)
-	print("[GameDataSystem] Loaded %d instances of %s" % [_instances[type_name].size(), type_name])
+	print("[DatabaseSystem] Loaded %d instances of %s" % [_instances[type_name].size(), type_name])
 	return OK
 
 
@@ -48,7 +48,7 @@ func save_instances(type_name: String) -> Error:
 
 	var err := _storage_adapter.save_instances(type_name, items)
 	if err == OK:
-		print("[GameDataSystem] Saved %d instances of %s" % [items.size(), type_name])
+		print("[DatabaseSystem] Saved %d instances of %s" % [items.size(), type_name])
 	else:
 		push_error("Failed to save instances for type: %s" % type_name)
 	return err
@@ -200,7 +200,7 @@ func get_instance_count(type_name: String) -> int:
 ## Helper method to create DataItem instances
 func _create_data_item(type_name: String, data: Dictionary) -> DataItem:
 	# Load the generated Resource class
-	var script_path := "res://addons/diablohumastudio/database_manager/resources/%s.gd" % type_name.to_lower()
+	var script_path := "res://addons/diablohumastudio/database_manager/table_structures/%s.gd" % type_name.to_lower()
 
 	if not ResourceLoader.exists(script_path):
 		push_error("Resource script not found: %s" % script_path)

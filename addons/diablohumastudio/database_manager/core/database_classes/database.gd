@@ -1,5 +1,5 @@
 @tool
-class_name GameDatabase
+class_name Database
 extends Resource
 
 ## Centralized database resource containing all schemas and instances

@@ -1,22 +1,6 @@
-[gd_resource type="Resource" script_class="GameDatabase" format=3 uid="uid://cluupso6wuip3"]
+[gd_resource type="Resource" script_class="Database" format=3 uid="uid://cluupso6wuip3"]
 
-[ext_resource type="Script" uid="uid://co8stjolrhw25" path="res://addons/diablohumastudio/database_manager/core/game_database.gd" id="1_2hyy8"]
-[ext_resource type="Script" uid="uid://uf1e0gtp7nmi" path="res://addons/diablohumastudio/database_manager/core/data_item.gd" id="1_gxtdu"]
-[ext_resource type="Script" uid="uid://d3ctvbbcp4pp7" path="res://addons/diablohumastudio/database_manager/resources/level.gd" id="2_gxtdu"]
-
-[sub_resource type="Resource" id="Resource_76mw0"]
-script = ExtResource("2_gxtdu")
-reward = 600
-unlock_conditions = [true, false]
-
-[sub_resource type="Resource" id="Resource_gxtdu"]
-script = ExtResource("2_gxtdu")
-reward = 600
-
-[sub_resource type="Resource" id="Resource_h7q3s"]
-script = ExtResource("2_gxtdu")
-reward = 600
-unlock_conditions = [false]
+[ext_resource type="Script" uid="uid://co8stjolrhw25" path="res://addons/diablohumastudio/database_manager/core/database_classes/database.gd" id="1_2hyy8"]
 
 [resource]
 script = ExtResource("1_2hyy8")
@@ -29,23 +13,13 @@ schemas = {
 "type": "int"
 }, {
 "default": [],
-"name": "unlock_conditions",
+"name": "unlock_cond",
 "type": "Array"
 }],
 "type_name": "Level"
-},
-"sdfsdf": {
-"is_user_data": false,
-"properties": [{
-"default": "",
-"name": "a",
-"type": "String"
-}],
-"type_name": "sdfsdf"
 }
 }
 instances = {
-"Level": Array[ExtResource("1_gxtdu")]([SubResource("Resource_76mw0"), SubResource("Resource_gxtdu"), SubResource("Resource_h7q3s")]),
 "sss": []
 }
-last_modified = "2026-02-11T10:36:47"
+last_modified = "2026-02-11T11:23:22"

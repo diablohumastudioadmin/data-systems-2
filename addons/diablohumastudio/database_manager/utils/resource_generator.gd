@@ -5,7 +5,7 @@ extends RefCounted
 ## Generates GDScript Resource classes from DataTypeDefinition
 ## Creates .gd files that can be used as custom Resource types in inspector
 
-const BASE_RESOURCES_PATH = "res://addons/diablohumastudio/database_manager/resources/"
+const BASE_RESOURCES_PATH = "res://addons/diablohumastudio/database_manager/table_structures/"
 
 
 ## Generate Resource class file from definition

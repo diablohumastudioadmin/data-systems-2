@@ -1,5 +1,5 @@
 @tool
-class_name DataItemContainer
+class_name DataTable
 extends Resource
 
 ## Container resource for storing arrays of DataItem instances as .tres files

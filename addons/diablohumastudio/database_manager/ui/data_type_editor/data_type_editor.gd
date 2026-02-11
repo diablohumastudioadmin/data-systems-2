@@ -20,15 +20,15 @@ signal type_selected(type_name: String, is_user_data: bool)
 @onready var new_type_btn: Button = $VBox/VBoxContainer/TypeListPanel/VBox/HBoxContainer/NewTypeBtn
 @onready var refresh_btn: Button = $VBox/VBoxContainer/TypeListPanel/VBox/HBoxContainer/RefreshBtn
 
-var game_data_system: GameDataSystem
+var database_system: DatabaseSystem
 var current_type_name: String = ""
 var current_is_user_data: bool = false
 var property_rows: Array = []  # Array of PropertyEditorRow nodes
 
 
 func _ready() -> void:
-	if !game_data_system:
-		game_data_system = GameDataSystem.new()
+	if !database_system:
+		database_system = DatabaseSystem.new()
 
 	_connect_signals()
 	_refresh_type_list()
@@ -48,8 +48,8 @@ func _refresh_type_list() -> void:
 	type_list.clear()
 
 	# Show all types (game + user) in single list
-	var game_type_names = game_data_system.type_registry.get_game_type_names()
-	var user_type_names = game_data_system.type_registry.get_user_type_names()
+	var game_type_names = database_system.type_registry.get_game_type_names()
+	var user_type_names = database_system.type_registry.get_user_type_names()
 
 	# Add game types
 	for type_name in game_type_names:
@@ -77,7 +77,7 @@ func _on_type_list_item_selected(index: int) -> void:
 func _load_type(type_name: String) -> void:
 	current_type_name = type_name
 
-	var type_def = game_data_system.type_registry.get_type(type_name, current_is_user_data)
+	var type_def = database_system.type_registry.get_type(type_name, current_is_user_data)
 	if type_def == null:
 		push_error("Type not found: %s" % type_name)
 		return
@@ -158,10 +158,10 @@ func _on_save_type_pressed() -> void:
 	var success = false
 	if current_type_name.is_empty():
 		# New type
-		success = game_data_system.type_registry.add_type(definition)
+		success = database_system.type_registry.add_type(definition)
 	else:
 		# Update existing type
-		success = game_data_system.type_registry.update_type(definition)
+		success = database_system.type_registry.update_type(definition)
 
 	if success:
 		print("[DataTypeTab] Saved type: %s" % type_name)
@@ -180,7 +180,7 @@ func _on_delete_type_pressed() -> void:
 	var confirm = ConfirmationDialog.new()
 	confirm.dialog_text = "Delete type '%s'?\nThis cannot be undone." % current_type_name
 	confirm.confirmed.connect(func():
-		var success = game_data_system.type_registry.remove_type(current_type_name, current_is_user_data)
+		var success = database_system.type_registry.remove_type(current_type_name, current_is_user_data)
 		if success:
 			print("[DataTypeTab] Deleted type: %s" % current_type_name)
 			_clear_editor()
