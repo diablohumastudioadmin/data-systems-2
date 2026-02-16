@@ -44,7 +44,7 @@ func has_type(type_name: String) -> bool:
 ## Only returns @export properties declared in the generated subclass.
 ## Returns: [{name, type (Variant.Type), default, hint, hint_string, class_name}, ...]
 func get_type_properties(type_name: String) -> Array[Dictionary]:
-	var script_path = "res://database/res/.table_structures/%s.gd" % type_name.to_lower()
+	var script_path = "res://database/res/table_structures/%s.gd" % type_name.to_lower()
 	if not ResourceLoader.exists(script_path):
 		return []
 
@@ -209,13 +209,15 @@ func get_instance_count(type_name: String) -> int:
 
 
 func _create_data_item(type_name: String) -> DataItem:
-	var script_path := "res://database/res/.table_structures/%s.gd" % type_name.to_lower()
+	var script_path := "res://database/res/table_structures/%s.gd" % type_name.to_lower()
 	if not ResourceLoader.exists(script_path):
 		push_error("Resource script not found: %s" % script_path)
 		return null
 
 	# CACHE_MODE_REPLACE forces reload from disk (critical after regeneration)
-	var script := ResourceLoader.load(script_path, "", ResourceLoader.CACHE_MODE_REPLACE) as GDScript
+	var script := ResourceLoader.load(
+		script_path, "", ResourceLoader.CACHE_MODE_REPLACE
+	) as GDScript
 	if script == null:
 		return null
 

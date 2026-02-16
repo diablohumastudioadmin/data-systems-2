@@ -5,7 +5,7 @@ extends RefCounted
 ## Generates GDScript Resource classes (table structures)
 ## Creates .gd files that serve as both schema definitions and typed DataItem subclasses
 
-const BASE_RESOURCES_PATH = "res://database/res/.table_structures/"
+const BASE_RESOURCES_PATH = "res://database/res/table_structures/"
 
 ## Property types supported by the system
 enum PropertyType {
@@ -185,8 +185,17 @@ static func delete_resource_class(type_name: String) -> Error:
 	return dir.remove(file_path.get_file())
 
 
-## Ensure directory exists
+## Ensure directory exists, with .gdignore to hide from FileSystem dock
 static func _ensure_directory(dir_path: String) -> Error:
 	if DirAccess.dir_exists_absolute(dir_path):
 		return OK
-	return DirAccess.make_dir_recursive_absolute(dir_path)
+	var err := DirAccess.make_dir_recursive_absolute(dir_path)
+	if err != OK:
+		return err
+	# Place .gdignore so Godot's FileSystem dock ignores this folder
+	var gdignore_path := dir_path.path_join(".gdignore")
+	if not FileAccess.file_exists(gdignore_path):
+		var f := FileAccess.open(gdignore_path, FileAccess.WRITE)
+		if f:
+			f.close()
+	return OK
