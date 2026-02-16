@@ -7,11 +7,20 @@
 
 [sub_resource type="Resource" id="Resource_7n4m2"]
 script = ExtResource("4_u2e75")
+background_color = Color(0, 0.8117647, 0, 1)
+
+[sub_resource type="Resource" id="Resource_muxde"]
+script = ExtResource("4_u2e75")
+background_color = Color(0, 0.8117647, 0, 1)
+
+[sub_resource type="Resource" id="Resource_e12gq"]
+script = ExtResource("4_u2e75")
+background_color = Color(0, 0.8117647, 0, 1)
 
 [sub_resource type="Resource" id="Resource_u2e75"]
 script = ExtResource("2_mcntd")
 type_name = "Level"
-instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_7n4m2")])
+instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_7n4m2"), SubResource("Resource_muxde"), SubResource("Resource_e12gq")])
 
 [sub_resource type="Resource" id="Resource_mcntd"]
 script = ExtResource("2_mcntd")
