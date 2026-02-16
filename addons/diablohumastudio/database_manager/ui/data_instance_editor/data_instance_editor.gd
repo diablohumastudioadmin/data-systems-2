@@ -217,6 +217,10 @@ func _inspect_item(data_item: DataItem) -> void:
 	_clear_inspected_item()
 	_inspected_item = data_item
 	EditorInterface.inspect_object(data_item)
+	# Bring focus to the Inspector dock so the user notices the change
+	var inspector := EditorInterface.get_inspector()
+	if inspector:
+		inspector.grab_focus()
 
 
 func _clear_inspected_item() -> void:
