@@ -26,8 +26,9 @@ var property_rows: Array = []  # Array of PropertyEditorRow nodes
 
 
 func _ready() -> void:
-	if !database_system:
-		database_system = DatabaseSystem.new()
+	# database_system is null when editing the scene in the editor
+	if not database_system:
+		return
 
 	_connect_signals()
 	_refresh_type_list()

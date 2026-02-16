@@ -37,8 +37,9 @@ var _inspector_connected: bool = false
 # --- Lifecycle ---------------------------------------------------------------
 
 func _ready() -> void:
-	if !database_system:
-		database_system = DatabaseSystem.new()
+	# database_system is null when editing the scene in the editor
+	if not database_system:
+		return
 
 	_setup_ui()
 	_connect_signals()

@@ -10,6 +10,10 @@ func _ready() -> void:
 
 	await get_tree().process_frame
 
+	# database_system is null when editing the scene in the editor
+	if not database_system:
+		return
+
 	%TablesEditor.database_system = database_system
 	%DataInstanceEditor.database_system = database_system
 
