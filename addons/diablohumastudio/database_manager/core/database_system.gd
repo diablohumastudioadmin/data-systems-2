@@ -2,206 +2,205 @@
 class_name DatabaseSystem
 extends RefCounted
 
-## Database System
-## Manages data type definitions and data instances
+## Single orchestrator for the database system.
+## Manages types (via generated .gd scripts) and instances (via DataTable).
 
-signal data_changed(type_name: String)  # Emitted when data instances change
+signal data_changed(type_name: String)
+signal types_changed()
 
-var type_registry: DataTypeRegistry
-var _instances: Dictionary = {}  # type_name -> Array[DataItem] (private)
 var _storage_adapter: StorageAdapter
+var _database: Database
 
 
 func _init() -> void:
-	# Create storage adapter first
 	_storage_adapter = ResourceStorageAdapter.new()
-	# Pass storage adapter to registry so they share the same database
-	type_registry = DataTypeRegistry.new(_storage_adapter)
-	load_all_instances()
+	_database = _storage_adapter.load_database()
 
 
-## Load all data instances for all types
-func load_all_instances() -> void:
-	_instances.clear()
-
-	for type_name in type_registry.get_game_type_names():
-		load_instances(type_name)
-
-	print("[DatabaseSystem] Loaded instances for %d types" % _instances.size())
+func save() -> Error:
+	return _storage_adapter.save_database(_database)
 
 
-## Load data instances for a specific type
-func load_instances(type_name: String) -> Error:
-	_instances[type_name] = _storage_adapter.load_instances(type_name)
-	print("[DatabaseSystem] Loaded %d instances of %s" % [_instances[type_name].size(), type_name])
-	return OK
+# --- Type/Table Management ---------------------------------------------------
+
+func get_table_names() -> Array[String]:
+	return _database.get_table_names()
 
 
-## Save data instances for a specific type
-func save_instances(type_name: String) -> Error:
-	if not _instances.has(type_name):
-		return OK
-
-	# Convert to typed array properly
-	var items: Array[DataItem] = []
-	items.assign(_instances[type_name])
-
-	var err := _storage_adapter.save_instances(type_name, items)
-	if err == OK:
-		print("[DatabaseSystem] Saved %d instances of %s" % [items.size(), type_name])
-	else:
-		push_error("Failed to save instances for type: %s" % type_name)
-	return err
+func get_table(type_name: String) -> DataTable:
+	return _database.get_table(type_name)
 
 
-## Add a new data instance
-func add_instance(type_name: String, instance_data: Dictionary) -> bool:
-	# Ensure typed array exists
-	if not _instances.has(type_name):
-		var empty: Array[DataItem] = []
-		_instances[type_name] = empty
-
-	# Validate against type definition
-	var type_def := type_registry.get_type(type_name)
-	if type_def == null:
-		push_error("Type not found: %s" % type_name)
-		return false
-
-	if not type_def.validate_instance(instance_data):
-		push_warning("Instance validation failed for type: %s" % type_name)
-
-	# Convert Dictionary -> DataItem Resource
-	var item := _create_data_item(type_name, instance_data)
-	if item == null:
-		return false
-
-	# Get as typed array, append, and store back
-	var items: Array[DataItem] = []
-	items.assign(_instances[type_name])
-	items.append(item)
-	_instances[type_name] = items
-
-	save_instances(type_name)
-	data_changed.emit(type_name)
-	return true
+func has_type(type_name: String) -> bool:
+	return _database.has_table(type_name)
 
 
-## Remove a data instance by index
-func remove_instance(type_name: String, index: int) -> bool:
-	if not _instances.has(type_name):
-		return false
-
-	var items: Array[DataItem] = []
-	items.assign(_instances[type_name])
-
-	if index < 0 or index >= items.size():
-		return false
-
-	items.remove_at(index)
-	_instances[type_name] = items
-	save_instances(type_name)
-	data_changed.emit(type_name)
-	return true
-
-
-## Update a data instance
-func update_instance(type_name: String, index: int, instance_data: Dictionary) -> bool:
-	if not _instances.has(type_name):
-		return false
-
-	var items: Array[DataItem] = []
-	items.assign(_instances[type_name])
-
-	if index < 0 or index >= items.size():
-		return false
-
-	# Validate against type definition
-	var type_def := type_registry.get_type(type_name)
-	if type_def != null:
-		if not type_def.validate_instance(instance_data):
-			push_warning("Instance validation failed for type: %s" % type_name)
-
-	# Update existing DataItem in place
-	items[index].from_dict(instance_data)
-	_instances[type_name] = items
-
-	save_instances(type_name)
-	data_changed.emit(type_name)
-	return true
-
-
-## Get all instances for a type
-func get_instances(type_name: String) -> Array:
-	# Convert DataItem -> Dictionary for UI
-	if not _instances.has(type_name):
+## Read schema from the generated .gd script via reflection.
+## Returns: [{name, type (Variant.Type), default, hint, hint_string, class_name}, ...]
+func get_type_properties(type_name: String) -> Array[Dictionary]:
+	var script_path = "res://data/res/table_structures/%s.gd" % type_name.to_lower()
+	if not ResourceLoader.exists(script_path):
 		return []
 
-	var items: Array[DataItem] = []
-	items.assign(_instances[type_name])
+	var script = load(script_path) as GDScript
+	if script == null:
+		return []
 
-	var result: Array = []
-	for item in items:
-		result.append(item.to_dict())
+	var temp = script.new()
+	var props: Array[Dictionary] = []
+	for p in script.get_script_property_list():
+		props.append({
+			"name": p.name,
+			"type": p.type,
+			"default": temp.get(p.name),
+			"hint": p.get("hint", PROPERTY_HINT_NONE),
+			"hint_string": p.get("hint_string", ""),
+			"class_name": p.get("class_name", "")
+		})
+	return props
 
-	return result
+
+## Check if a type has a specific property
+func type_has_property(type_name: String, property_name: String) -> bool:
+	var props = get_type_properties(type_name)
+	for p in props:
+		if p.name == property_name:
+			return true
+	return false
 
 
-## Get actual DataItem resources for a type (for direct Inspector editing)
-## Unlike get_instances() which returns dictionaries, this returns the live Resources
+## Add a new type (generates .gd file + creates DataTable)
+## properties: Array of {name: String, type: ResourceGenerator.PropertyType, default: Variant}
+func add_type(type_name: String, properties: Array[Dictionary]) -> bool:
+	if _database.has_table(type_name):
+		push_warning("Type already exists: %s" % type_name)
+		return false
+
+	ResourceGenerator.generate_resource_class(type_name, properties)
+
+	var table := DataTable.new()
+	table.type_name = type_name
+	_database.add_table(table)
+
+	var err := save()
+	if err != OK:
+		push_error("Failed to save after adding type: %s" % type_name)
+		return false
+
+	types_changed.emit()
+	return true
+
+
+## Update an existing type (regenerates .gd file)
+func update_type(type_name: String, properties: Array[Dictionary]) -> bool:
+	if not _database.has_table(type_name):
+		push_warning("Type not found: %s" % type_name)
+		return false
+
+	ResourceGenerator.generate_resource_class(type_name, properties)
+
+	var err := save()
+	if err != OK:
+		push_error("Failed to save after updating type: %s" % type_name)
+		return false
+
+	types_changed.emit()
+	return true
+
+
+## Remove a type (deletes .gd file + removes DataTable)
+func remove_type(type_name: String) -> bool:
+	if not _database.has_table(type_name):
+		push_warning("Type not found: %s" % type_name)
+		return false
+
+	_database.remove_table(type_name)
+	ResourceGenerator.delete_resource_class(type_name)
+
+	var err := save()
+	if err != OK:
+		push_error("Failed to save after removing type: %s" % type_name)
+		return false
+
+	types_changed.emit()
+	return true
+
+
+# --- Instance Management -----------------------------------------------------
+
 func get_data_items(type_name: String) -> Array[DataItem]:
-	if not _instances.has(type_name):
+	var table: DataTable = _database.get_table(type_name)
+	if table == null:
 		return []
 	var items: Array[DataItem] = []
-	items.assign(_instances[type_name])
+	items.assign(table.instances)
 	return items
 
 
-## Get instance by index
-func get_instance(type_name: String, index: int) -> Dictionary:
-	var instances = get_instances(type_name)
-	if index >= 0 and index < instances.size():
-		return instances[index]
-	return {}
-
-
-## Get instance by property value (e.g., by id)
-func get_instance_by(type_name: String, property_name: String, value: Variant) -> Dictionary:
-	var instances = get_instances(type_name)
-	for instance in instances:
-		if instance.get(property_name) == value:
-			return instance
-	return {}
-
-
-## Create a new instance with default values
-func create_default_instance(type_name: String) -> Dictionary:
-	var type_def = type_registry.get_type(type_name)
-	if type_def == null:
+func add_instance(type_name: String, instance_data: Dictionary) -> bool:
+	var table: DataTable = _database.get_table(type_name)
+	if table == null:
 		push_error("Type not found: %s" % type_name)
-		return {}
+		return false
 
-	return type_def.create_default_instance()
+	var item: DataItem = _create_data_item(type_name, instance_data)
+	if item == null:
+		return false
+
+	table.instances.append(item)
+	save()
+	data_changed.emit(type_name)
+	return true
 
 
-## Delete all instances for a type
+func remove_instance(type_name: String, index: int) -> bool:
+	var table: DataTable = _database.get_table(type_name)
+	if table == null:
+		return false
+	if index < 0 or index >= table.instances.size():
+		return false
+
+	table.instances.remove_at(index)
+	save()
+	data_changed.emit(type_name)
+	return true
+
+
+func save_instances(type_name: String) -> Error:
+	return save()
+
+
+func create_default_instance(type_name: String) -> Dictionary:
+	var props = get_type_properties(type_name)
+	var instance: Dictionary = {}
+	for p in props:
+		instance[p.name] = p.default
+	return instance
+
+
+func load_instances(_type_name: String) -> void:
+	# Reload from disk (for refresh button)
+	_database = _storage_adapter.load_database()
+
+
 func clear_instances(type_name: String) -> void:
-	if _instances.has(type_name):
-		var empty: Array[DataItem] = []
-		_instances[type_name] = empty
-		save_instances(type_name)
-		data_changed.emit(type_name)
+	var table: DataTable = _database.get_table(type_name)
+	if table == null:
+		return
+	table.instances.clear()
+	save()
+	data_changed.emit(type_name)
 
 
-## Get count of instances for a type
 func get_instance_count(type_name: String) -> int:
-	return get_instances(type_name).size()
+	var table: DataTable = _database.get_table(type_name)
+	if table == null:
+		return 0
+	return table.instances.size()
 
 
-## Helper method to create DataItem instances
 func _create_data_item(type_name: String, data: Dictionary) -> DataItem:
-	# Load the generated Resource class
-	var script_path := "res://addons/diablohumastudio/database_manager/table_structures/%s.gd" % type_name.to_lower()
-
+	var script_path := "res://data/res/table_structures/%s.gd" % type_name.to_lower()
 	if not ResourceLoader.exists(script_path):
 		push_error("Resource script not found: %s" % script_path)
 		return null

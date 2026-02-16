@@ -95,7 +95,7 @@ func _disconnect_inspector() -> void:
 
 func _refresh_type_selector() -> void:
 	type_selector.clear()
-	var types = database_system.type_registry.get_game_type_names()
+	var types = database_system.get_table_names()
 	for i in range(types.size()):
 		type_selector.add_item(types[i], i)
 
@@ -114,20 +114,19 @@ func _load_type(type_name: String) -> void:
 	_end_bulk_edit()
 	_clear_inspected_item()
 
-	var type_def = database_system.type_registry.get_type(type_name)
-	if type_def == null:
-		push_error("Type not found: %s" % type_name)
+	var properties = database_system.get_type_properties(type_name)
+	if properties.is_empty():
+		push_error("Type not found or has no properties: %s" % type_name)
 		return
 
 	# Column 0 = row index, columns 1..N = properties
-	instance_tree.columns = type_def.properties.size() + 1
+	instance_tree.columns = properties.size() + 1
 	instance_tree.set_column_title(0, "#")
 	instance_tree.set_column_expand(0, false)
 	instance_tree.set_column_custom_minimum_width(0, 50)
 
-	for i in range(type_def.properties.size()):
-		var prop = type_def.properties[i]
-		instance_tree.set_column_title(i + 1, prop.name)
+	for i in range(properties.size()):
+		instance_tree.set_column_title(i + 1, properties[i].name)
 		instance_tree.set_column_expand(i + 1, true)
 
 	_refresh_instances()
@@ -142,11 +141,7 @@ func _refresh_instances() -> void:
 	if current_type_name.is_empty():
 		return
 
-	var type_def = database_system.type_registry.get_type(current_type_name)
-	if type_def == null:
-		return
-
-	# Get ACTUAL DataItem resources (not dictionaries)
+	var properties = database_system.get_type_properties(current_type_name)
 	_data_items = database_system.get_data_items(current_type_name)
 
 	for idx in range(_data_items.size()):
@@ -158,13 +153,13 @@ func _refresh_instances() -> void:
 		tree_item.set_metadata(0, idx)
 
 		# Property columns: display values as text (read-only)
-		for i in range(type_def.properties.size()):
-			var prop = type_def.properties[i]
+		for i in range(properties.size()):
+			var prop = properties[i]
 			var value = data_item.get(prop.name)
 			tree_item.set_text(i + 1, _value_to_display(value, prop.type))
 
 			# Visual hint: show color swatch for Color properties
-			if prop.type == DataTypeDefinition.PropertyType.COLOR and value is Color:
+			if prop.type == TYPE_COLOR and value is Color:
 				tree_item.set_custom_bg_color(i + 1, value)
 				tree_item.set_custom_color(i + 1, Color.BLACK if value.v > 0.5 else Color.WHITE)
 
@@ -221,17 +216,11 @@ func _clear_inspected_item() -> void:
 
 
 func _on_inspector_property_edited(property: String) -> void:
-	# Guard: if we're bulk editing, the proxy handles it
 	if _is_bulk_editing:
 		return
-
-	# Guard: only react if we have an active inspected item
 	if _inspected_item == null:
 		return
-
-	# Guard: only react if the property belongs to our type definition
-	var type_def = database_system.type_registry.get_type(current_type_name)
-	if type_def == null or not type_def.has_property(property):
+	if not database_system.type_has_property(current_type_name, property):
 		return
 
 	# The Inspector already modified the DataItem in-place (it's a Resource).
@@ -249,21 +238,18 @@ func _setup_bulk_edit_menu() -> void:
 	if popup.id_pressed.is_connected(_on_bulk_edit_property_selected):
 		popup.id_pressed.disconnect(_on_bulk_edit_property_selected)
 
-	var type_def = database_system.type_registry.get_type(current_type_name)
-	if type_def == null:
-		return
-
-	for i in range(type_def.properties.size()):
-		popup.add_item(type_def.properties[i].name, i)
+	var properties = database_system.get_type_properties(current_type_name)
+	for i in range(properties.size()):
+		popup.add_item(properties[i].name, i)
 
 	popup.id_pressed.connect(_on_bulk_edit_property_selected)
 
 
 func _on_bulk_edit_property_selected(id: int) -> void:
-	var type_def = database_system.type_registry.get_type(current_type_name)
-	if type_def == null or id >= type_def.properties.size():
+	var properties = database_system.get_type_properties(current_type_name)
+	if id >= properties.size():
 		return
-	_start_bulk_edit(type_def.properties[id])
+	_start_bulk_edit(properties[id])
 
 
 func _start_bulk_edit(prop: Dictionary) -> void:
@@ -280,7 +266,7 @@ func _start_bulk_edit(prop: Dictionary) -> void:
 
 	# Create proxy Resource with one dynamic property
 	_bulk_proxy = BulkEditProxyScript.new()
-	_bulk_proxy.setup(prop.name, prop.type, initial_value)
+	_bulk_proxy.setup(prop.name, prop.type, initial_value, prop.hint, prop.hint_string)
 	_bulk_proxy.value_changed.connect(_on_bulk_value_changed)
 
 	# Show in Inspector
@@ -363,25 +349,25 @@ func _on_refresh_pressed() -> void:
 
 # --- Display Helpers ---------------------------------------------------------
 
-func _value_to_display(value: Variant, prop_type: DataTypeDefinition.PropertyType) -> String:
+func _value_to_display(value: Variant, prop_type: int) -> String:
 	if value == null:
 		return "<null>"
 	match prop_type:
-		DataTypeDefinition.PropertyType.BOOL:
+		TYPE_BOOL:
 			return "true" if value else "false"
-		DataTypeDefinition.PropertyType.TEXTURE2D:
+		TYPE_OBJECT:
 			if value is Texture2D:
 				return value.resource_path.get_file()
 			return str(value)
-		DataTypeDefinition.PropertyType.VECTOR2:
+		TYPE_VECTOR2:
 			if value is Vector2:
 				return "(%g, %g)" % [value.x, value.y]
 			return str(value)
-		DataTypeDefinition.PropertyType.VECTOR3:
+		TYPE_VECTOR3:
 			if value is Vector3:
 				return "(%g, %g, %g)" % [value.x, value.y, value.z]
 			return str(value)
-		DataTypeDefinition.PropertyType.COLOR:
+		TYPE_COLOR:
 			if value is Color:
 				return value.to_html()
 			return str(value)

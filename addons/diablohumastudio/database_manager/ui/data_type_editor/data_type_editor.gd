@@ -2,7 +2,6 @@
 extends Control
 
 ## Visual editor for creating and editing data type definitions
-## Allows designers to define game data and user data types
 
 signal type_selected(type_name: String, is_user_data: bool)
 
@@ -22,7 +21,6 @@ signal type_selected(type_name: String, is_user_data: bool)
 
 var database_system: DatabaseSystem
 var current_type_name: String = ""
-var current_is_user_data: bool = false
 var property_rows: Array = []  # Array of PropertyEditorRow nodes
 
 
@@ -46,54 +44,29 @@ func _connect_signals() -> void:
 
 func _refresh_type_list() -> void:
 	type_list.clear()
-
-	# Show all types (game + user) in single list
-	var game_type_names = database_system.type_registry.get_game_type_names()
-	var user_type_names = database_system.type_registry.get_user_type_names()
-
-	# Add game types
-	for type_name in game_type_names:
-		type_list.add_item("[Game] " + type_name)
-
-	# Add user types
-	for type_name in user_type_names:
-		type_list.add_item("[User] " + type_name)
+	var type_names = database_system.get_table_names()
+	for type_name in type_names:
+		type_list.add_item(type_name)
 
 
 func _on_type_list_item_selected(index: int) -> void:
-	var display_text = type_list.get_item_text(index)
-
-	# Parse type name and category
-	if display_text.begins_with("[Game] "):
-		current_is_user_data = false
-		var type_name = display_text.substr(7)  # Remove "[Game] " prefix
-		_load_type(type_name)
-	elif display_text.begins_with("[User] "):
-		current_is_user_data = true
-		var type_name = display_text.substr(7)  # Remove "[User] " prefix
-		_load_type(type_name)
+	var type_name = type_list.get_item_text(index)
+	_load_type(type_name)
 
 
 func _load_type(type_name: String) -> void:
 	current_type_name = type_name
-
-	var type_def = database_system.type_registry.get_type(type_name, current_is_user_data)
-	if type_def == null:
-		push_error("Type not found: %s" % type_name)
-		return
-
-	# Set type name
 	type_name_edit.text = type_name
-	type_name_edit.editable = false  # Can't rename existing types
-
-	# Clear existing property rows
+	type_name_edit.editable = false
 	_clear_properties()
 
-	# Add property rows
-	for prop in type_def.properties:
-		_add_property_row(prop.name, prop.type, prop.default)
+	# Read schema from generated script, convert Variant.Type to PropertyType
+	var properties = database_system.get_type_properties(type_name)
+	for prop in properties:
+		var prop_type = ResourceGenerator.variant_type_to_property_type(prop)
+		_add_property_row(prop.name, prop_type, prop.default)
 
-	type_selected.emit(type_name, current_is_user_data)
+	type_selected.emit(type_name, false)
 
 
 func _clear_editor() -> void:
@@ -114,7 +87,7 @@ func _on_new_type_pressed() -> void:
 	type_list.deselect_all()
 
 
-func _add_property_row(prop_name: String = "", prop_type: DataTypeDefinition.PropertyType = DataTypeDefinition.PropertyType.STRING, default_value: Variant = null) -> void:
+func _add_property_row(prop_name: String = "", prop_type: ResourceGenerator.PropertyType = ResourceGenerator.PropertyType.STRING, default_value: Variant = null) -> void:
 	var row = preload("uid://ddwwxemdroyaa").new()
 	row.set_property(prop_name, prop_type, default_value)
 	row.remove_requested.connect(_on_property_remove_requested.bind(row))
@@ -139,29 +112,19 @@ func _on_save_type_pressed() -> void:
 		_show_error("Type name cannot be empty")
 		return
 
-	# Create type definition
-	var definition = DataTypeDefinition.new(type_name, current_is_user_data)
-
-	# Add properties
+	# Collect properties from UI rows
+	var properties: Array[Dictionary] = []
 	for row in property_rows:
 		var prop_data = row.get_property_data()
 		if prop_data.is_empty():
 			continue
+		properties.append(prop_data)
 
-		definition.add_property(
-			prop_data.name,
-			prop_data.type,
-			prop_data.default
-		)
-
-	# Save to registry
 	var success = false
 	if current_type_name.is_empty():
-		# New type
-		success = database_system.type_registry.add_type(definition)
+		success = database_system.add_type(type_name, properties)
 	else:
-		# Update existing type
-		success = database_system.type_registry.update_type(definition)
+		success = database_system.update_type(type_name, properties)
 
 	if success:
 		print("[DataTypeTab] Saved type: %s" % type_name)
@@ -176,11 +139,10 @@ func _on_delete_type_pressed() -> void:
 	if current_type_name.is_empty():
 		return
 
-	# Confirm deletion
 	var confirm = ConfirmationDialog.new()
 	confirm.dialog_text = "Delete type '%s'?\nThis cannot be undone." % current_type_name
 	confirm.confirmed.connect(func():
-		var success = database_system.type_registry.remove_type(current_type_name, current_is_user_data)
+		var success = database_system.remove_type(current_type_name)
 		if success:
 			print("[DataTypeTab] Deleted type: %s" % current_type_name)
 			_clear_editor()
@@ -194,7 +156,6 @@ func _on_delete_type_pressed() -> void:
 
 
 func _on_type_name_changed(new_text: String) -> void:
-	# Enable/disable save button
 	save_type_btn.disabled = new_text.strip_edges().is_empty()
 
 

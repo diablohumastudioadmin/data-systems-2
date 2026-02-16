@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Database" format=3 uid="uid://c5e7a74ylxexi"]
+
+[ext_resource type="Script" uid="uid://co8stjolrhw25" path="res://addons/diablohumastudio/database_manager/core/database_classes/database.gd" id="1_rbtde"]
+[ext_resource type="Script" uid="uid://cfyorg1em2nmd" path="res://addons/diablohumastudio/database_manager/core/database_classes/data_table.gd" id="2_syfde"]
+[ext_resource type="Script" uid="uid://uf1e0gtp7nmi" path="res://addons/diablohumastudio/database_manager/core/database_classes/data_item.gd" id="3_syfde"]
+[ext_resource type="Script" path="res://data/res/table_structures/achievement.gd" id="4_3m5iv"]
+
+[sub_resource type="Resource" id="Resource_3m5iv"]
+script = ExtResource("2_syfde")
+type_name = "Level"
+
+[sub_resource type="Resource" id="Resource_skpjr"]
+script = ExtResource("4_3m5iv")
+icon = "aaaaa"
+
+[sub_resource type="Resource" id="Resource_8jnjh"]
+script = ExtResource("4_3m5iv")
+icon = "sdfsdf"
+
+[sub_resource type="Resource" id="Resource_syfde"]
+script = ExtResource("2_syfde")
+type_name = "Achievement"
+instances = Array[ExtResource("3_syfde")]([SubResource("Resource_skpjr"), SubResource("Resource_8jnjh")])
+
+[resource]
+script = ExtResource("1_rbtde")
+tables = Array[ExtResource("2_syfde")]([SubResource("Resource_3m5iv"), SubResource("Resource_syfde")])
+last_modified = "2026-02-15T20:20:30"

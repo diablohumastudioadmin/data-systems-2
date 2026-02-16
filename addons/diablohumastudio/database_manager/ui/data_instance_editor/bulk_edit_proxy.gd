@@ -15,34 +15,14 @@ var _hint_string: String = ""
 var _value: Variant
 
 
-## Map DataTypeDefinition.PropertyType enum values -> Godot Variant.Type
-const PROP_TYPE_TO_VARIANT: Dictionary = {
-	0:  TYPE_INT,          # INT
-	1:  TYPE_FLOAT,        # FLOAT
-	2:  TYPE_STRING,       # STRING
-	3:  TYPE_BOOL,         # BOOL
-	4:  TYPE_OBJECT,       # TEXTURE2D
-	5:  TYPE_VECTOR2,      # VECTOR2
-	6:  TYPE_VECTOR3,      # VECTOR3
-	7:  TYPE_COLOR,        # COLOR
-	8:  TYPE_ARRAY,        # ARRAY
-	9:  TYPE_DICTIONARY,   # DICTIONARY
-}
-
-
-## Configure the proxy for a specific property
-func setup(prop_name: String, prop_type_enum: int, initial_value: Variant) -> void:
+## Configure the proxy for a specific property.
+## variant_type: Godot's native Variant.Type (TYPE_INT, TYPE_STRING, etc.)
+func setup(prop_name: String, variant_type: int, initial_value: Variant, hint: int = PROPERTY_HINT_NONE, hint_string: String = "") -> void:
 	_property_name = prop_name
 	_value = initial_value
-	_variant_type = PROP_TYPE_TO_VARIANT.get(prop_type_enum, TYPE_STRING)
-
-	# Special hints for resource types
-	_hint = PROPERTY_HINT_NONE
-	_hint_string = ""
-	if prop_type_enum == 4:  # TEXTURE2D
-		_hint = PROPERTY_HINT_RESOURCE_TYPE
-		_hint_string = "Texture2D"
-
+	_variant_type = variant_type
+	_hint = hint
+	_hint_string = hint_string
 	notify_property_list_changed()
 
 

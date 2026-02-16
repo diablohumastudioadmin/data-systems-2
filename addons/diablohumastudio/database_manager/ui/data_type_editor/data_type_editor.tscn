@@ -59,13 +59,8 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-item_count = 6
-item_0/text = "[Game] Achievement"
-item_1/text = "[Game] Character"
-item_2/text = "[Game] Level"
-item_3/text = "[User] AchievementProgress"
-item_4/text = "[User] PlayerStats"
-item_5/text = "[User] UserLevel"
+item_count = 1
+item_0/text = "Level"
 
 [node name="EditorPanel" type="Panel" parent="VBox/HBox" unique_id=780970423]
 unique_name_in_owner = true
