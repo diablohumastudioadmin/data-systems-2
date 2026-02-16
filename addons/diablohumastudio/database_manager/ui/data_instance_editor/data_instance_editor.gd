@@ -17,7 +17,7 @@ const BulkEditProxyScript = preload("bulk_edit_proxy.gd")
 @onready var refresh_btn: Button = $VBox/Toolbar/RefreshBtn
 @onready var status_label: Label = $VBox/StatusBar/StatusLabel
 
-var database_system: DatabaseSystem
+var database_system: DatabaseSystem: set = _set_database_system
 var current_type_name: String = ""
 
 ## Live references to the actual DataItem Resources (not dictionaries)
@@ -32,15 +32,27 @@ var _is_bulk_editing: bool = false
 
 ## Inspector connection tracking
 var _inspector_connected: bool = false
+var _initialized: bool = false
 
 
 # --- Lifecycle ---------------------------------------------------------------
 
+func _set_database_system(value: DatabaseSystem) -> void:
+	database_system = value
+	if value and is_node_ready() and not _initialized:
+		_initialize()
+
+
 func _ready() -> void:
-	# database_system is null when editing the scene in the editor
 	if not database_system:
 		return
+	_initialize()
 
+
+func _initialize() -> void:
+	if _initialized:
+		return
+	_initialized = true
 	_setup_ui()
 	_connect_signals()
 	_connect_inspector()
