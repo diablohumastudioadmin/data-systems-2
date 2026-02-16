@@ -3,9 +3,9 @@ class_name ResourceStorageAdapter
 extends StorageAdapter
 
 ## Godot Resource (.tres) storage implementation.
-## Stores the entire database in a single file: res://data/res/database.tres
+## Stores the entire database in a single file: res://database/res/database.tres
 
-const DATABASE_PATH := "res://data/res/database.tres"
+const DATABASE_PATH := "res://database/res/database.tres"
 
 var _database: Database
 var _is_loaded: bool = false

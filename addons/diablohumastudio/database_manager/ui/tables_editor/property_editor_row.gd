@@ -2,7 +2,7 @@
 @tool
 extends HBoxContainer
 
-## Reusable property editor row for DataTypeEditor
+## Reusable property editor row for TablesEditor
 ## Shows: Property Name | Type | Default Value | Remove Button
 
 signal remove_requested()

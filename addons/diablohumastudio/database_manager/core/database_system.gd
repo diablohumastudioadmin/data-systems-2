@@ -8,6 +8,11 @@ extends RefCounted
 signal data_changed(type_name: String)
 signal types_changed()
 
+## Known properties from base classes to exclude from schema reflection
+const _BASE_PROPERTY_NAMES: Array[String] = [
+	"resource_local_to_scene", "resource_path", "resource_name", "script"
+]
+
 var _storage_adapter: StorageAdapter
 var _database: Database
 
@@ -36,9 +41,10 @@ func has_type(type_name: String) -> bool:
 
 
 ## Read schema from the generated .gd script via reflection.
+## Only returns @export properties declared in the generated subclass.
 ## Returns: [{name, type (Variant.Type), default, hint, hint_string, class_name}, ...]
 func get_type_properties(type_name: String) -> Array[Dictionary]:
-	var script_path = "res://data/res/table_structures/%s.gd" % type_name.to_lower()
+	var script_path = "res://database/res/.table_structures/%s.gd" % type_name.to_lower()
 	if not ResourceLoader.exists(script_path):
 		return []
 
@@ -49,6 +55,12 @@ func get_type_properties(type_name: String) -> Array[Dictionary]:
 	var temp = script.new()
 	var props: Array[Dictionary] = []
 	for p in script.get_script_property_list():
+		# Only include @export properties (have EDITOR usage flag)
+		if not (p.usage & PROPERTY_USAGE_EDITOR):
+			continue
+		# Skip base class properties
+		if p.name in _BASE_PROPERTY_NAMES:
+			continue
 		props.append({
 			"name": p.name,
 			"type": p.type,
@@ -87,6 +99,7 @@ func add_type(type_name: String, properties: Array[Dictionary]) -> bool:
 		push_error("Failed to save after adding type: %s" % type_name)
 		return false
 
+	_scan_filesystem()
 	types_changed.emit()
 	return true
 
@@ -104,6 +117,7 @@ func update_type(type_name: String, properties: Array[Dictionary]) -> bool:
 		push_error("Failed to save after updating type: %s" % type_name)
 		return false
 
+	_scan_filesystem()
 	types_changed.emit()
 	return true
 
@@ -122,6 +136,7 @@ func remove_type(type_name: String) -> bool:
 		push_error("Failed to save after removing type: %s" % type_name)
 		return false
 
+	_scan_filesystem()
 	types_changed.emit()
 	return true
 
@@ -137,13 +152,14 @@ func get_data_items(type_name: String) -> Array[DataItem]:
 	return items
 
 
-func add_instance(type_name: String, instance_data: Dictionary) -> bool:
+## Add a new instance with default values from the generated script
+func add_instance(type_name: String) -> bool:
 	var table: DataTable = _database.get_table(type_name)
 	if table == null:
-		push_error("Type not found: %s" % type_name)
+		push_error("Table not found: %s" % type_name)
 		return false
 
-	var item: DataItem = _create_data_item(type_name, instance_data)
+	var item: DataItem = _create_data_item(type_name)
 	if item == null:
 		return false
 
@@ -166,16 +182,8 @@ func remove_instance(type_name: String, index: int) -> bool:
 	return true
 
 
-func save_instances(type_name: String) -> Error:
+func save_instances(_type_name: String) -> Error:
 	return save()
-
-
-func create_default_instance(type_name: String) -> Dictionary:
-	var props = get_type_properties(type_name)
-	var instance: Dictionary = {}
-	for p in props:
-		instance[p.name] = p.default
-	return instance
 
 
 func load_instances(_type_name: String) -> void:
@@ -199,8 +207,8 @@ func get_instance_count(type_name: String) -> int:
 	return table.instances.size()
 
 
-func _create_data_item(type_name: String, data: Dictionary) -> DataItem:
-	var script_path := "res://data/res/table_structures/%s.gd" % type_name.to_lower()
+func _create_data_item(type_name: String) -> DataItem:
+	var script_path := "res://database/res/.table_structures/%s.gd" % type_name.to_lower()
 	if not ResourceLoader.exists(script_path):
 		push_error("Resource script not found: %s" % script_path)
 		return null
@@ -209,6 +217,10 @@ func _create_data_item(type_name: String, data: Dictionary) -> DataItem:
 	if script == null:
 		return null
 
-	var item: DataItem = script.new()
-	item.from_dict(data)
-	return item
+	# script.new() already has all @export defaults applied
+	return script.new()
+
+
+func _scan_filesystem() -> void:
+	if Engine.is_editor_hint():
+		EditorInterface.get_resource_filesystem().scan()

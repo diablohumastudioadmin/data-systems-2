@@ -3,7 +3,7 @@ class_name Database
 extends Resource
 
 ## Centralized database resource containing all tables.
-## Saved as a single .tres file at res://data/res/database.tres
+## Saved as a single .tres file at res://database/res/database.tres
 
 @export var tables: Array[DataTable] = []
 @export var version: int = 1

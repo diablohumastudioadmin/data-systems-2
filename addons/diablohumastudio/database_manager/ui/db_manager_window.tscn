@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dwdqpra1ov4q6"]
 
 [ext_resource type="Script" uid="uid://c6uvppx2u86l6" path="res://addons/diablohumastudio/database_manager/ui/db_manager_window.gd" id="1_symrf"]
-[ext_resource type="PackedScene" uid="uid://d22bbxwjb5sxe" path="res://addons/diablohumastudio/database_manager/ui/data_type_editor/data_type_editor.tscn" id="2_tru8r"]
+[ext_resource type="PackedScene" uid="uid://d22bbxwjb5sxe" path="res://addons/diablohumastudio/database_manager/ui/tables_editor/tables_editor.tscn" id="2_tru8r"]
 [ext_resource type="PackedScene" uid="uid://bn4rk4ufqq05h" path="res://addons/diablohumastudio/database_manager/ui/data_instance_editor/data_instance_editor.tscn" id="3_1rt4b"]
 
 [node name="DataManagerWindow" type="Window" unique_id=443183502]
@@ -24,7 +24,7 @@ grow_horizontal = 2
 grow_vertical = 2
 current_tab = 0
 
-[node name="DataTypeEditor" parent="TabContainer" unique_id=881148496 instance=ExtResource("2_tru8r")]
+[node name="TablesEditor" parent="TabContainer" unique_id=881148496 instance=ExtResource("2_tru8r")]
 unique_name_in_owner = true
 layout_mode = 2
 metadata/_tab_index = 0

@@ -91,6 +91,13 @@ func _disconnect_inspector() -> void:
 	_inspector_connected = false
 
 
+# --- Public API --------------------------------------------------------------
+
+## Reload type list and instances (called when types change)
+func reload() -> void:
+	_refresh_type_selector()
+
+
 # --- Type Selection ----------------------------------------------------------
 
 func _refresh_type_selector() -> void:
@@ -300,8 +307,7 @@ func _end_bulk_edit() -> void:
 func _on_add_instance_pressed() -> void:
 	if current_type_name.is_empty():
 		return
-	var instance_data: Dictionary = database_system.create_default_instance(current_type_name)
-	database_system.add_instance(current_type_name, instance_data)
+	database_system.add_instance(current_type_name)
 	_refresh_instances()
 	_update_status("Added new instance")
 

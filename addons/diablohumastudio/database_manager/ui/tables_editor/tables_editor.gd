@@ -1,9 +1,10 @@
 @tool
 extends Control
 
-## Visual editor for creating and editing data type definitions
+## Visual editor for creating and editing table schemas
 
-signal type_selected(type_name: String, is_user_data: bool)
+signal table_selected(type_name: String)
+signal table_saved(type_name: String)
 
 # Note: These @onready vars will be converted to % unique names after scene is created
 @onready var type_list: ItemList = $VBox/HBox/TypeList
@@ -66,7 +67,7 @@ func _load_type(type_name: String) -> void:
 		var prop_type = ResourceGenerator.variant_type_to_property_type(prop)
 		_add_property_row(prop.name, prop_type, prop.default)
 
-	type_selected.emit(type_name, false)
+	table_selected.emit(type_name)
 
 
 func _clear_editor() -> void:
@@ -127,12 +128,12 @@ func _on_save_type_pressed() -> void:
 		success = database_system.update_type(type_name, properties)
 
 	if success:
-		print("[DataTypeTab] Saved type: %s" % type_name)
+		print("[TablesEditor] Saved table: %s" % type_name)
 		current_type_name = type_name
 		_refresh_type_list()
-		_show_success("Type saved successfully!")
+		table_saved.emit(type_name)
 	else:
-		_show_error("Failed to save type")
+		_show_error("Failed to save table")
 
 
 func _on_delete_type_pressed() -> void:
@@ -140,11 +141,11 @@ func _on_delete_type_pressed() -> void:
 		return
 
 	var confirm = ConfirmationDialog.new()
-	confirm.dialog_text = "Delete type '%s'?\nThis cannot be undone." % current_type_name
+	confirm.dialog_text = "Delete table '%s'?\nThis cannot be undone." % current_type_name
 	confirm.confirmed.connect(func():
 		var success = database_system.remove_type(current_type_name)
 		if success:
-			print("[DataTypeTab] Deleted type: %s" % current_type_name)
+			print("[TablesEditor] Deleted table: %s" % current_type_name)
 			_clear_editor()
 			_refresh_type_list()
 		confirm.queue_free()
