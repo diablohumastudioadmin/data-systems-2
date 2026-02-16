@@ -1,57 +1,35 @@
-
 @tool
 extends HBoxContainer
 
-## Reusable property editor row for TablesEditor
-## Shows: Property Name | Type | Default Value | Remove Button
+## Reusable property editor row for TablesEditor (scene-based).
+## Shows: Name | PropertyName | Type | PropertyType | Default: | [editor] | X
 
 signal remove_requested()
 
-var property_name_edit: LineEdit
-var property_type_option: OptionButton
-var default_value_edit: Control  # Changes based on type
-var remove_btn: Button
+@onready var property_name_edit: LineEdit = %PropertyNameEdit
+@onready var property_type_option: OptionButton = %PropertyTypeOption
+@onready var default_value_container: HBoxContainer = %DefaultValueContainer
+@onready var remove_btn: Button = %RemoveBtn
 
+var default_value_edit: Control  # Current editor inside DefaultValueContainer
 var current_type: ResourceGenerator.PropertyType = ResourceGenerator.PropertyType.STRING
 
+## Deferred initial data (set before _ready via set_property)
+var _deferred_name: String = ""
+var _deferred_type: ResourceGenerator.PropertyType = ResourceGenerator.PropertyType.STRING
+var _deferred_default: Variant = null
+var _has_deferred_data: bool = false
 
-func _init() -> void:
-	_create_ui()
 
-
-func _create_ui() -> void:
-	# Property name
-	var name_label = Label.new()
-	name_label.text = "Name:"
-	name_label.custom_minimum_size = Vector2(50, 0)
-	add_child(name_label)
-
-	property_name_edit = LineEdit.new()
-	property_name_edit.placeholder_text = "property_name"
-	property_name_edit.custom_minimum_size = Vector2(150, 0)
-	property_name_edit.size_flags_horizontal = SIZE_EXPAND_FILL
-	add_child(property_name_edit)
-
-	# Property type
-	var type_label = Label.new()
-	type_label.text = "Type:"
-	type_label.custom_minimum_size = Vector2(40, 0)
-	add_child(type_label)
-
-	property_type_option = OptionButton.new()
-	property_type_option.custom_minimum_size = Vector2(120, 0)
+func _ready() -> void:
 	_populate_type_options()
 	property_type_option.item_selected.connect(_on_type_changed)
-	add_child(property_type_option)
-
-	# Default value (will be created based on type)
-	_create_default_value_editor()
-
-	# Remove button
-	remove_btn = Button.new()
-	remove_btn.text = "Remove"
 	remove_btn.pressed.connect(func(): remove_requested.emit())
-	add_child(remove_btn)
+
+	if _has_deferred_data:
+		_apply_deferred_data()
+	else:
+		_update_default_value_editor()
 
 
 func _populate_type_options() -> void:
@@ -68,80 +46,96 @@ func _populate_type_options() -> void:
 	property_type_option.add_item("Dictionary", ResourceGenerator.PropertyType.DICTIONARY)
 
 
-func _create_default_value_editor() -> void:
-	if default_value_edit:
-		default_value_edit.queue_free()
+func _update_default_value_editor() -> void:
+	# Clear previous editor
+	for child in default_value_container.get_children():
+		child.queue_free()
 
-	var label = Label.new()
-	label.text = "Default:"
-	label.custom_minimum_size = Vector2(60, 0)
-	add_child(label)
-
+	# Create new editor based on current type
+	var editor: Control
 	match current_type:
 		ResourceGenerator.PropertyType.INT:
-			var spin_box = SpinBox.new()
-			spin_box.min_value = -999999
-			spin_box.max_value = 999999
-			spin_box.step = 1
-			spin_box.custom_minimum_size = Vector2(100, 0)
-			default_value_edit = spin_box
+			var spin = SpinBox.new()
+			spin.min_value = -999999
+			spin.max_value = 999999
+			spin.step = 1
+			spin.size_flags_horizontal = SIZE_EXPAND_FILL
+			editor = spin
 
 		ResourceGenerator.PropertyType.FLOAT:
-			var spin_box = SpinBox.new()
-			spin_box.min_value = -999999
-			spin_box.max_value = 999999
-			spin_box.step = 0.01
-			spin_box.custom_minimum_size = Vector2(100, 0)
-			default_value_edit = spin_box
+			var spin = SpinBox.new()
+			spin.min_value = -999999
+			spin.max_value = 999999
+			spin.step = 0.01
+			spin.size_flags_horizontal = SIZE_EXPAND_FILL
+			editor = spin
 
 		ResourceGenerator.PropertyType.STRING:
 			var line_edit = LineEdit.new()
 			line_edit.placeholder_text = "default value"
-			line_edit.custom_minimum_size = Vector2(150, 0)
-			default_value_edit = line_edit
+			line_edit.size_flags_horizontal = SIZE_EXPAND_FILL
+			editor = line_edit
 
 		ResourceGenerator.PropertyType.BOOL:
 			var check_box = CheckBox.new()
-			default_value_edit = check_box
+			editor = check_box
 
 		ResourceGenerator.PropertyType.TEXTURE2D:
 			var line_edit = LineEdit.new()
 			line_edit.placeholder_text = "res://path/to/texture.png"
-			line_edit.custom_minimum_size = Vector2(200, 0)
-			default_value_edit = line_edit
+			line_edit.size_flags_horizontal = SIZE_EXPAND_FILL
+			editor = line_edit
 
-		ResourceGenerator.PropertyType.VECTOR2, ResourceGenerator.PropertyType.VECTOR3:
+		ResourceGenerator.PropertyType.VECTOR2:
 			var line_edit = LineEdit.new()
-			line_edit.placeholder_text = "0, 0" if current_type == ResourceGenerator.PropertyType.VECTOR2 else "0, 0, 0"
-			line_edit.custom_minimum_size = Vector2(120, 0)
-			default_value_edit = line_edit
+			line_edit.placeholder_text = "0, 0"
+			line_edit.size_flags_horizontal = SIZE_EXPAND_FILL
+			editor = line_edit
+
+		ResourceGenerator.PropertyType.VECTOR3:
+			var line_edit = LineEdit.new()
+			line_edit.placeholder_text = "0, 0, 0"
+			line_edit.size_flags_horizontal = SIZE_EXPAND_FILL
+			editor = line_edit
 
 		ResourceGenerator.PropertyType.COLOR:
 			var color_picker = ColorPickerButton.new()
 			color_picker.custom_minimum_size = Vector2(80, 0)
-			default_value_edit = color_picker
+			editor = color_picker
 
 		_:
 			var line_edit = LineEdit.new()
 			line_edit.placeholder_text = "{} or []"
-			line_edit.custom_minimum_size = Vector2(100, 0)
-			default_value_edit = line_edit
+			line_edit.size_flags_horizontal = SIZE_EXPAND_FILL
+			editor = line_edit
 
-	add_child(default_value_edit)
+	default_value_container.add_child(editor)
+	default_value_edit = editor
 
 
 func _on_type_changed(index: int) -> void:
 	current_type = property_type_option.get_item_id(index) as ResourceGenerator.PropertyType
-
-	# Recreate default value editor for new type
-	if default_value_edit:
-		remove_child(default_value_edit)
-		default_value_edit.queue_free()
-
-	_create_default_value_editor()
+	_update_default_value_editor()
 
 
 func set_property(prop_name: String, prop_type: ResourceGenerator.PropertyType, default_value: Variant) -> void:
+	# If not ready yet, defer the data
+	if not is_node_ready():
+		_deferred_name = prop_name
+		_deferred_type = prop_type
+		_deferred_default = default_value
+		_has_deferred_data = true
+		return
+
+	_apply_property(prop_name, prop_type, default_value)
+
+
+func _apply_deferred_data() -> void:
+	_apply_property(_deferred_name, _deferred_type, _deferred_default)
+	_has_deferred_data = false
+
+
+func _apply_property(prop_name: String, prop_type: ResourceGenerator.PropertyType, default_value: Variant) -> void:
 	property_name_edit.text = prop_name
 	current_type = prop_type
 
@@ -151,19 +145,12 @@ func set_property(prop_name: String, prop_type: ResourceGenerator.PropertyType, 
 			property_type_option.selected = i
 			break
 
-	# Recreate default value editor
-	if default_value_edit:
-		remove_child(default_value_edit)
-		default_value_edit.queue_free()
-
-	_create_default_value_editor()
-
-	# Set default value
+	_update_default_value_editor()
 	_set_default_value(default_value)
 
 
 func _set_default_value(value: Variant) -> void:
-	if !default_value_edit:
+	if not default_value_edit:
 		return
 
 	match current_type:
@@ -214,7 +201,7 @@ func get_property_data() -> Dictionary:
 
 
 func _get_default_value() -> Variant:
-	if !default_value_edit:
+	if not default_value_edit:
 		return null
 
 	match current_type:

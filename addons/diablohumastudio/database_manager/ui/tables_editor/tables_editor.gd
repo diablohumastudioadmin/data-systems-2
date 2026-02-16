@@ -90,7 +90,7 @@ func _on_new_type_pressed() -> void:
 
 
 func _add_property_row(prop_name: String = "", prop_type: ResourceGenerator.PropertyType = ResourceGenerator.PropertyType.STRING, default_value: Variant = null) -> void:
-	var row = preload("uid://ddwwxemdroyaa").new()
+	var row = preload("property_editor_row.tscn").instantiate()
 	row.set_property(prop_name, prop_type, default_value)
 	row.remove_requested.connect(_on_property_remove_requested.bind(row))
 
