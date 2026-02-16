@@ -48,7 +48,8 @@ func get_type_properties(type_name: String) -> Array[Dictionary]:
 	if not ResourceLoader.exists(script_path):
 		return []
 
-	var script = load(script_path) as GDScript
+	# CACHE_MODE_REPLACE forces reload from disk (critical after regeneration)
+	var script = ResourceLoader.load(script_path, "", ResourceLoader.CACHE_MODE_REPLACE) as GDScript
 	if script == null:
 		return []
 
@@ -213,7 +214,8 @@ func _create_data_item(type_name: String) -> DataItem:
 		push_error("Resource script not found: %s" % script_path)
 		return null
 
-	var script := load(script_path) as GDScript
+	# CACHE_MODE_REPLACE forces reload from disk (critical after regeneration)
+	var script := ResourceLoader.load(script_path, "", ResourceLoader.CACHE_MODE_REPLACE) as GDScript
 	if script == null:
 		return null
 
