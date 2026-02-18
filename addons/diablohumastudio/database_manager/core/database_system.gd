@@ -45,12 +45,7 @@ func has_table(table_name: String) -> bool:
 ## Returns: [{name, type (Variant.Type), default, hint, hint_string, class_name}, ...]
 func get_table_properties(table_name: String) -> Array[Dictionary]:
 	var script_path = "res://database/res/table_structures/%s.gd" % table_name.to_lower()
-	if not ResourceLoader.exists(script_path):
-		return []
-
-	var script = ResourceLoader.load(
-		script_path, "", ResourceLoader.CACHE_MODE_REPLACE
-	) as GDScript
+	var script: GDScript = _load_fresh_script(script_path)
 	if script == null:
 		return []
 
@@ -223,6 +218,32 @@ func _create_data_item(table_name: String) -> DataItem:
 
 	# script.new() already has all @export defaults applied
 	return script.new()
+
+
+## Load a .gd script fresh from disk, bypassing all Godot caching.
+## Creates an anonymous GDScript (strips class_name) so reload() is safe
+## (no live instances reference it). Used for schema reflection.
+func _load_fresh_script(script_path: String) -> GDScript:
+	var abs_path := ProjectSettings.globalize_path(script_path)
+	if not FileAccess.file_exists(abs_path):
+		return null
+
+	var source := FileAccess.get_file_as_string(abs_path)
+	if source.is_empty():
+		return null
+
+	# Strip class_name line to avoid global registration conflicts
+	var lines := source.split("\n")
+	var filtered_lines: PackedStringArray = []
+	for line in lines:
+		if not line.strip_edges().begins_with("class_name"):
+			filtered_lines.append(line)
+	source = "\n".join(filtered_lines)
+
+	var script := GDScript.new()
+	script.source_code = source
+	script.reload()
+	return script
 
 
 func _scan_filesystem() -> void:

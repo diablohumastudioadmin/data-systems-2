@@ -8,3 +8,5 @@ extends DataItem
 @export var w: String = ""
 @export var q: String = ""
 @export var new: String = ""
+@export var new2: String = ""
+@export var new3: String = ""

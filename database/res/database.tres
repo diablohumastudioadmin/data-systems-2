@@ -5,6 +5,8 @@
 [ext_resource type="Script" uid="uid://uf1e0gtp7nmi" path="res://addons/diablohumastudio/database_manager/core/database_classes/data_item.gd" id="3_mcntd"]
 [ext_resource type="Script" path="res://database/res/table_structures/level.gd" id="4_u2e75"]
 [ext_resource type="Script" path="res://database/res/table_structures/achivement.gd" id="5_7n4m2"]
+[ext_resource type="Script" path="res://database/res/table_structures/aaa.gd" id="6_muxde"]
+[ext_resource type="Script" path="res://database/res/table_structures/test.gd" id="7_e12gq"]
 
 [sub_resource type="Resource" id="Resource_7n4m2"]
 script = ExtResource("4_u2e75")
@@ -26,18 +28,41 @@ instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_7n4m2"), SubRes
 [sub_resource type="Resource" id="Resource_e12gq"]
 script = ExtResource("5_7n4m2")
 
+[sub_resource type="Resource" id="Resource_oncg7"]
+script = ExtResource("5_7n4m2")
+
 [sub_resource type="Resource" id="Resource_mcntd"]
 script = ExtResource("2_mcntd")
 table_name = "Achivement"
-instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_e12gq")])
+instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_e12gq"), SubResource("Resource_oncg7")])
+
+[sub_resource type="Resource" id="Resource_oxxqi"]
+script = ExtResource("6_muxde")
+w = "www"
+q = "qqq"
+new = "we"
+
+[sub_resource type="Resource" id="Resource_8emn4"]
+script = ExtResource("6_muxde")
+w = "qqq"
+
+[sub_resource type="Resource" id="Resource_614e4"]
+script = ExtResource("6_muxde")
+w = "hola"
 
 [sub_resource type="Resource" id="Resource_qm26x"]
 script = ExtResource("2_mcntd")
 table_name = "aaa"
+instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_oxxqi"), SubResource("Resource_8emn4"), SubResource("Resource_614e4")])
+
+[sub_resource type="Resource" id="Resource_e2l4h"]
+script = ExtResource("7_e12gq")
+texto = "asdad"
 
 [sub_resource type="Resource" id="Resource_4clpe"]
 script = ExtResource("2_mcntd")
 table_name = "test"
+instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_e2l4h")])
 
 [resource]
 script = ExtResource("1_0cp4g")
