@@ -8,7 +8,7 @@ extends Control
 
 const BulkEditProxyScript = preload("bulk_edit_proxy.gd")
 
-@onready var type_selector: OptionButton = $VBox/Toolbar/TypeSelector
+@onready var table_selector: OptionButton = $VBox/Toolbar/TableSelector
 @onready var instance_tree: Tree = $VBox/InstanceTree
 @onready var add_instance_btn: Button = $VBox/Toolbar/AddInstanceBtn
 @onready var delete_instance_btn: Button = $VBox/Toolbar/DeleteInstanceBtn
@@ -18,7 +18,7 @@ const BulkEditProxyScript = preload("bulk_edit_proxy.gd")
 @onready var status_label: Label = $VBox/StatusBar/StatusLabel
 
 var database_system: DatabaseSystem: set = _set_database_system
-var current_type_name: String = ""
+var current_table_name: String = ""
 
 ## Live references to the actual DataItem Resources (not dictionaries)
 var _data_items: Array[DataItem] = []
@@ -56,7 +56,7 @@ func _initialize() -> void:
 	_setup_ui()
 	_connect_signals()
 	_connect_inspector()
-	_refresh_type_selector()
+	_refresh_table_selector()
 
 
 func _exit_tree() -> void:
@@ -76,7 +76,7 @@ func _setup_ui() -> void:
 
 
 func _connect_signals() -> void:
-	type_selector.item_selected.connect(_on_type_selected)
+	table_selector.item_selected.connect(_on_table_selected)
 	add_instance_btn.pressed.connect(_on_add_instance_pressed)
 	delete_instance_btn.pressed.connect(_on_delete_instance_pressed)
 	save_all_btn.pressed.connect(_on_save_all_pressed)
@@ -106,37 +106,37 @@ func _disconnect_inspector() -> void:
 
 # --- Public API --------------------------------------------------------------
 
-## Reload type list and instances (called when types change)
+## Reload table list and instances (called when tables change)
 func reload() -> void:
-	_refresh_type_selector()
+	_refresh_table_selector()
 
 
-# --- Type Selection ----------------------------------------------------------
+# --- Table Selection ---------------------------------------------------------
 
-func _refresh_type_selector() -> void:
-	type_selector.clear()
-	var types = database_system.get_table_names()
-	for i in range(types.size()):
-		type_selector.add_item(types[i], i)
+func _refresh_table_selector() -> void:
+	table_selector.clear()
+	var tables = database_system.get_table_names()
+	for i in range(tables.size()):
+		table_selector.add_item(tables[i], i)
 
-	if types.size() > 0:
-		type_selector.selected = 0
-		_load_type(types[0])
-
-
-func _on_type_selected(index: int) -> void:
-	var type_name = type_selector.get_item_text(index)
-	_load_type(type_name)
+	if tables.size() > 0:
+		table_selector.selected = 0
+		_load_table(tables[0])
 
 
-func _load_type(type_name: String) -> void:
-	current_type_name = type_name
+func _on_table_selected(index: int) -> void:
+	var table_name = table_selector.get_item_text(index)
+	_load_table(table_name)
+
+
+func _load_table(table_name: String) -> void:
+	current_table_name = table_name
 	_end_bulk_edit()
 	_clear_inspected_item()
 
-	var properties = database_system.get_type_properties(type_name)
+	var properties = database_system.get_table_properties(table_name)
 	if properties.is_empty():
-		push_error("Type not found or has no properties: %s" % type_name)
+		push_error("Table not found or has no properties: %s" % table_name)
 		return
 
 	# Column 0 = row index, columns 1..N = properties
@@ -158,11 +158,11 @@ func _refresh_instances() -> void:
 	instance_tree.clear()
 	var tree_root = instance_tree.create_item()
 
-	if current_type_name.is_empty():
+	if current_table_name.is_empty():
 		return
 
-	var properties = database_system.get_type_properties(current_type_name)
-	_data_items = database_system.get_data_items(current_type_name)
+	var properties = database_system.get_table_properties(current_table_name)
+	_data_items = database_system.get_data_items(current_table_name)
 
 	for idx in range(_data_items.size()):
 		var data_item := _data_items[idx]
@@ -244,12 +244,12 @@ func _on_inspector_property_edited(property: String) -> void:
 		return
 	if _inspected_item == null:
 		return
-	if not database_system.type_has_property(current_type_name, property):
+	if not database_system.table_has_property(current_table_name, property):
 		return
 
 	# The Inspector already modified the DataItem in-place (it's a Resource).
 	# We just need to save and refresh the Tree display.
-	database_system.save_instances(current_type_name)
+	database_system.save_instances(current_table_name)
 	_refresh_instances()
 
 
@@ -262,7 +262,7 @@ func _setup_bulk_edit_menu() -> void:
 	if popup.id_pressed.is_connected(_on_bulk_edit_property_selected):
 		popup.id_pressed.disconnect(_on_bulk_edit_property_selected)
 
-	var properties = database_system.get_type_properties(current_type_name)
+	var properties = database_system.get_table_properties(current_table_name)
 	for i in range(properties.size()):
 		popup.add_item(properties[i].name, i)
 
@@ -270,7 +270,7 @@ func _setup_bulk_edit_menu() -> void:
 
 
 func _on_bulk_edit_property_selected(id: int) -> void:
-	var properties = database_system.get_type_properties(current_type_name)
+	var properties = database_system.get_table_properties(current_table_name)
 	if id >= properties.size():
 		return
 	_start_bulk_edit(properties[id])
@@ -306,7 +306,7 @@ func _on_bulk_value_changed(property_name: String, new_value: Variant) -> void:
 			_data_items[idx].set(property_name, new_value)
 
 	# Persist and refresh
-	database_system.save_instances(current_type_name)
+	database_system.save_instances(current_table_name)
 	_refresh_instances()
 
 
@@ -322,9 +322,9 @@ func _end_bulk_edit() -> void:
 # --- CRUD Operations --------------------------------------------------------
 
 func _on_add_instance_pressed() -> void:
-	if current_type_name.is_empty():
+	if current_table_name.is_empty():
 		return
-	database_system.add_instance(current_type_name)
+	database_system.add_instance(current_table_name)
 	_refresh_instances()
 	_update_status("Added new instance")
 
@@ -345,7 +345,7 @@ func _on_delete_instance_pressed() -> void:
 		indices.reverse()
 
 		for idx in indices:
-			database_system.remove_instance(current_type_name, idx)
+			database_system.remove_instance(current_table_name, idx)
 
 		_clear_inspected_item()
 		_end_bulk_edit()
@@ -358,14 +358,14 @@ func _on_delete_instance_pressed() -> void:
 
 
 func _on_save_all_pressed() -> void:
-	if not current_type_name.is_empty():
-		database_system.save_instances(current_type_name)
+	if not current_table_name.is_empty():
+		database_system.save_instances(current_table_name)
 		_update_status("Saved all instances")
 
 
 func _on_refresh_pressed() -> void:
-	if not current_type_name.is_empty():
-		database_system.load_instances(current_type_name)
+	if not current_table_name.is_empty():
+		database_system.load_instances(current_table_name)
 		_refresh_instances()
 		_update_status("Refreshed from disk")
 

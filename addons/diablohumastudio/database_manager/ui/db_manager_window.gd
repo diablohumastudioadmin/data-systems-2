@@ -19,9 +19,9 @@ func _ready() -> void:
 
 	# When a table is saved/deleted, refresh the instance editor
 	%TablesEditor.table_saved.connect(_on_table_changed)
-	database_system.types_changed.connect(_on_table_changed)
+	database_system.tables_changed.connect(_on_table_changed)
 
-func _on_table_changed(_type_name: Variant = null) -> void:
+func _on_table_changed(_table_name: Variant = null) -> void:
 	%DataInstanceEditor.reload()
 
 func _on_close_requested() -> void:

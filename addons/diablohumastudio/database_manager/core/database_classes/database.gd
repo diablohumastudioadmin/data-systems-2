@@ -14,17 +14,17 @@ func _init() -> void:
 	last_modified = Time.get_datetime_string_from_system()
 
 
-## Get table by type name
-func get_table(type_name: String) -> DataTable:
+## Get table by name
+func get_table(table_name: String) -> DataTable:
 	for table in tables:
-		if table.type_name == type_name:
+		if table.table_name == table_name:
 			return table
 	return null
 
 
 ## Check if table exists
-func has_table(type_name: String) -> bool:
-	return get_table(type_name) != null
+func has_table(table_name: String) -> bool:
+	return get_table(table_name) != null
 
 
 ## Add a table
@@ -33,10 +33,10 @@ func add_table(table: DataTable) -> void:
 	last_modified = Time.get_datetime_string_from_system()
 
 
-## Remove a table by type name
-func remove_table(type_name: String) -> bool:
+## Remove a table by name
+func remove_table(table_name: String) -> bool:
 	for i in range(tables.size()):
-		if tables[i].type_name == type_name:
+		if tables[i].table_name == table_name:
 			tables.remove_at(i)
 			last_modified = Time.get_datetime_string_from_system()
 			return true
@@ -47,5 +47,5 @@ func remove_table(type_name: String) -> bool:
 func get_table_names() -> Array[String]:
 	var names: Array[String] = []
 	for table in tables:
-		names.append(table.type_name)
+		names.append(table.table_name)
 	return names

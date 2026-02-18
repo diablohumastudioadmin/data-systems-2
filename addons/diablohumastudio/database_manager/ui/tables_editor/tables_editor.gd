@@ -3,25 +3,25 @@ extends Control
 
 ## Visual editor for creating and editing table schemas
 
-signal table_selected(type_name: String)
-signal table_saved(type_name: String)
+signal table_selected(table_name: String)
+signal table_saved(table_name: String)
 
 # Note: These @onready vars will be converted to % unique names after scene is created
-@onready var type_list: ItemList = $VBox/HBox/TypeList
+@onready var table_list: ItemList = $VBox/HBox/TableList
 @onready var editor_panel: Panel = $VBox/HBox/EditorPanel
 @onready var editor_vbox: VBoxContainer = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox
 
-@onready var type_name_edit: LineEdit = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/TypeNameBox/TypeNameEdit
+@onready var table_name_edit: LineEdit = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/TableNameBox/TableNameEdit
 @onready var properties_container: VBoxContainer = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/PropertiesScroll/PropertiesContainer
 @onready var add_property_btn: Button = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/AddPropertyBtn
-@onready var save_type_btn: Button = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox/SaveTypeBtn
-@onready var delete_type_btn: Button = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox/DeleteTypeBtn
+@onready var save_table_btn: Button = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox/SaveTableBtn
+@onready var delete_table_btn: Button = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox/DeleteTableBtn
 
-@onready var new_type_btn: Button = $VBox/VBoxContainer/TypeListPanel/VBox/HBoxContainer/NewTypeBtn
-@onready var refresh_btn: Button = $VBox/VBoxContainer/TypeListPanel/VBox/HBoxContainer/RefreshBtn
+@onready var new_table_btn: Button = $VBox/VBoxContainer/TableListPanel/VBox/HBoxContainer/NewTableBtn
+@onready var refresh_btn: Button = $VBox/VBoxContainer/TableListPanel/VBox/HBoxContainer/RefreshBtn
 
 var database_system: DatabaseSystem: set = _set_database_system
-var current_type_name: String = ""
+var current_table_name: String = ""
 var property_rows: Array = []  # Array of PropertyEditorRow nodes
 var _initialized: bool = false
 
@@ -43,50 +43,50 @@ func _initialize() -> void:
 		return
 	_initialized = true
 	_connect_signals()
-	_refresh_type_list()
+	_refresh_table_list()
 
 
 func _connect_signals() -> void:
-	type_list.item_selected.connect(_on_type_list_item_selected)
-	new_type_btn.pressed.connect(_on_new_type_pressed)
-	refresh_btn.pressed.connect(_refresh_type_list)
+	table_list.item_selected.connect(_on_table_list_item_selected)
+	new_table_btn.pressed.connect(_on_new_table_pressed)
+	refresh_btn.pressed.connect(_refresh_table_list)
 	add_property_btn.pressed.connect(_on_add_property_pressed)
-	save_type_btn.pressed.connect(_on_save_type_pressed)
-	delete_type_btn.pressed.connect(_on_delete_type_pressed)
-	type_name_edit.text_changed.connect(_on_type_name_changed)
+	save_table_btn.pressed.connect(_on_save_table_pressed)
+	delete_table_btn.pressed.connect(_on_delete_table_pressed)
+	table_name_edit.text_changed.connect(_on_table_name_changed)
 
 
-func _refresh_type_list() -> void:
-	type_list.clear()
-	var type_names = database_system.get_table_names()
-	for type_name in type_names:
-		type_list.add_item(type_name)
+func _refresh_table_list() -> void:
+	table_list.clear()
+	var table_names = database_system.get_table_names()
+	for table_name in table_names:
+		table_list.add_item(table_name)
 
 
-func _on_type_list_item_selected(index: int) -> void:
-	var type_name = type_list.get_item_text(index)
-	_load_type(type_name)
+func _on_table_list_item_selected(index: int) -> void:
+	var table_name = table_list.get_item_text(index)
+	_load_table(table_name)
 
 
-func _load_type(type_name: String) -> void:
-	current_type_name = type_name
-	type_name_edit.text = type_name
-	type_name_edit.editable = false
+func _load_table(table_name: String) -> void:
+	current_table_name = table_name
+	table_name_edit.text = table_name
+	table_name_edit.editable = false
 	_clear_properties()
 
 	# Read schema from generated script, convert Variant.Type to PropertyType
-	var properties = database_system.get_type_properties(type_name)
+	var properties = database_system.get_table_properties(table_name)
 	for prop in properties:
 		var prop_type = ResourceGenerator.variant_type_to_property_type(prop)
 		_add_property_row(prop.name, prop_type, prop.default)
 
-	table_selected.emit(type_name)
+	table_selected.emit(table_name)
 
 
 func _clear_editor() -> void:
-	current_type_name = ""
-	type_name_edit.text = ""
-	type_name_edit.editable = true
+	current_table_name = ""
+	table_name_edit.text = ""
+	table_name_edit.editable = true
 	_clear_properties()
 
 
@@ -96,9 +96,9 @@ func _clear_properties() -> void:
 	property_rows.clear()
 
 
-func _on_new_type_pressed() -> void:
+func _on_new_table_pressed() -> void:
 	_clear_editor()
-	type_list.deselect_all()
+	table_list.deselect_all()
 
 
 func _add_property_row(prop_name: String = "", prop_type: ResourceGenerator.PropertyType = ResourceGenerator.PropertyType.STRING, default_value: Variant = null) -> void:
@@ -119,11 +119,11 @@ func _on_property_remove_requested(row: Node) -> void:
 	row.queue_free()
 
 
-func _on_save_type_pressed() -> void:
-	var type_name = type_name_edit.text.strip_edges()
+func _on_save_table_pressed() -> void:
+	var table_name = table_name_edit.text.strip_edges()
 
-	if type_name.is_empty():
-		_show_error("Type name cannot be empty")
+	if table_name.is_empty():
+		_show_error("Table name cannot be empty")
 		return
 
 	# Collect properties from UI rows
@@ -135,32 +135,32 @@ func _on_save_type_pressed() -> void:
 		properties.append(prop_data)
 
 	var success = false
-	if current_type_name.is_empty():
-		success = database_system.add_type(type_name, properties)
+	if current_table_name.is_empty():
+		success = database_system.add_table(table_name, properties)
 	else:
-		success = database_system.update_type(type_name, properties)
+		success = database_system.update_table(table_name, properties)
 
 	if success:
-		print("[TablesEditor] Saved table: %s" % type_name)
-		current_type_name = type_name
-		_refresh_type_list()
-		table_saved.emit(type_name)
+		print("[TablesEditor] Saved table: %s" % table_name)
+		current_table_name = table_name
+		_refresh_table_list()
+		table_saved.emit(table_name)
 	else:
 		_show_error("Failed to save table")
 
 
-func _on_delete_type_pressed() -> void:
-	if current_type_name.is_empty():
+func _on_delete_table_pressed() -> void:
+	if current_table_name.is_empty():
 		return
 
 	var confirm = ConfirmationDialog.new()
-	confirm.dialog_text = "Delete table '%s'?\nThis cannot be undone." % current_type_name
+	confirm.dialog_text = "Delete table '%s'?\nThis cannot be undone." % current_table_name
 	confirm.confirmed.connect(func():
-		var success = database_system.remove_type(current_type_name)
+		var success = database_system.remove_table(current_table_name)
 		if success:
-			print("[TablesEditor] Deleted table: %s" % current_type_name)
+			print("[TablesEditor] Deleted table: %s" % current_table_name)
 			_clear_editor()
-			_refresh_type_list()
+			_refresh_table_list()
 		confirm.queue_free()
 	)
 	confirm.canceled.connect(func(): confirm.queue_free())
@@ -169,8 +169,8 @@ func _on_delete_type_pressed() -> void:
 	confirm.popup_centered()
 
 
-func _on_type_name_changed(new_text: String) -> void:
-	save_type_btn.disabled = new_text.strip_edges().is_empty()
+func _on_table_name_changed(new_text: String) -> void:
+	save_table_btn.disabled = new_text.strip_edges().is_empty()
 
 
 func _show_error(message: String) -> void:

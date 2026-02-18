@@ -24,9 +24,9 @@ layout_mode = 2
 
 [node name="Label" type="Label" parent="VBox/Toolbar"]
 layout_mode = 2
-text = "Data Type:"
+text = "Table:"
 
-[node name="TypeSelector" type="OptionButton" parent="VBox/Toolbar"]
+[node name="TableSelector" type="OptionButton" parent="VBox/Toolbar"]
 layout_mode = 2
 size_flags_horizontal = 3
 
