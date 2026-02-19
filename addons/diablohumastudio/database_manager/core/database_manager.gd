@@ -159,6 +159,55 @@ func update_table(table_name: String, fields: Array[Dictionary]) -> bool:
 	return true
 
 
+## Rename a table and update its schema fields in one operation.
+## Generates a new .gd at the new path, reassigns all instances, deletes the old .gd.
+func rename_table(old_name: String, new_name: String, fields: Array[Dictionary]) -> bool:
+	if not _database.has_table(old_name):
+		push_warning("Table not found: %s" % old_name)
+		return false
+	if _database.has_table(new_name):
+		push_warning("Table already exists: %s" % new_name)
+		return false
+
+	var table: DataTable = _database.get_table(old_name)
+
+	# Generate new .gd at the new path with the new class name + updated fields
+	ResourceGenerator.generate_resource_class(new_name, fields, structures_path)
+
+	# Load the new script and reassign all existing instances to it
+	var new_script_path := structures_path.path_join("%s.gd" % new_name.to_lower())
+	var new_script = ResourceLoader.load(
+		new_script_path, "", ResourceLoader.CACHE_MODE_REUSE) as GDScript
+	if new_script:
+		for item in table.instances:
+			item.set_script(new_script)
+
+	# Update the table record
+	table.table_name = new_name
+
+	# Remove old .gd and old enum
+	ResourceGenerator.delete_resource_class(old_name, structures_path)
+	ResourceGenerator.delete_enum_file(old_name, ids_path)
+
+	# Regenerate enum under new name
+	ResourceGenerator.generate_enum_file(new_name, table.instances, ids_path)
+
+	# Move ID cache to new key
+	_id_cache[new_name] = _id_cache.get(old_name, {})
+	_id_cache.erase(old_name)
+
+	var err := save()
+	if err != OK:
+		push_error("Failed to save after renaming table: %s → %s" % [old_name, new_name])
+		return false
+
+	if Engine.is_editor_hint():
+		EditorInterface.get_resource_filesystem().update_file(new_script_path)
+	_scan_filesystem()
+	tables_changed.emit()
+	return true
+
+
 ## Remove a table (deletes .gd file + enum file + removes DataTable)
 func remove_table(table_name: String) -> bool:
 	if not _database.has_table(table_name):

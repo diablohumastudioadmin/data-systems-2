@@ -71,7 +71,7 @@ func _on_table_list_item_selected(index: int) -> void:
 func _load_table(table_name: String) -> void:
 	current_table_name = table_name
 	table_name_edit.text = table_name
-	table_name_edit.editable = false
+	table_name_edit.editable = true
 	_clear_fields()
 
 	# Read schema from generated script, convert Variant.Type to FieldType
@@ -137,6 +137,8 @@ func _on_save_table_pressed() -> void:
 	var success = false
 	if current_table_name.is_empty():
 		success = database_manager.add_table(table_name, fields)
+	elif table_name != current_table_name:
+		success = database_manager.rename_table(current_table_name, table_name, fields)
 	else:
 		success = database_manager.update_table(table_name, fields)
 
