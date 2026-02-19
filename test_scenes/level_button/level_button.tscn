@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cew7wkfl5sayn"]
+
+[ext_resource type="Script" uid="uid://cgoxfbmjjux66" path="res://test_scenes/level_button/level_button.gd" id="1_vft88"]
+
+[node name="LevelButton" type="Button" unique_id=1241368893]
+script = ExtResource("1_vft88")
