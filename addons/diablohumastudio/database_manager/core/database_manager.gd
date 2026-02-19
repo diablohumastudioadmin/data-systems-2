@@ -175,7 +175,7 @@ func rename_table(old_name: String, new_name: String, fields: Array[Dictionary])
 	# set_script() does not reliably preserve GDScript Resource properties.
 	var snapshots: Array[Dictionary] = []
 	for item in table.instances:
-		var snap := {}
+		var snap := {"id": item.id, "name": item.name}
 		var old_script: GDScript = item.get_script()
 		if old_script:
 			for p in old_script.get_script_property_list():

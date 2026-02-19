@@ -11,4 +11,4 @@ extends Resource
 
 ## Stable auto-incremented ID. Assigned by DatabaseManager, never reused.
 ## This is the enum value — do not edit manually.
-var id: int = -1
+@export_storage var id: int = -1
