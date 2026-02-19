@@ -78,7 +78,8 @@ func _load_table(table_name: String) -> void:
 	var fields = database_manager.get_table_fields(table_name)
 	for field in fields:
 		var field_type = ResourceGenerator.variant_type_to_field_type(field)
-		_add_field_row(field.name, field_type, field.default)
+		var element_type = ResourceGenerator.variant_type_to_element_type(field)
+		_add_field_row(field.name, field_type, field.default, element_type)
 
 	table_selected.emit(table_name)
 
@@ -101,9 +102,13 @@ func _on_new_table_pressed() -> void:
 	table_list.deselect_all()
 
 
-func _add_field_row(field_name: String = "", field_type: ResourceGenerator.FieldType = ResourceGenerator.FieldType.STRING, default_value: Variant = null) -> void:
+func _add_field_row(
+		field_name: String = "",
+		field_type: ResourceGenerator.FieldType = ResourceGenerator.FieldType.STRING,
+		default_value: Variant = null,
+		element_type: int = -1) -> void:
 	var row = preload("field_editor_row.tscn").instantiate()
-	row.set_field(field_name, field_type, default_value)
+	row.set_field(field_name, field_type, default_value, element_type)
 	row.remove_requested.connect(_on_field_remove_requested.bind(row))
 
 	fields_container.add_child(row)

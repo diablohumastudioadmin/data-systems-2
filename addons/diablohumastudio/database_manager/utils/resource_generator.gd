@@ -181,8 +181,8 @@ static func _generate_script_content(table_name: String, fields: Array[Dictionar
 	lines.append("")
 
 	for field in fields:
-		var type_str = _get_gdscript_type(field.type)
-		var default_str = _get_default_value_string(field.default, field.type)
+		var type_str = _get_gdscript_type_for_field(field)
+		var default_str = _get_default_value_string(field.get("default"), field.type)
 		lines.append("@export var %s: %s = %s" % [field.name, type_str, default_str])
 
 	lines.append("")
@@ -221,6 +221,40 @@ static func variant_type_to_field_type(field_info: Dictionary) -> FieldType:
 
 
 # --- Helpers -----------------------------------------------------------------
+
+## Returns the GDScript type string for a field dict, handling typed arrays.
+static func _get_gdscript_type_for_field(field: Dictionary) -> String:
+	var ft: FieldType = field.type
+	if ft == FieldType.ARRAY:
+		var et: int = field.get("element_type", -1)
+		if et >= 0:
+			return "Array[%s]" % _get_gdscript_type(et as FieldType)
+	return _get_gdscript_type(ft)
+
+
+## Extract the array element FieldType from a property info dict (from reflection).
+## Returns -1 if the field is not a typed array or element type is unrecognised.
+static func variant_type_to_element_type(field_info: Dictionary) -> int:
+	if field_info.type != TYPE_ARRAY:
+		return -1
+	var hs: String = field_info.get("hint_string", "")
+	if hs.is_empty():
+		return -1
+	# Godot 4 hint_string for typed arrays: "<VariantType>:<TypeName>" e.g. "2:int"
+	var colon := hs.find(":")
+	var type_num_str := hs.substr(0, colon if colon >= 0 else hs.length())
+	if not type_num_str.is_valid_int():
+		return -1
+	match int(type_num_str):
+		TYPE_INT:     return FieldType.INT
+		TYPE_FLOAT:   return FieldType.FLOAT
+		TYPE_STRING:  return FieldType.STRING
+		TYPE_BOOL:    return FieldType.BOOL
+		TYPE_VECTOR2: return FieldType.VECTOR2
+		TYPE_VECTOR3: return FieldType.VECTOR3
+		TYPE_COLOR:   return FieldType.COLOR
+	return -1
+
 
 static func _get_gdscript_type(field_type: FieldType) -> String:
 	match field_type:

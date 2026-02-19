@@ -2,7 +2,7 @@
 extends HBoxContainer
 
 ## Reusable field editor row for TablesEditor (scene-based).
-## Shows: Name | FieldName | Type | FieldType | Default: | [editor] | X
+## Shows: Name | FieldName | Type | FieldType | [of ElementType] | Default: | [editor] | X
 
 signal remove_requested()
 
@@ -13,16 +13,22 @@ signal remove_requested()
 
 var default_value_edit: Control  # Current editor inside DefaultValueContainer
 var current_type: ResourceGenerator.FieldType = ResourceGenerator.FieldType.STRING
+var current_element_type: int = ResourceGenerator.FieldType.INT  # -1 = untyped
+
+var element_type_container: HBoxContainer
+var element_type_option: OptionButton
 
 ## Deferred initial data (set before _ready via set_field)
 var _deferred_name: String = ""
 var _deferred_type: ResourceGenerator.FieldType = ResourceGenerator.FieldType.STRING
+var _deferred_element_type: int = -1
 var _deferred_default: Variant = null
 var _has_deferred_data: bool = false
 
 
 func _ready() -> void:
 	_populate_type_options()
+	_build_element_type_selector()
 	field_type_option.item_selected.connect(_on_type_changed)
 	remove_btn.pressed.connect(func(): remove_requested.emit())
 
@@ -44,6 +50,30 @@ func _populate_type_options() -> void:
 	field_type_option.add_item("Color", ResourceGenerator.FieldType.COLOR)
 	field_type_option.add_item("Array", ResourceGenerator.FieldType.ARRAY)
 	field_type_option.add_item("Dictionary", ResourceGenerator.FieldType.DICTIONARY)
+
+
+func _build_element_type_selector() -> void:
+	element_type_container = HBoxContainer.new()
+	element_type_container.visible = false
+
+	var label = Label.new()
+	label.text = "of"
+	element_type_container.add_child(label)
+
+	element_type_option = OptionButton.new()
+	element_type_option.add_item("int", ResourceGenerator.FieldType.INT)
+	element_type_option.add_item("float", ResourceGenerator.FieldType.FLOAT)
+	element_type_option.add_item("String", ResourceGenerator.FieldType.STRING)
+	element_type_option.add_item("bool", ResourceGenerator.FieldType.BOOL)
+	element_type_option.add_item("Vector2", ResourceGenerator.FieldType.VECTOR2)
+	element_type_option.add_item("Vector3", ResourceGenerator.FieldType.VECTOR3)
+	element_type_option.add_item("Color", ResourceGenerator.FieldType.COLOR)
+	element_type_option.item_selected.connect(_on_element_type_changed)
+	element_type_container.add_child(element_type_option)
+
+	# Insert right after the type dropdown
+	add_child(element_type_container)
+	move_child(element_type_container, field_type_option.get_index() + 1)
 
 
 func _update_default_value_editor() -> void:
@@ -115,27 +145,32 @@ func _update_default_value_editor() -> void:
 
 func _on_type_changed(index: int) -> void:
 	current_type = field_type_option.get_item_id(index) as ResourceGenerator.FieldType
+	element_type_container.visible = (current_type == ResourceGenerator.FieldType.ARRAY)
 	_update_default_value_editor()
 
 
-func set_field(field_name: String, field_type: ResourceGenerator.FieldType, default_value: Variant) -> void:
-	# If not ready yet, defer the data
+func _on_element_type_changed(index: int) -> void:
+	current_element_type = element_type_option.get_item_id(index)
+
+
+func set_field(field_name: String, field_type: ResourceGenerator.FieldType, default_value: Variant, element_type: int = -1) -> void:
 	if not is_node_ready():
 		_deferred_name = field_name
 		_deferred_type = field_type
+		_deferred_element_type = element_type
 		_deferred_default = default_value
 		_has_deferred_data = true
 		return
 
-	_apply_field(field_name, field_type, default_value)
+	_apply_field(field_name, field_type, default_value, element_type)
 
 
 func _apply_deferred_data() -> void:
-	_apply_field(_deferred_name, _deferred_type, _deferred_default)
+	_apply_field(_deferred_name, _deferred_type, _deferred_default, _deferred_element_type)
 	_has_deferred_data = false
 
 
-func _apply_field(field_name: String, field_type: ResourceGenerator.FieldType, default_value: Variant) -> void:
+func _apply_field(field_name: String, field_type: ResourceGenerator.FieldType, default_value: Variant, element_type: int = -1) -> void:
 	field_name_edit.text = field_name
 	current_type = field_type
 
@@ -144,6 +179,15 @@ func _apply_field(field_name: String, field_type: ResourceGenerator.FieldType, d
 		if field_type_option.get_item_id(i) == field_type:
 			field_type_option.selected = i
 			break
+
+	# Set element type dropdown
+	element_type_container.visible = (current_type == ResourceGenerator.FieldType.ARRAY)
+	if element_type >= 0:
+		current_element_type = element_type
+		for i in range(element_type_option.item_count):
+			if element_type_option.get_item_id(i) == element_type:
+				element_type_option.selected = i
+				break
 
 	_update_default_value_editor()
 	_set_default_value(default_value)
@@ -192,12 +236,16 @@ func get_field_data() -> Dictionary:
 		return {}
 
 	var default_val = _get_default_value()
-
-	return {
+	var data := {
 		"name": name_text,
 		"type": current_type,
 		"default": default_val
 	}
+
+	if current_type == ResourceGenerator.FieldType.ARRAY:
+		data["element_type"] = current_element_type
+
+	return data
 
 
 func _get_default_value() -> Variant:
