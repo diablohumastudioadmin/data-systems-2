@@ -7,17 +7,26 @@
 
 [sub_resource type="Resource" id="Resource_7n4m2"]
 script = ExtResource("4_u2e75")
-reward = "500"
-name = "level 1"
-id = 0
+reward = "350"
+name = "stalingrad 1"
+
+[sub_resource type="Resource" id="Resource_e12gq"]
+script = ExtResource("4_u2e75")
+reward = "150"
+name = "stalingrad 3"
+
+[sub_resource type="Resource" id="Resource_muxde"]
+script = ExtResource("4_u2e75")
+reward = "250"
+name = "stalingrad  2"
 
 [sub_resource type="Resource" id="Resource_u2e75"]
 script = ExtResource("2_mcntd")
 table_name = "LevelData"
-instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_7n4m2")])
-_next_id = 1
+instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_7n4m2"), SubResource("Resource_e12gq"), SubResource("Resource_muxde")])
+_next_id = 5
 
 [resource]
 script = ExtResource("1_0cp4g")
 tables = Array[ExtResource("2_mcntd")]([SubResource("Resource_u2e75")])
-last_modified = "2026-02-18T20:47:31"
+last_modified = "2026-02-18T20:53:54"
