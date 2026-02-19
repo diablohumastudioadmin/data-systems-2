@@ -10,13 +10,13 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 
 ## Architecture
 - See `data_system_redesign_claude.md` for full architecture details.
-- `DatabaseSystem` is the single orchestrator. `ResourceGenerator` generates scripts. Inspector-driven editing.
+- `DatabaseManager` is the single orchestrator (autoload: `DBManager`). `ResourceGenerator` generates scripts. Inspector-driven editing.
 - Schema lives in generated `.gd` files at `res://database/res/table_structures/` (hidden via `.gdignore`).
 - Database stored as single `.tres` at `res://database/res/database.tres`.
 
 ## Key File Locations
 ```
-core/database_system.gd        — DatabaseSystem (orchestrator)
+core/database_manager.gd       — DatabaseManager (orchestrator, autoload: DBManager)
 core/database_classes/          — Database, DataTable, DataItem
 core/storage/                   — StorageAdapter, ResourceStorageAdapter
 utils/resource_generator.gd     — PropertyType enum + code generation

@@ -17,7 +17,7 @@ const BulkEditProxyScript = preload("bulk_edit_proxy.gd")
 @onready var refresh_btn: Button = $VBox/Toolbar/RefreshBtn
 @onready var status_label: Label = $VBox/StatusBar/StatusLabel
 
-var database_system: DatabaseSystem: set = _set_database_system
+var database_manager: DatabaseManager: set = _set_database_manager
 var current_table_name: String = ""
 
 ## Live references to the actual DataItem Resources (not dictionaries)
@@ -37,14 +37,14 @@ var _initialized: bool = false
 
 # --- Lifecycle ---------------------------------------------------------------
 
-func _set_database_system(value: DatabaseSystem) -> void:
-	database_system = value
+func _set_database_manager(value: DatabaseManager) -> void:
+	database_manager = value
 	if value and is_node_ready() and not _initialized:
 		_initialize()
 
 
 func _ready() -> void:
-	if not database_system:
+	if not database_manager:
 		return
 	_initialize()
 
@@ -115,7 +115,7 @@ func reload() -> void:
 
 func _refresh_table_selector() -> void:
 	table_selector.clear()
-	var tables = database_system.get_table_names()
+	var tables = database_manager.get_table_names()
 	for i in range(tables.size()):
 		table_selector.add_item(tables[i], i)
 
@@ -134,20 +134,24 @@ func _load_table(table_name: String) -> void:
 	_end_bulk_edit()
 	_clear_inspected_item()
 
-	var properties = database_system.get_table_properties(table_name)
-	if properties.is_empty():
-		push_error("Table not found or has no properties: %s" % table_name)
-		return
+	var properties = database_manager.get_table_properties(table_name)
 
-	# Column 0 = row index, columns 1..N = properties
-	instance_tree.columns = properties.size() + 1
+	# Columns: # | ID | Name | <custom properties...>
+	instance_tree.columns = properties.size() + 3
 	instance_tree.set_column_title(0, "#")
 	instance_tree.set_column_expand(0, false)
 	instance_tree.set_column_custom_minimum_width(0, 50)
 
+	instance_tree.set_column_title(1, "ID")
+	instance_tree.set_column_expand(1, false)
+	instance_tree.set_column_custom_minimum_width(1, 50)
+
+	instance_tree.set_column_title(2, "Name")
+	instance_tree.set_column_expand(2, true)
+
 	for i in range(properties.size()):
-		instance_tree.set_column_title(i + 1, properties[i].name)
-		instance_tree.set_column_expand(i + 1, true)
+		instance_tree.set_column_title(i + 3, properties[i].name)
+		instance_tree.set_column_expand(i + 3, true)
 
 	_refresh_instances()
 
@@ -161,27 +165,33 @@ func _refresh_instances() -> void:
 	if current_table_name.is_empty():
 		return
 
-	var properties = database_system.get_table_properties(current_table_name)
-	_data_items = database_system.get_data_items(current_table_name)
+	var properties = database_manager.get_table_properties(current_table_name)
+	_data_items = database_manager.get_data_items(current_table_name)
 
 	for idx in range(_data_items.size()):
 		var data_item := _data_items[idx]
 		var tree_item := instance_tree.create_item(tree_root)
 
-		# Column 0: index label
+		# Column 0: array index
 		tree_item.set_text(0, str(idx))
 		tree_item.set_metadata(0, idx)
+
+		# Column 1: stable ID
+		tree_item.set_text(1, str(data_item.id))
+
+		# Column 2: name
+		tree_item.set_text(2, data_item.name)
 
 		# Property columns: display values as text (read-only)
 		for i in range(properties.size()):
 			var prop = properties[i]
 			var value = data_item.get(prop.name)
-			tree_item.set_text(i + 1, _value_to_display(value, prop.type))
+			tree_item.set_text(i + 3, _value_to_display(value, prop.type))
 
 			# Visual hint: show color swatch for Color properties
 			if prop.type == TYPE_COLOR and value is Color:
-				tree_item.set_custom_bg_color(i + 1, value)
-				tree_item.set_custom_color(i + 1, Color.BLACK if value.v > 0.5 else Color.WHITE)
+				tree_item.set_custom_bg_color(i + 3, value)
+				tree_item.set_custom_color(i + 3, Color.BLACK if value.v > 0.5 else Color.WHITE)
 
 	_update_status("%d instances" % _data_items.size())
 
@@ -244,12 +254,13 @@ func _on_inspector_property_edited(property: String) -> void:
 		return
 	if _inspected_item == null:
 		return
-	if not database_system.table_has_property(current_table_name, property):
+	# Accept base DataItem properties (name) and custom table properties
+	if property != "name" and not database_manager.table_has_property(current_table_name, property):
 		return
 
 	# The Inspector already modified the DataItem in-place (it's a Resource).
 	# We just need to save and refresh the Tree display.
-	database_system.save_instances(current_table_name)
+	database_manager.save_instances(current_table_name)
 	_refresh_instances()
 
 
@@ -262,7 +273,7 @@ func _setup_bulk_edit_menu() -> void:
 	if popup.id_pressed.is_connected(_on_bulk_edit_property_selected):
 		popup.id_pressed.disconnect(_on_bulk_edit_property_selected)
 
-	var properties = database_system.get_table_properties(current_table_name)
+	var properties = database_manager.get_table_properties(current_table_name)
 	for i in range(properties.size()):
 		popup.add_item(properties[i].name, i)
 
@@ -270,7 +281,7 @@ func _setup_bulk_edit_menu() -> void:
 
 
 func _on_bulk_edit_property_selected(id: int) -> void:
-	var properties = database_system.get_table_properties(current_table_name)
+	var properties = database_manager.get_table_properties(current_table_name)
 	if id >= properties.size():
 		return
 	_start_bulk_edit(properties[id])
@@ -306,7 +317,7 @@ func _on_bulk_value_changed(property_name: String, new_value: Variant) -> void:
 			_data_items[idx].set(property_name, new_value)
 
 	# Persist and refresh
-	database_system.save_instances(current_table_name)
+	database_manager.save_instances(current_table_name)
 	_refresh_instances()
 
 
@@ -324,9 +335,33 @@ func _end_bulk_edit() -> void:
 func _on_add_instance_pressed() -> void:
 	if current_table_name.is_empty():
 		return
-	database_system.add_instance(current_table_name)
-	_refresh_instances()
-	_update_status("Added new instance")
+
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "New Instance"
+
+	var vbox := VBoxContainer.new()
+	var label := Label.new()
+	label.text = "Instance name:"
+	vbox.add_child(label)
+	var line_edit := LineEdit.new()
+	line_edit.placeholder_text = "e.g. Forest, Desert, Sword..."
+	vbox.add_child(line_edit)
+	dialog.add_child(vbox)
+
+	dialog.confirmed.connect(func():
+		var instance_name := line_edit.text.strip_edges()
+		if instance_name.is_empty():
+			dialog.queue_free()
+			return
+		database_manager.add_instance(current_table_name, instance_name)
+		_refresh_instances()
+		_update_status("Added instance: %s" % instance_name)
+		dialog.queue_free()
+	)
+	dialog.canceled.connect(func(): dialog.queue_free())
+	add_child(dialog)
+	dialog.popup_centered(Vector2i(300, 100))
+	line_edit.grab_focus()
 
 
 func _on_delete_instance_pressed() -> void:
@@ -345,7 +380,7 @@ func _on_delete_instance_pressed() -> void:
 		indices.reverse()
 
 		for idx in indices:
-			database_system.remove_instance(current_table_name, idx)
+			database_manager.remove_instance(current_table_name, idx)
 
 		_clear_inspected_item()
 		_end_bulk_edit()
@@ -359,13 +394,13 @@ func _on_delete_instance_pressed() -> void:
 
 func _on_save_all_pressed() -> void:
 	if not current_table_name.is_empty():
-		database_system.save_instances(current_table_name)
+		database_manager.save_instances(current_table_name)
 		_update_status("Saved all instances")
 
 
 func _on_refresh_pressed() -> void:
 	if not current_table_name.is_empty():
-		database_system.load_instances(current_table_name)
+		database_manager.load_instances(current_table_name)
 		_refresh_instances()
 		_update_status("Refreshed from disk")
 

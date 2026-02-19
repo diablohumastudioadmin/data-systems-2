@@ -3,68 +3,61 @@
 [ext_resource type="Script" uid="uid://co8stjolrhw25" path="res://addons/diablohumastudio/database_manager/core/database_classes/database.gd" id="1_0cp4g"]
 [ext_resource type="Script" uid="uid://cfyorg1em2nmd" path="res://addons/diablohumastudio/database_manager/core/database_classes/data_table.gd" id="2_mcntd"]
 [ext_resource type="Script" uid="uid://uf1e0gtp7nmi" path="res://addons/diablohumastudio/database_manager/core/database_classes/data_item.gd" id="3_mcntd"]
-[ext_resource type="Script" path="res://database/res/table_structures/level.gd" id="4_u2e75"]
-[ext_resource type="Script" path="res://database/res/table_structures/achivement.gd" id="5_7n4m2"]
-[ext_resource type="Script" path="res://database/res/table_structures/aaa.gd" id="6_muxde"]
-[ext_resource type="Script" path="res://database/res/table_structures/test.gd" id="7_e12gq"]
+[ext_resource type="Script" uid="uid://b6e37qmbjdjck" path="res://database/res/table_structures/leveldata.gd" id="4_u2e75"]
+[ext_resource type="Script" uid="uid://i6j0ybyyeqir" path="res://database/res/table_structures/achievementdata.gd" id="5_7n4m2"]
 
 [sub_resource type="Resource" id="Resource_7n4m2"]
 script = ExtResource("4_u2e75")
-background_color = Color(0, 0.26476732, 0, 1)
+reward = 500
+id = 0
 
 [sub_resource type="Resource" id="Resource_muxde"]
 script = ExtResource("4_u2e75")
-background_color = Color(0, 0.26476732, 0, 1)
+reward = 300
+id = 1
+
+[sub_resource type="Resource" id="Resource_e12gq"]
+script = ExtResource("4_u2e75")
+reward = 250
+id = 2
 
 [sub_resource type="Resource" id="Resource_k3bxl"]
 script = ExtResource("4_u2e75")
-background_color = Color(0.6862745, 0, 0, 1)
+reward = 280
+id = 3
+
+[sub_resource type="Resource" id="Resource_oncg7"]
+script = ExtResource("4_u2e75")
+reward = 450
+id = 4
 
 [sub_resource type="Resource" id="Resource_u2e75"]
 script = ExtResource("2_mcntd")
-table_name = "Level"
-instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_7n4m2"), SubResource("Resource_muxde"), SubResource("Resource_k3bxl")])
+table_name = "LevelData"
+instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_7n4m2"), SubResource("Resource_muxde"), SubResource("Resource_e12gq"), SubResource("Resource_k3bxl"), SubResource("Resource_oncg7")])
+_next_id = 5
 
-[sub_resource type="Resource" id="Resource_e12gq"]
+[sub_resource type="Resource" id="Resource_qm26x"]
 script = ExtResource("5_7n4m2")
+reward = 450
+id = 0
 
-[sub_resource type="Resource" id="Resource_oncg7"]
+[sub_resource type="Resource" id="Resource_4clpe"]
 script = ExtResource("5_7n4m2")
+reward = 350
+id = 1
 
 [sub_resource type="Resource" id="Resource_mcntd"]
 script = ExtResource("2_mcntd")
-table_name = "Achivement"
-instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_e12gq"), SubResource("Resource_oncg7")])
-
-[sub_resource type="Resource" id="Resource_oxxqi"]
-script = ExtResource("6_muxde")
-w = "www"
-q = "qqq"
-new = "we"
+table_name = "AchievementData"
+instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_qm26x"), SubResource("Resource_4clpe")])
+_next_id = 2
 
 [sub_resource type="Resource" id="Resource_8emn4"]
-script = ExtResource("6_muxde")
-w = "qqq"
-
-[sub_resource type="Resource" id="Resource_614e4"]
-script = ExtResource("6_muxde")
-w = "hola"
-
-[sub_resource type="Resource" id="Resource_qm26x"]
 script = ExtResource("2_mcntd")
-table_name = "aaa"
-instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_oxxqi"), SubResource("Resource_8emn4"), SubResource("Resource_614e4")])
-
-[sub_resource type="Resource" id="Resource_e2l4h"]
-script = ExtResource("7_e12gq")
-texto = "asdad"
-
-[sub_resource type="Resource" id="Resource_4clpe"]
-script = ExtResource("2_mcntd")
-table_name = "test"
-instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_e2l4h")])
+table_name = "LevelUserData"
 
 [resource]
 script = ExtResource("1_0cp4g")
-tables = Array[ExtResource("2_mcntd")]([SubResource("Resource_u2e75"), SubResource("Resource_mcntd"), SubResource("Resource_qm26x"), SubResource("Resource_4clpe")])
-last_modified = "2026-02-17T21:05:54"
+tables = Array[ExtResource("2_mcntd")]([SubResource("Resource_u2e75"), SubResource("Resource_mcntd"), SubResource("Resource_8emn4")])
+last_modified = "2026-02-18T19:53:43"

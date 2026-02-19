@@ -20,20 +20,20 @@ signal table_saved(table_name: String)
 @onready var new_table_btn: Button = $VBox/VBoxContainer/TableListPanel/VBox/HBoxContainer/NewTableBtn
 @onready var refresh_btn: Button = $VBox/VBoxContainer/TableListPanel/VBox/HBoxContainer/RefreshBtn
 
-var database_system: DatabaseSystem: set = _set_database_system
+var database_manager: DatabaseManager: set = _set_database_manager
 var current_table_name: String = ""
 var property_rows: Array = []  # Array of PropertyEditorRow nodes
 var _initialized: bool = false
 
 
-func _set_database_system(value: DatabaseSystem) -> void:
-	database_system = value
+func _set_database_manager(value: DatabaseManager) -> void:
+	database_manager = value
 	if value and is_node_ready() and not _initialized:
 		_initialize()
 
 
 func _ready() -> void:
-	if not database_system:
+	if not database_manager:
 		return
 	_initialize()
 
@@ -58,7 +58,7 @@ func _connect_signals() -> void:
 
 func _refresh_table_list() -> void:
 	table_list.clear()
-	var table_names = database_system.get_table_names()
+	var table_names = database_manager.get_table_names()
 	for table_name in table_names:
 		table_list.add_item(table_name)
 
@@ -75,7 +75,7 @@ func _load_table(table_name: String) -> void:
 	_clear_properties()
 
 	# Read schema from generated script, convert Variant.Type to PropertyType
-	var properties = database_system.get_table_properties(table_name)
+	var properties = database_manager.get_table_properties(table_name)
 	for prop in properties:
 		var prop_type = ResourceGenerator.variant_type_to_property_type(prop)
 		_add_property_row(prop.name, prop_type, prop.default)
@@ -136,9 +136,9 @@ func _on_save_table_pressed() -> void:
 
 	var success = false
 	if current_table_name.is_empty():
-		success = database_system.add_table(table_name, properties)
+		success = database_manager.add_table(table_name, properties)
 	else:
-		success = database_system.update_table(table_name, properties)
+		success = database_manager.update_table(table_name, properties)
 
 	if success:
 		print("[TablesEditor] Saved table: %s" % table_name)
@@ -156,7 +156,7 @@ func _on_delete_table_pressed() -> void:
 	var confirm = ConfirmationDialog.new()
 	confirm.dialog_text = "Delete table '%s'?\nThis cannot be undone." % current_table_name
 	confirm.confirmed.connect(func():
-		var success = database_system.remove_table(current_table_name)
+		var success = database_manager.remove_table(current_table_name)
 		if success:
 			print("[TablesEditor] Deleted table: %s" % current_table_name)
 			_clear_editor()
