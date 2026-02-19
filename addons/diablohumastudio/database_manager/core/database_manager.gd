@@ -133,11 +133,27 @@ func update_table(table_name: String, properties: Array[Dictionary]) -> bool:
 
 	ResourceGenerator.generate_resource_class(table_name, properties, structures_path)
 
+	# Reload the script in-place on the EXISTING cached GDScript object.
+	# All instances (ours + external editor resources) already hold a reference
+	# to that same object, so they all see the updated properties immediately —
+	# no set_script() needed. This is the same mechanism Godot uses when you
+	# manually re-save a .gd file in the script editor.
+	var script_path := structures_path.path_join("%s.gd" % table_name.to_lower())
+	var cached_script: GDScript = load(script_path) as GDScript
+	if cached_script:
+		cached_script.source_code = FileAccess.get_file_as_string(script_path)
+		cached_script.reload(true)  # keep_state=true preserves existing instance values
+
 	var err := save()
 	if err != OK:
 		push_error("Failed to save after updating table: %s" % table_name)
 		return false
 
+	_rebuild_id_cache()
+	# update_file() notifies the editor about the specific changed file so the
+	# Script Editor refreshes its buffer; _scan_filesystem() handles class registration.
+	if Engine.is_editor_hint():
+		EditorInterface.get_resource_filesystem().update_file(script_path)
 	_scan_filesystem()
 	tables_changed.emit()
 	return true
@@ -206,8 +222,8 @@ func add_instance(table_name: String, instance_name: String) -> DataItem:
 		return null
 
 	item.name = instance_name.strip_edges()
-	item.id = table._next_id
-	table._next_id += 1
+	item.id = table.next_id
+	table.next_id += 1
 
 	table.instances.append(item)
 	save()
@@ -309,7 +325,7 @@ func _create_data_item(table_name: String) -> DataItem:
 		return null
 
 	var script = ResourceLoader.load(
-		script_path, "", ResourceLoader.CACHE_MODE_REPLACE
+		script_path, "", ResourceLoader.CACHE_MODE_REUSE
 	) as GDScript
 	if script == null:
 		return null
@@ -349,8 +365,8 @@ func _migrate_legacy_instances() -> void:
 	for table in _database.tables:
 		for item in table.instances:
 			if item.id < 0:
-				item.id = table._next_id
-				table._next_id += 1
+				item.id = table.next_id
+				table.next_id += 1
 				migrated = true
 	if migrated:
 		save()

@@ -1,3 +1,3 @@
 extends Button
 
-@export var level: LevelDataIds.Id
+#@export var level: LevelDataIds.Id

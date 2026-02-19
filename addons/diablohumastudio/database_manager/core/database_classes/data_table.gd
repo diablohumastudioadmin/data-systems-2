@@ -8,4 +8,4 @@ extends Resource
 
 @export var table_name: String = ""
 @export var instances: Array[DataItem] = []
-var _next_id: int = 0
+@export_storage var next_id: int = 0
