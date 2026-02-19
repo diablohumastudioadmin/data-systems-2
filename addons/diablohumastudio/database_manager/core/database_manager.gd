@@ -171,16 +171,31 @@ func rename_table(old_name: String, new_name: String, fields: Array[Dictionary])
 
 	var table: DataTable = _database.get_table(old_name)
 
+	# Snapshot all instance property values before swapping the script.
+	# set_script() does not reliably preserve GDScript Resource properties.
+	var snapshots: Array[Dictionary] = []
+	for item in table.instances:
+		var snap := {}
+		var old_script: GDScript = item.get_script()
+		if old_script:
+			for p in old_script.get_script_property_list():
+				if p.usage & PROPERTY_USAGE_EDITOR:
+					snap[p.name] = item.get(p.name)
+		snapshots.append(snap)
+
 	# Generate new .gd at the new path with the new class name + updated fields
 	ResourceGenerator.generate_resource_class(new_name, fields, structures_path)
 
-	# Load the new script and reassign all existing instances to it
+	# Load the new script, swap every instance, then restore saved values
 	var new_script_path := structures_path.path_join("%s.gd" % new_name.to_lower())
 	var new_script = ResourceLoader.load(
 		new_script_path, "", ResourceLoader.CACHE_MODE_REUSE) as GDScript
 	if new_script:
-		for item in table.instances:
+		for i in range(table.instances.size()):
+			var item = table.instances[i]
 			item.set_script(new_script)
+			for key in snapshots[i]:
+				item.set(key, snapshots[i][key])
 
 	# Update the table record
 	table.table_name = new_name
