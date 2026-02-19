@@ -4,7 +4,7 @@ extends Control
 ## Inspector-driven data instance editor.
 ## The Tree is a read-only overview table. Selecting a row inspects the
 ## actual DataItem Resource in Godot's Inspector, giving native editors
-## for every property type with zero custom widget code.
+## for every field type with zero custom widget code.
 
 const BulkEditProxyScript = preload("bulk_edit_proxy.gd")
 
@@ -134,10 +134,10 @@ func _load_table(table_name: String) -> void:
 	_end_bulk_edit()
 	_clear_inspected_item()
 
-	var properties = database_manager.get_table_properties(table_name)
+	var fields = database_manager.get_table_fields(table_name)
 
-	# Columns: # | ID | Name | <custom properties...>
-	instance_tree.columns = properties.size() + 3
+	# Columns: # | ID | Name | <custom fields...>
+	instance_tree.columns = fields.size() + 3
 	instance_tree.set_column_title(0, "#")
 	instance_tree.set_column_expand(0, false)
 	instance_tree.set_column_custom_minimum_width(0, 50)
@@ -149,8 +149,8 @@ func _load_table(table_name: String) -> void:
 	instance_tree.set_column_title(2, "Name")
 	instance_tree.set_column_expand(2, true)
 
-	for i in range(properties.size()):
-		instance_tree.set_column_title(i + 3, properties[i].name)
+	for i in range(fields.size()):
+		instance_tree.set_column_title(i + 3, fields[i].name)
 		instance_tree.set_column_expand(i + 3, true)
 
 	_refresh_instances()
@@ -165,7 +165,7 @@ func _refresh_instances() -> void:
 	if current_table_name.is_empty():
 		return
 
-	var properties = database_manager.get_table_properties(current_table_name)
+	var fields = database_manager.get_table_fields(current_table_name)
 	_data_items = database_manager.get_data_items(current_table_name)
 
 	for idx in range(_data_items.size()):
@@ -182,14 +182,14 @@ func _refresh_instances() -> void:
 		# Column 2: name
 		tree_item.set_text(2, data_item.name)
 
-		# Property columns: display values as text (read-only)
-		for i in range(properties.size()):
-			var prop = properties[i]
-			var value = data_item.get(prop.name)
-			tree_item.set_text(i + 3, _value_to_display(value, prop.type))
+		# Field columns: display values as text (read-only)
+		for i in range(fields.size()):
+			var field = fields[i]
+			var value = data_item.get(field.name)
+			tree_item.set_text(i + 3, _value_to_display(value, field.type))
 
-			# Visual hint: show color swatch for Color properties
-			if prop.type == TYPE_COLOR and value is Color:
+			# Visual hint: show color swatch for Color fields
+			if field.type == TYPE_COLOR and value is Color:
 				tree_item.set_custom_bg_color(i + 3, value)
 				tree_item.set_custom_color(i + 3, Color.BLACK if value.v > 0.5 else Color.WHITE)
 
@@ -254,8 +254,8 @@ func _on_inspector_property_edited(property: String) -> void:
 		return
 	if _inspected_item == null:
 		return
-	# Accept base DataItem properties (name) and custom table properties
-	if property != "name" and not database_manager.table_has_property(current_table_name, property):
+	# Accept base DataItem fields (name) and custom table fields
+	if property != "name" and not database_manager.table_has_field(current_table_name, property):
 		return
 
 	# The Inspector already modified the DataItem in-place (it's a Resource).
@@ -270,51 +270,51 @@ func _setup_bulk_edit_menu() -> void:
 	var popup := bulk_edit_btn.get_popup()
 	popup.clear()
 
-	if popup.id_pressed.is_connected(_on_bulk_edit_property_selected):
-		popup.id_pressed.disconnect(_on_bulk_edit_property_selected)
+	if popup.id_pressed.is_connected(_on_bulk_edit_field_selected):
+		popup.id_pressed.disconnect(_on_bulk_edit_field_selected)
 
-	var properties = database_manager.get_table_properties(current_table_name)
-	for i in range(properties.size()):
-		popup.add_item(properties[i].name, i)
+	var fields = database_manager.get_table_fields(current_table_name)
+	for i in range(fields.size()):
+		popup.add_item(fields[i].name, i)
 
-	popup.id_pressed.connect(_on_bulk_edit_property_selected)
+	popup.id_pressed.connect(_on_bulk_edit_field_selected)
 
 
-func _on_bulk_edit_property_selected(id: int) -> void:
-	var properties = database_manager.get_table_properties(current_table_name)
-	if id >= properties.size():
+func _on_bulk_edit_field_selected(id: int) -> void:
+	var fields = database_manager.get_table_fields(current_table_name)
+	if id >= fields.size():
 		return
-	_start_bulk_edit(properties[id])
+	_start_bulk_edit(fields[id])
 
 
-func _start_bulk_edit(prop: Dictionary) -> void:
+func _start_bulk_edit(field: Dictionary) -> void:
 	_end_bulk_edit()
 	_is_bulk_editing = true
 
 	# Get initial value from first selected item
 	var selected := _get_selected_tree_items()
-	var initial_value = prop.default
+	var initial_value = field.default
 	if selected.size() > 0:
 		var idx: int = selected[0].get_metadata(0)
 		if idx >= 0 and idx < _data_items.size():
-			initial_value = _data_items[idx].get(prop.name)
+			initial_value = _data_items[idx].get(field.name)
 
-	# Create proxy Resource with one dynamic property
+	# Create proxy Resource with one dynamic field
 	_bulk_proxy = BulkEditProxyScript.new()
-	_bulk_proxy.setup(prop.name, prop.type, initial_value, prop.hint, prop.hint_string)
+	_bulk_proxy.setup(field.name, field.type, initial_value, field.hint, field.hint_string)
 	_bulk_proxy.value_changed.connect(_on_bulk_value_changed)
 
 	# Show in Inspector
 	EditorInterface.inspect_object(_bulk_proxy)
-	_update_status("Bulk editing '%s' for %d instances" % [prop.name, selected.size()])
+	_update_status("Bulk editing '%s' for %d instances" % [field.name, selected.size()])
 
 
-func _on_bulk_value_changed(property_name: String, new_value: Variant) -> void:
+func _on_bulk_value_changed(field_name: String, new_value: Variant) -> void:
 	var selected := _get_selected_tree_items()
 	for tree_item in selected:
 		var idx: int = tree_item.get_metadata(0)
 		if idx >= 0 and idx < _data_items.size():
-			_data_items[idx].set(property_name, new_value)
+			_data_items[idx].set(field_name, new_value)
 
 	# Persist and refresh
 	database_manager.save_instances(current_table_name)
@@ -407,10 +407,10 @@ func _on_refresh_pressed() -> void:
 
 # --- Display Helpers ---------------------------------------------------------
 
-func _value_to_display(value: Variant, prop_type: int) -> String:
+func _value_to_display(value: Variant, field_type: int) -> String:
 	if value == null:
 		return "<null>"
-	match prop_type:
+	match field_type:
 		TYPE_BOOL:
 			return "true" if value else "false"
 		TYPE_OBJECT:

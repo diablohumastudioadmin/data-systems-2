@@ -97,24 +97,24 @@ layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "MyTableName"
 
-[node name="PropertiesLabel" type="Label" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=515102613]
+[node name="FieldsLabel" type="Label" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=515102613]
 layout_mode = 2
-text = "Properties:"
+text = "Fields:"
 
-[node name="PropertiesScroll" type="ScrollContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=2062318375]
+[node name="FieldsScroll" type="ScrollContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=2062318375]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="PropertiesContainer" type="VBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/PropertiesScroll" unique_id=1513230450]
+[node name="FieldsContainer" type="VBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox/FieldsScroll" unique_id=1513230450]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="AddPropertyBtn" type="Button" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=210335099]
+[node name="AddFieldBtn" type="Button" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=210335099]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Add Property"
+text = "Add Field"
 
 [node name="ButtonBox" type="HBoxContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=995686921]
 layout_mode = 2

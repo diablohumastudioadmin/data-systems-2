@@ -11,8 +11,13 @@
 - `ResourceGenerator` owns `PropertyType` enum and generates `@export` typed scripts
 - Inspector-driven instance editing via `EditorInterface.inspect_object()`
 - `BulkEditProxy` uses `_get_property_list()`/`_get()`/`_set()` for dynamic Inspector properties
-- `DataItem` is a clean empty base class — `script.new()` provides defaults
-- `table_structures/` hidden from Godot FileSystem dock via `.gdignore` (git-trackable)
+- `DataItem` base class has `name: String` and `id: int` — `script.new()` provides defaults
+- `DataTable` has `@export_storage var next_id: int = 0` for stable auto-incrementing IDs
+- `DatabaseManager` extends `Node`, registered as autoload `DBManager` via plugin
+- `update_table()` hot-reloads script in-place: `load()` (REUSE) + `source_code =` + `reload(true)` + `update_file()`
+- `_create_data_item()` uses `CACHE_MODE_REUSE` so all instances share the same cached GDScript object
+- Enum `.gd` files generated per table in `res://database/res/ids/` for type-safe `@export` references
+- `table_structures/` has NO `.gdignore` — Godot must register `class_name` from generated scripts
 
 ## Completed Changes
 
@@ -48,12 +53,29 @@
 - UI labels: "Data Types" → "Tables", "Type Name:" → "Table Name:", etc.
 - Updated `database.tres` serialized field names
 
-## Pending — Phase 5: Unified Runtime Access & Individual Instance Files
+## Completed — Phase 5: Unified Runtime Access, Stable IDs, Script Hot-Reload
 
-### Known Bug (deferred)
-- **Inspector not showing new fields after table edit** — after editing a table schema in Tables Editor, clicking a DataItem in the instance editor still shows old properties in the Inspector until Godot is refreshed.
+### What was implemented
+- **Renamed** `DatabaseSystem` → `DatabaseManager` (class, file, all variables); autoload registered as `DBManager`
+- **Autoload**: plugin calls `add_autoload_singleton("DBManager", ...)` / `remove_autoload_singleton("DBManager")`
+- **Stable IDs**: `DataItem` gets `name: String` + `id: int`; `DataTable` gets `@export_storage var next_id`
+- **Enum generation**: `ResourceGenerator.generate_enum_file()` writes `class_name LevelDataIds` with `enum Id {}` per table
+- **Required name on add**: `add_instance()` requires `instance_name` param; UI shows a name input dialog
+- **Script hot-reload**: `update_table()` does `load(path)` (REUSE) → `source_code = new_content` → `reload(true)` → `update_file()`. This updates all instances (ours + external editor resources) in-place immediately, without needing alt-tab.
+- **Removed `.gdignore`** from `table_structures/` — Godot needs to register `class_name` from generated scripts for Inspector inheritance
+- **`CACHE_MODE_REUSE` in `_create_data_item()`** — all instances share the same cached GDScript object; REPLACE would split the reference and break hot-reload
+- **`@export_storage var next_id`** — persists counter to `.tres` without showing in Inspector (was `var _next_id` which didn't persist at all)
+- **Configurable `base_path`** with computed getters for `structures_path`, `ids_path`, `database_path`
+- **ID + Name columns** in instance editor Tree; ID cache (`Dictionary`) for O(1) `get_by_id()` lookups
+- **Legacy migration**: `_migrate_legacy_instances()` assigns stable IDs to instances with `id == -1`
 
-### Problems to Solve
+### Past Problems / Solutions
+- **Inspector not showing new fields after table edit** — `CACHE_MODE_REPLACE` in `_create_data_item()` created a new GDScript object each time, severing existing instances from the cached object. Fix: `CACHE_MODE_REUSE` everywhere so all instances share the same object; `update_table()` updates that object in-place via `source_code + reload(true)`.
+- **`reload()` failing with "Cannot reload script while instances exist"** — must pass `reload(true)` (keep_state) when live instances exist.
+- **`next_id` not persisting across sessions** — was `var _next_id` (not exported). Fixed to `@export_storage var next_id`.
+
+---
+*(old Phase 5 proposals below — kept for reference)*
 
 **1. No runtime/code access**
 `DatabaseManager` is a `RefCounted` created only in `database_manager_toolbar.gd` — editor-only, not accessible from game code or `@tool` scripts.

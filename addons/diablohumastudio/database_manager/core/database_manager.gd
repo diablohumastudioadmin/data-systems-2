@@ -10,8 +10,8 @@ extends Node
 signal data_changed(table_name: String)
 signal tables_changed()
 
-## Properties from base classes to exclude from schema reflection
-const _BASE_PROPERTY_NAMES: Array[String] = [
+## Base DataItem fields to exclude from table field reflection
+const _BASE_FIELD_NAMES: Array[String] = [
 	"resource_local_to_scene", "resource_path", "resource_name", "script",
 	"name", "id"
 ]
@@ -67,22 +67,22 @@ func has_table(table_name: String) -> bool:
 
 
 ## Read schema from the generated .gd script via reflection.
-## Only returns @export properties declared in the generated subclass.
+## Only returns @export fields declared in the generated subclass.
 ## Returns: [{name, type (Variant.Type), default, hint, hint_string, class_name}, ...]
-func get_table_properties(table_name: String) -> Array[Dictionary]:
+func get_table_fields(table_name: String) -> Array[Dictionary]:
 	var script_path = structures_path.path_join("%s.gd" % table_name.to_lower())
 	var script: GDScript = _load_fresh_script(script_path)
 	if script == null:
 		return []
 
 	var temp = script.new()
-	var props: Array[Dictionary] = []
+	var fields: Array[Dictionary] = []
 	for p in script.get_script_property_list():
 		if not (p.usage & PROPERTY_USAGE_EDITOR):
 			continue
-		if p.name in _BASE_PROPERTY_NAMES:
+		if p.name in _BASE_FIELD_NAMES:
 			continue
-		props.append({
+		fields.append({
 			"name": p.name,
 			"type": p.type,
 			"default": temp.get(p.name),
@@ -90,25 +90,25 @@ func get_table_properties(table_name: String) -> Array[Dictionary]:
 			"hint_string": p.get("hint_string", ""),
 			"class_name": p.get("class_name", "")
 		})
-	return props
+	return fields
 
 
-func table_has_property(table_name: String, property_name: String) -> bool:
-	var props = get_table_properties(table_name)
-	for p in props:
-		if p.name == property_name:
+func table_has_field(table_name: String, field_name: String) -> bool:
+	var fields = get_table_fields(table_name)
+	for f in fields:
+		if f.name == field_name:
 			return true
 	return false
 
 
 ## Add a new table (generates .gd file + creates DataTable)
-## properties: Array of {name: String, type: ResourceGenerator.PropertyType, default: Variant}
-func add_table(table_name: String, properties: Array[Dictionary]) -> bool:
+## fields: Array of {name: String, type: ResourceGenerator.FieldType, default: Variant}
+func add_table(table_name: String, fields: Array[Dictionary]) -> bool:
 	if _database.has_table(table_name):
 		push_warning("Table already exists: %s" % table_name)
 		return false
 
-	ResourceGenerator.generate_resource_class(table_name, properties, structures_path)
+	ResourceGenerator.generate_resource_class(table_name, fields, structures_path)
 
 	var table := DataTable.new()
 	table.table_name = table_name
@@ -126,12 +126,12 @@ func add_table(table_name: String, properties: Array[Dictionary]) -> bool:
 
 
 ## Update an existing table (regenerates .gd file)
-func update_table(table_name: String, properties: Array[Dictionary]) -> bool:
+func update_table(table_name: String, fields: Array[Dictionary]) -> bool:
 	if not _database.has_table(table_name):
 		push_warning("Table not found: %s" % table_name)
 		return false
 
-	ResourceGenerator.generate_resource_class(table_name, properties, structures_path)
+	ResourceGenerator.generate_resource_class(table_name, fields, structures_path)
 
 	# Reload the script in-place on the EXISTING cached GDScript object.
 	# All instances (ours + external editor resources) already hold a reference
