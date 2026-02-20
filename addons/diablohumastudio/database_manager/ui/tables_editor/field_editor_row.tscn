@@ -21,7 +21,33 @@ text = "Type:"
 
 [node name="FieldTypeOption" type="OptionButton" parent="."]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(130, 0)
+custom_minimum_size = Vector2(140, 0)
+
+[node name="InnerTypeContainer" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 0)
+
+[node name="InnerTypeLabel" type="Label" parent="InnerTypeContainer"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(22, 0)
+text = "of"
+
+[node name="InnerTypeOption" type="OptionButton" parent="InnerTypeContainer"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(90, 0)
+
+[node name="DictSepLabel" type="Label" parent="InnerTypeContainer"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(15, 0)
+text = "v"
+
+[node name="DictValueOption" type="OptionButton" parent="InnerTypeContainer"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(90, 0)
 
 [node name="DefaultLabel" type="Label" parent="."]
 custom_minimum_size = Vector2(55, 0)

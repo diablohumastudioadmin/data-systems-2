@@ -11,7 +11,8 @@ const DEFAULT_IDS_PATH = "res://database/res/ids/"
 ## Field types supported by the system
 enum FieldType {
 	INT, FLOAT, STRING, BOOL, TEXTURE2D,
-	VECTOR2, VECTOR3, COLOR, ARRAY, DICTIONARY
+	VECTOR2, VECTOR3, COLOR, ARRAY, DICTIONARY,
+	TYPED_ARRAY, TYPED_DICTIONARY
 }
 
 const TYPE_DEFAULTS = {
@@ -24,7 +25,9 @@ const TYPE_DEFAULTS = {
 	FieldType.VECTOR3: Vector3.ZERO,
 	FieldType.COLOR: Color.WHITE,
 	FieldType.ARRAY: [],
-	FieldType.DICTIONARY: {}
+	FieldType.DICTIONARY: {},
+	FieldType.TYPED_ARRAY: [],
+	FieldType.TYPED_DICTIONARY: {}
 }
 
 
@@ -213,8 +216,12 @@ static func variant_type_to_field_type(field_info: Dictionary) -> FieldType:
 		TYPE_COLOR:
 			return FieldType.COLOR
 		TYPE_ARRAY:
+			if not field_info.get("hint_string", "").is_empty():
+				return FieldType.TYPED_ARRAY
 			return FieldType.ARRAY
 		TYPE_DICTIONARY:
+			if not field_info.get("hint_string", "").is_empty():
+				return FieldType.TYPED_DICTIONARY
 			return FieldType.DICTIONARY
 		_:
 			return FieldType.STRING
@@ -222,30 +229,66 @@ static func variant_type_to_field_type(field_info: Dictionary) -> FieldType:
 
 # --- Helpers -----------------------------------------------------------------
 
-## Returns the GDScript type string for a field dict, handling typed arrays.
+## Returns the GDScript type string for a field dict, handling typed arrays/dicts.
 static func _get_gdscript_type_for_field(field: Dictionary) -> String:
 	var ft: FieldType = field.type
-	if ft == FieldType.ARRAY:
+	if ft == FieldType.TYPED_ARRAY:
 		var et: int = field.get("element_type", -1)
 		if et >= 0:
 			return "Array[%s]" % _get_gdscript_type(et as FieldType)
+		return "Array"
+	if ft == FieldType.TYPED_DICTIONARY:
+		var kt: int = field.get("key_type", -1)
+		var vt: int = field.get("value_type", -1)
+		if kt >= 0 and vt >= 0:
+			return "Dictionary[%s, %s]" % [
+				_get_gdscript_type(kt as FieldType),
+				_get_gdscript_type(vt as FieldType)
+			]
+		return "Dictionary"
 	return _get_gdscript_type(ft)
 
 
-## Extract the array element FieldType from a property info dict (from reflection).
-## Returns -1 if the field is not a typed array or element type is unrecognised.
+## Extract the typed array element FieldType from a reflection property info dict.
+## Returns -1 if not a typed array or element type is unrecognised.
 static func variant_type_to_element_type(field_info: Dictionary) -> int:
 	if field_info.type != TYPE_ARRAY:
 		return -1
+	return _parse_hint_part(field_info.get("hint_string", ""))
+
+
+## Extract the typed dictionary key FieldType from a reflection property info dict.
+## hint_string format (Godot 4.4): "<TypeNum>:<Name>;<TypeNum>:<Name>" e.g. "4:String;2:int"
+## Returns -1 if not a typed dictionary or key type is unrecognised.
+static func variant_type_to_key_type(field_info: Dictionary) -> int:
+	if field_info.type != TYPE_DICTIONARY:
+		return -1
 	var hs: String = field_info.get("hint_string", "")
-	if hs.is_empty():
+	if not ";" in hs:
 		return -1
-	# Godot 4 hint_string for typed arrays: "<VariantType>:<TypeName>" e.g. "2:int"
-	var colon := hs.find(":")
-	var type_num_str := hs.substr(0, colon if colon >= 0 else hs.length())
-	if not type_num_str.is_valid_int():
+	return _parse_hint_part(hs.split(";")[0])
+
+
+## Extract the typed dictionary value FieldType from a reflection property info dict.
+## Returns -1 if not a typed dictionary or value type is unrecognised.
+static func variant_type_to_value_type(field_info: Dictionary) -> int:
+	if field_info.type != TYPE_DICTIONARY:
 		return -1
-	match int(type_num_str):
+	var hs: String = field_info.get("hint_string", "")
+	if not ";" in hs:
+		return -1
+	return _parse_hint_part(hs.split(";")[1])
+
+
+## Parse "<VariantTypeNum>:<TypeName>" hint part → FieldType int, or -1.
+static func _parse_hint_part(part: String) -> int:
+	if part.is_empty():
+		return -1
+	var colon := part.find(":")
+	var num_str := part.substr(0, colon if colon >= 0 else part.length())
+	if not num_str.is_valid_int():
+		return -1
+	match int(num_str):
 		TYPE_INT:     return FieldType.INT
 		TYPE_FLOAT:   return FieldType.FLOAT
 		TYPE_STRING:  return FieldType.STRING
@@ -268,6 +311,8 @@ static func _get_gdscript_type(field_type: FieldType) -> String:
 		FieldType.COLOR: return "Color"
 		FieldType.ARRAY: return "Array"
 		FieldType.DICTIONARY: return "Dictionary"
+		FieldType.TYPED_ARRAY: return "Array"
+		FieldType.TYPED_DICTIONARY: return "Dictionary"
 		_: return "Variant"
 
 
@@ -297,9 +342,9 @@ static func _get_default_value_string(value: Variant, field_type: FieldType) -> 
 			if value is Color:
 				return 'Color("%s")' % value.to_html()
 			return "Color.WHITE"
-		FieldType.ARRAY:
+		FieldType.ARRAY, FieldType.TYPED_ARRAY:
 			return "[]"
-		FieldType.DICTIONARY:
+		FieldType.DICTIONARY, FieldType.TYPED_DICTIONARY:
 			return "{}"
 		_:
 			return "null"
