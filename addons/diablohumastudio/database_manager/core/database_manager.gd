@@ -102,7 +102,7 @@ func table_has_field(table_name: String, field_name: String) -> bool:
 
 
 ## Add a new table (generates .gd file + creates DataTable)
-## fields: Array of {name: String, type: ResourceGenerator.FieldType, default: Variant}
+## fields: Array of {name: String, type_string: String, default: Variant}
 func add_table(table_name: String, fields: Array[Dictionary]) -> bool:
 	if _database.has_table(table_name):
 		push_warning("Table already exists: %s" % table_name)

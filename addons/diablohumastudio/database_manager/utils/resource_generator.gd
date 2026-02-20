@@ -8,33 +8,29 @@ extends RefCounted
 const DEFAULT_STRUCTURES_PATH = "res://database/res/table_structures/"
 const DEFAULT_IDS_PATH = "res://database/res/ids/"
 
-## Field types supported by the system
-enum FieldType {
-	INT, FLOAT, STRING, BOOL, TEXTURE2D,
-	VECTOR2, VECTOR3, COLOR, ARRAY, DICTIONARY,
-	TYPED_ARRAY, TYPED_DICTIONARY
-}
+## Primitive and built-in types always recognised as valid type strings
+const PRIMITIVE_TYPES: Array[String] = [
+	"int", "float", "String", "bool",
+	"Vector2", "Vector2i", "Vector3", "Vector3i",
+	"Color", "Rect2", "Rect2i",
+	"Transform2D", "Transform3D", "Basis", "Quaternion", "Plane", "AABB",
+	"Array", "Dictionary", "Variant",
+	"Resource", "Node", "Object",
+	"Texture2D", "Texture", "Image",
+	"StringName", "NodePath", "RID",
+	"PackedByteArray", "PackedInt32Array", "PackedInt64Array",
+	"PackedFloat32Array", "PackedFloat64Array", "PackedStringArray",
+	"PackedVector2Array", "PackedVector3Array", "PackedColorArray",
+]
 
-const TYPE_DEFAULTS = {
-	FieldType.INT: 0,
-	FieldType.FLOAT: 0.0,
-	FieldType.STRING: "",
-	FieldType.BOOL: false,
-	FieldType.TEXTURE2D: null,
-	FieldType.VECTOR2: Vector2.ZERO,
-	FieldType.VECTOR3: Vector3.ZERO,
-	FieldType.COLOR: Color.WHITE,
-	FieldType.ARRAY: [],
-	FieldType.DICTIONARY: {},
-	FieldType.TYPED_ARRAY: [],
-	FieldType.TYPED_DICTIONARY: {}
-}
+## Editor widget type — determines which default-value control to show
+enum DefaultEditorType { INT, FLOAT, STRING, BOOL, COLOR, VECTOR2, VECTOR3, TEXTURE2D, NONE }
 
 
 # --- Resource Class Generation -----------------------------------------------
 
-## Generate Resource class file from table name and fields
-## fields: Array of {name: String, type: FieldType, default: Variant}
+## Generate Resource class file from table name and fields.
+## fields: Array of {name: String, type_string: String, default: Variant}
 static func generate_resource_class(table_name: String, fields: Array[Dictionary], base_path: String = DEFAULT_STRUCTURES_PATH) -> Error:
 	var file_path = base_path.path_join(table_name.to_lower() + ".gd")
 	var script_content = _generate_script_content(table_name, fields)
@@ -151,23 +147,150 @@ static func _generate_enum_content(table_name: String, instances: Array[DataItem
 ## "Forest Level" → "FOREST_LEVEL", "my-item" → "MY_ITEM"
 static func _sanitize_enum_key(name_str: String) -> String:
 	var result = name_str.strip_edges().to_upper()
-	# Replace spaces, hyphens, dots with underscores
 	result = result.replace(" ", "_")
 	result = result.replace("-", "_")
 	result = result.replace(".", "_")
-	# Remove any character that's not alphanumeric or underscore
 	var sanitized := ""
 	for i in range(result.length()):
 		var c = result[i]
 		if c == "_" or (c >= "A" and c <= "Z") or (c >= "0" and c <= "9"):
 			sanitized += c
-	# Ensure it doesn't start with a digit
 	if sanitized.length() > 0 and sanitized[0] >= "0" and sanitized[0] <= "9":
 		sanitized = "_" + sanitized
-	# Collapse multiple underscores
 	while sanitized.contains("__"):
 		sanitized = sanitized.replace("__", "_")
 	return sanitized
+
+
+# --- Type String Utilities ---------------------------------------------------
+
+## Converts a reflection property info dict → raw GDScript type string.
+## Used when loading an existing table's schema back into the editor.
+static func property_info_to_type_string(prop: Dictionary) -> String:
+	match prop.type:
+		TYPE_INT:        return "int"
+		TYPE_FLOAT:      return "float"
+		TYPE_STRING:     return "String"
+		TYPE_BOOL:       return "bool"
+		TYPE_VECTOR2:    return "Vector2"
+		TYPE_VECTOR3:    return "Vector3"
+		TYPE_COLOR:      return "Color"
+		TYPE_OBJECT:
+			var cls: String = prop.get("class_name", "")
+			return cls if not cls.is_empty() else "Resource"
+		TYPE_ARRAY:
+			var hs: String = prop.get("hint_string", "")
+			if hs.is_empty():
+				return "Array"
+			return "Array[%s]" % _hint_part_to_type(hs)
+		TYPE_DICTIONARY:
+			var hs: String = prop.get("hint_string", "")
+			if hs.is_empty() or not ";" in hs:
+				return "Dictionary"
+			var parts = hs.split(";")
+			return "Dictionary[%s, %s]" % [_hint_part_to_type(parts[0]), _hint_part_to_type(parts[1])]
+		_:
+			return "Variant"
+
+
+## Parse a Godot hint_string part like "4:String" or "2:int" → type name string.
+static func _hint_part_to_type(part: String) -> String:
+	var colon := part.find(":")
+	if colon < 0:
+		return part
+	var name_str := part.substr(colon + 1)
+	if not name_str.is_empty():
+		return name_str
+	var num_str := part.substr(0, colon)
+	if num_str.is_valid_int():
+		match int(num_str):
+			TYPE_INT:    return "int"
+			TYPE_FLOAT:  return "float"
+			TYPE_STRING: return "String"
+			TYPE_BOOL:   return "bool"
+			TYPE_VECTOR2: return "Vector2"
+			TYPE_VECTOR3: return "Vector3"
+			TYPE_COLOR:  return "Color"
+	return "Variant"
+
+
+## Returns true if ts is a syntactically valid GDScript type expression.
+## Validates primitives, typed Array/Dictionary (recursively), engine classes,
+## enums (Foo.Bar), and user GDScript class_names via EditorFileSystem scan.
+static func is_valid_type_string(ts: String) -> bool:
+	ts = ts.strip_edges()
+	if ts.is_empty():
+		return false
+
+	# Primitive / built-in
+	if ts in PRIMITIVE_TYPES:
+		return true
+
+	# Typed Array: "Array[X]"
+	if ts.begins_with("Array[") and ts.ends_with("]"):
+		var inner := ts.substr(6, ts.length() - 7)
+		return is_valid_type_string(inner)
+
+	# Typed Dictionary: "Dictionary[K, V]"
+	if ts.begins_with("Dictionary[") and ts.ends_with("]"):
+		var inner := ts.substr(11, ts.length() - 12)
+		var comma := _find_top_level_comma(inner)
+		if comma < 0:
+			return false
+		var k := inner.substr(0, comma).strip_edges()
+		var v := inner.substr(comma + 1).strip_edges()
+		return is_valid_type_string(k) and is_valid_type_string(v)
+
+	# Enum: "Foo.Bar" — check that "Foo" is a known class
+	if "." in ts:
+		var dot := ts.find(".")
+		var class_part := ts.substr(0, dot)
+		return ClassDB.class_exists(class_part) or _is_user_class(class_part)
+
+	# Engine class
+	if ClassDB.class_exists(ts):
+		return true
+
+	# User-defined GDScript class_name
+	return _is_user_class(ts)
+
+
+## Find the index of the first comma not inside brackets.
+static func _find_top_level_comma(s: String) -> int:
+	var depth := 0
+	for i in range(s.length()):
+		var c := s[i]
+		if c == "[":
+			depth += 1
+		elif c == "]":
+			depth -= 1
+		elif c == "," and depth == 0:
+			return i
+	return -1
+
+
+## Check if name is a user-defined GDScript class (has class_name declaration).
+## Uses ProjectSettings.get_global_class_list() which Godot keeps up to date.
+static func _is_user_class(name: String) -> bool:
+	for entry in ProjectSettings.get_global_class_list():
+		if entry.get("class", "") == name:
+			return true
+	return false
+
+
+## Returns the DefaultEditorType for a type string —
+## determines which default-value widget to show in the field editor row.
+static func get_editor_type(ts: String) -> DefaultEditorType:
+	match ts.strip_edges():
+		"int":       return DefaultEditorType.INT
+		"float":     return DefaultEditorType.FLOAT
+		"String":    return DefaultEditorType.STRING
+		"bool":      return DefaultEditorType.BOOL
+		"Color":     return DefaultEditorType.COLOR
+		"Vector2":   return DefaultEditorType.VECTOR2
+		"Vector3":   return DefaultEditorType.VECTOR3
+		"Texture2D": return DefaultEditorType.TEXTURE2D
+	return DefaultEditorType.NONE
 
 
 # --- Script Content Generation -----------------------------------------------
@@ -184,171 +307,52 @@ static func _generate_script_content(table_name: String, fields: Array[Dictionar
 	lines.append("")
 
 	for field in fields:
-		var type_str = _get_gdscript_type_for_field(field)
-		var default_str = _get_default_value_string(field.get("default"), field.type)
+		var type_str: String = field.get("type_string", "Variant")
+		var default_str = _get_default_value_string(field.get("default"), type_str)
 		lines.append("@export var %s: %s = %s" % [field.name, type_str, default_str])
 
 	lines.append("")
 	return "\n".join(lines)
 
 
-## Convert Variant.Type (from script reflection) back to FieldType
-## field_info: Dictionary from get_script_property_list()
-static func variant_type_to_field_type(field_info: Dictionary) -> FieldType:
-	match field_info.type:
-		TYPE_INT:
-			return FieldType.INT
-		TYPE_FLOAT:
-			return FieldType.FLOAT
-		TYPE_STRING:
-			return FieldType.STRING
-		TYPE_BOOL:
-			return FieldType.BOOL
-		TYPE_OBJECT:
-			var cls = field_info.get("class_name", "")
-			if cls == &"Texture2D" or field_info.get("hint_string", "") == "Texture2D":
-				return FieldType.TEXTURE2D
-			return FieldType.TEXTURE2D
-		TYPE_VECTOR2:
-			return FieldType.VECTOR2
-		TYPE_VECTOR3:
-			return FieldType.VECTOR3
-		TYPE_COLOR:
-			return FieldType.COLOR
-		TYPE_ARRAY:
-			if not field_info.get("hint_string", "").is_empty():
-				return FieldType.TYPED_ARRAY
-			return FieldType.ARRAY
-		TYPE_DICTIONARY:
-			if not field_info.get("hint_string", "").is_empty():
-				return FieldType.TYPED_DICTIONARY
-			return FieldType.DICTIONARY
-		_:
-			return FieldType.STRING
-
-
-# --- Helpers -----------------------------------------------------------------
-
-## Returns the GDScript type string for a field dict, handling typed arrays/dicts.
-static func _get_gdscript_type_for_field(field: Dictionary) -> String:
-	var ft: FieldType = field.type
-	if ft == FieldType.TYPED_ARRAY:
-		var et: int = field.get("element_type", -1)
-		if et >= 0:
-			return "Array[%s]" % _get_gdscript_type(et as FieldType)
-		return "Array"
-	if ft == FieldType.TYPED_DICTIONARY:
-		var kt: int = field.get("key_type", -1)
-		var vt: int = field.get("value_type", -1)
-		if kt >= 0 and vt >= 0:
-			return "Dictionary[%s, %s]" % [
-				_get_gdscript_type(kt as FieldType),
-				_get_gdscript_type(vt as FieldType)
-			]
-		return "Dictionary"
-	return _get_gdscript_type(ft)
-
-
-## Extract the typed array element FieldType from a reflection property info dict.
-## Returns -1 if not a typed array or element type is unrecognised.
-static func variant_type_to_element_type(field_info: Dictionary) -> int:
-	if field_info.type != TYPE_ARRAY:
-		return -1
-	return _parse_hint_part(field_info.get("hint_string", ""))
-
-
-## Extract the typed dictionary key FieldType from a reflection property info dict.
-## hint_string format (Godot 4.4): "<TypeNum>:<Name>;<TypeNum>:<Name>" e.g. "4:String;2:int"
-## Returns -1 if not a typed dictionary or key type is unrecognised.
-static func variant_type_to_key_type(field_info: Dictionary) -> int:
-	if field_info.type != TYPE_DICTIONARY:
-		return -1
-	var hs: String = field_info.get("hint_string", "")
-	if not ";" in hs:
-		return -1
-	return _parse_hint_part(hs.split(";")[0])
-
-
-## Extract the typed dictionary value FieldType from a reflection property info dict.
-## Returns -1 if not a typed dictionary or value type is unrecognised.
-static func variant_type_to_value_type(field_info: Dictionary) -> int:
-	if field_info.type != TYPE_DICTIONARY:
-		return -1
-	var hs: String = field_info.get("hint_string", "")
-	if not ";" in hs:
-		return -1
-	return _parse_hint_part(hs.split(";")[1])
-
-
-## Parse "<VariantTypeNum>:<TypeName>" hint part → FieldType int, or -1.
-static func _parse_hint_part(part: String) -> int:
-	if part.is_empty():
-		return -1
-	var colon := part.find(":")
-	var num_str := part.substr(0, colon if colon >= 0 else part.length())
-	if not num_str.is_valid_int():
-		return -1
-	match int(num_str):
-		TYPE_INT:     return FieldType.INT
-		TYPE_FLOAT:   return FieldType.FLOAT
-		TYPE_STRING:  return FieldType.STRING
-		TYPE_BOOL:    return FieldType.BOOL
-		TYPE_VECTOR2: return FieldType.VECTOR2
-		TYPE_VECTOR3: return FieldType.VECTOR3
-		TYPE_COLOR:   return FieldType.COLOR
-	return -1
-
-
-static func _get_gdscript_type(field_type: FieldType) -> String:
-	match field_type:
-		FieldType.INT: return "int"
-		FieldType.FLOAT: return "float"
-		FieldType.STRING: return "String"
-		FieldType.BOOL: return "bool"
-		FieldType.TEXTURE2D: return "Texture2D"
-		FieldType.VECTOR2: return "Vector2"
-		FieldType.VECTOR3: return "Vector3"
-		FieldType.COLOR: return "Color"
-		FieldType.ARRAY: return "Array"
-		FieldType.DICTIONARY: return "Dictionary"
-		FieldType.TYPED_ARRAY: return "Array"
-		FieldType.TYPED_DICTIONARY: return "Dictionary"
-		_: return "Variant"
-
-
-static func _get_default_value_string(value: Variant, field_type: FieldType) -> String:
-	match field_type:
-		FieldType.INT:
+static func _get_default_value_string(value: Variant, type_string: String) -> String:
+	match type_string:
+		"int":
 			return str(value if value != null else 0)
-		FieldType.FLOAT:
-			return str(value if value != null else 0.0)
-		FieldType.STRING:
+		"float":
+			var v = value if value != null else 0.0
+			var s = str(v)
+			if not "." in s:
+				s += ".0"
+			return s
+		"String":
 			return '"%s"' % (value if value != null else "")
-		FieldType.BOOL:
+		"bool":
 			return "true" if value else "false"
-		FieldType.TEXTURE2D:
-			if value is Texture2D and !value.resource_path.is_empty():
-				return 'preload("%s")' % value.resource_path
-			return "null"
-		FieldType.VECTOR2:
-			if value is Vector2:
-				return "Vector2(%f, %f)" % [value.x, value.y]
-			return "Vector2.ZERO"
-		FieldType.VECTOR3:
-			if value is Vector3:
-				return "Vector3(%f, %f, %f)" % [value.x, value.y, value.z]
-			return "Vector3.ZERO"
-		FieldType.COLOR:
+		"Color":
 			if value is Color:
 				return 'Color("%s")' % value.to_html()
 			return "Color.WHITE"
-		FieldType.ARRAY, FieldType.TYPED_ARRAY:
-			return "[]"
-		FieldType.DICTIONARY, FieldType.TYPED_DICTIONARY:
-			return "{}"
-		_:
+		"Vector2":
+			if value is Vector2:
+				return "Vector2(%f, %f)" % [value.x, value.y]
+			return "Vector2.ZERO"
+		"Vector3":
+			if value is Vector3:
+				return "Vector3(%f, %f, %f)" % [value.x, value.y, value.z]
+			return "Vector3.ZERO"
+		"Texture2D":
+			if value is Texture2D and not value.resource_path.is_empty():
+				return 'preload("%s")' % value.resource_path
 			return "null"
+	if type_string.begins_with("Array"):
+		return "[]"
+	if type_string.begins_with("Dictionary"):
+		return "{}"
+	return "null"
 
+
+# --- Helpers -----------------------------------------------------------------
 
 ## Ensure directory exists, creating it recursively if needed.
 static func _ensure_directory(dir_path: String) -> Error:

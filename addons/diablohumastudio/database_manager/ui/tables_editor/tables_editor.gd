@@ -74,16 +74,10 @@ func _load_table(table_name: String) -> void:
 	table_name_edit.editable = true
 	_clear_fields()
 
-	# Read schema from generated script, convert Variant.Type to FieldType
 	var fields = database_manager.get_table_fields(table_name)
 	for field in fields:
-		var field_type = ResourceGenerator.variant_type_to_field_type(field)
-		var inner_type = ResourceGenerator.variant_type_to_element_type(field)
-		var key_type = ResourceGenerator.variant_type_to_key_type(field)
-		var value_type = ResourceGenerator.variant_type_to_value_type(field)
-		# For TYPED_DICTIONARY, use key_type as the inner_type (shared InnerTypeOption)
-		var effective_inner = key_type if key_type >= 0 else inner_type
-		_add_field_row(field.name, field_type, field.default, effective_inner, value_type)
+		var ts = ResourceGenerator.property_info_to_type_string(field)
+		_add_field_row(field.name, ts, field.default)
 
 	table_selected.emit(table_name)
 
@@ -108,12 +102,10 @@ func _on_new_table_pressed() -> void:
 
 func _add_field_row(
 		field_name: String = "",
-		field_type: ResourceGenerator.FieldType = ResourceGenerator.FieldType.STRING,
-		default_value: Variant = null,
-		inner_type: int = -1,
-		value_type: int = -1) -> void:
+		type_string: String = "String",
+		default_value: Variant = null) -> void:
 	var row = preload("field_editor_row.tscn").instantiate()
-	row.set_field(field_name, field_type, default_value, inner_type, value_type)
+	row.set_field(field_name, type_string, default_value)
 	row.remove_requested.connect(_on_field_remove_requested.bind(row))
 
 	fields_container.add_child(row)
