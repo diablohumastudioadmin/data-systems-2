@@ -2,17 +2,18 @@
 extends HBoxContainer
 
 ## Reusable field editor row for TablesEditor.
-## Layout: Name | FieldName | Type | TypeEdit | Default | [editor] | X
+## Layout: Name | FieldName | Type | TypeAutocomplete | Default | [editor] | X
 
 signal remove_requested()
 
 @onready var field_name_edit: LineEdit = %FieldNameEdit
-@onready var type_edit: LineEdit = %TypeEdit
+@onready var type_autocomplete: TypeAutocomplete = %TypeAutocomplete
 @onready var default_value_container: HBoxContainer = %DefaultValueContainer
 @onready var remove_btn: Button = %RemoveBtn
 
 var default_value_edit: Control
-var _current_editor_type: ResourceGenerator.DefaultEditorType = ResourceGenerator.DefaultEditorType.NONE
+var _current_editor_type: ResourceGenerator.DefaultEditorType = \
+		ResourceGenerator.DefaultEditorType.NONE
 
 ## Deferred initial data (set before _ready via set_field)
 var _deferred_name: String = ""
@@ -22,8 +23,7 @@ var _has_deferred_data: bool = false
 
 
 func _ready() -> void:
-	type_edit.focus_exited.connect(_on_type_edit_focus_exited)
-	type_edit.text_submitted.connect(func(_t): _on_type_edit_focus_exited())
+	type_autocomplete.type_committed.connect(_on_type_committed)
 	remove_btn.pressed.connect(func(): remove_requested.emit())
 
 	if _has_deferred_data:
@@ -45,18 +45,12 @@ func set_field(field_name: String, type_string: String, default_value: Variant) 
 
 func _apply_field(field_name: String, type_string: String, default_value: Variant) -> void:
 	field_name_edit.text = field_name
-	type_edit.text = type_string
+	type_autocomplete.set_type_string(type_string)
 	_apply_type(type_string)
 	_set_default_value(default_value)
 
 
-func _on_type_edit_focus_exited() -> void:
-	var ts := type_edit.text.strip_edges()
-	var valid := ts.is_empty() or ResourceGenerator.is_valid_type_string(ts)
-	if valid:
-		type_edit.remove_theme_color_override("font_color")
-	else:
-		type_edit.add_theme_color_override("font_color", Color.RED)
+func _on_type_committed(ts: String, _is_valid: bool) -> void:
 	_apply_type(ts)
 
 
@@ -134,7 +128,7 @@ func get_field_data() -> Dictionary:
 	var name_text := field_name_edit.text.strip_edges()
 	if name_text.is_empty():
 		return {}
-	var type_string := type_edit.text.strip_edges()
+	var type_string: String = type_autocomplete.get_type_string()
 	if type_string.is_empty():
 		return {}
 	return {

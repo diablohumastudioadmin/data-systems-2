@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://de38n7equtkui"]
 
 [ext_resource type="Script" uid="uid://8nv3bu8fl8hx" path="res://addons/diablohumastudio/database_manager/ui/tables_editor/field_editor_row.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://dvdgks3pu82g" path="res://addons/diablohumastudio/database_manager/ui/shared/type_autocomplete.tscn" id="2"]
 
 [node name="FieldEditorRow" type="HBoxContainer" unique_id=1095556924]
 script = ExtResource("1")
@@ -22,11 +23,9 @@ custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "Type:"
 
-[node name="TypeEdit" type="LineEdit" parent="." unique_id=367584458]
+[node name="TypeAutocomplete" parent="." unique_id=826687242 instance=ExtResource("2")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
-placeholder_text = "int, Array[int], LevelData…"
 
 [node name="DefaultLabel" type="Label" parent="." unique_id=1720156894]
 custom_minimum_size = Vector2(55, 0)

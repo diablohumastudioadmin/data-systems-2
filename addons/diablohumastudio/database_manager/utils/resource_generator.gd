@@ -234,7 +234,7 @@ static func is_valid_type_string(ts: String) -> bool:
 	# Typed Dictionary: "Dictionary[K, V]"
 	if ts.begins_with("Dictionary[") and ts.ends_with("]"):
 		var inner := ts.substr(11, ts.length() - 12)
-		var comma := _find_top_level_comma(inner)
+		var comma := find_top_level_comma(inner)
 		if comma < 0:
 			return false
 		var k := inner.substr(0, comma).strip_edges()
@@ -256,7 +256,7 @@ static func is_valid_type_string(ts: String) -> bool:
 
 
 ## Find the index of the first comma not inside brackets.
-static func _find_top_level_comma(s: String) -> int:
+static func find_top_level_comma(s: String) -> int:
 	var depth := 0
 	for i in range(s.length()):
 		var c := s[i]

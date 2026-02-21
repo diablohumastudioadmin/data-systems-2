@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://dvdgks3pu82g"]
+
+[ext_resource type="Script" uid="uid://c7mknh0x5x3g8" path="res://addons/diablohumastudio/database_manager/ui/shared/type_autocomplete.gd" id="1"]
+
+[node name="TypeAutocomplete" type="Control" unique_id=881907139]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 3
+anchors_preset = 0
+size_flags_horizontal = 3
+script = ExtResource("1")
+
+[node name="TypeEdit" type="LineEdit" parent="." unique_id=316582176]
+unique_name_in_owner = true
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+size_flags_horizontal = 3
+placeholder_text = "int, Array[int], LevelData…"

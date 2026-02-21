@@ -3,16 +3,25 @@
 [ext_resource type="Script" uid="uid://co8stjolrhw25" path="res://addons/diablohumastudio/database_manager/core/database_classes/database.gd" id="1_0cp4g"]
 [ext_resource type="Script" uid="uid://cfyorg1em2nmd" path="res://addons/diablohumastudio/database_manager/core/database_classes/data_table.gd" id="2_mcntd"]
 [ext_resource type="Script" uid="uid://uf1e0gtp7nmi" path="res://addons/diablohumastudio/database_manager/core/database_classes/data_item.gd" id="3_mcntd"]
+[ext_resource type="Script" uid="uid://hiu48ee6slwg" path="res://database/res/table_structures/userleveldata.gd" id="4_u2e75"]
+
+[sub_resource type="Resource" id="Resource_7n4m2"]
+script = ExtResource("4_u2e75")
+name = "a"
+id = 0
 
 [sub_resource type="Resource" id="Resource_muxde"]
 script = ExtResource("2_mcntd")
 table_name = "UserLevelData"
+instances = Array[ExtResource("3_mcntd")]([SubResource("Resource_7n4m2")])
+next_id = 1
 
 [sub_resource type="Resource" id="Resource_mcntd"]
 script = ExtResource("2_mcntd")
 table_name = "LevelDat"
+next_id = 1
 
 [resource]
 script = ExtResource("1_0cp4g")
 tables = Array[ExtResource("2_mcntd")]([SubResource("Resource_muxde"), SubResource("Resource_mcntd")])
-last_modified = "2026-02-20T12:35:16"
+last_modified = "2026-02-20T13:54:54"
