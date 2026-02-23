@@ -241,11 +241,16 @@ static func is_valid_type_string(ts: String) -> bool:
 		var v := inner.substr(comma + 1).strip_edges()
 		return is_valid_type_string(k) and is_valid_type_string(v)
 
-	# Enum: "Foo.Bar" — check that "Foo" is a known class
+	# Enum: "Foo.Bar" — check both the class and the enum name
 	if "." in ts:
 		var dot := ts.find(".")
 		var class_part := ts.substr(0, dot)
-		return ClassDB.class_exists(class_part) or _is_user_class(class_part)
+		var enum_part := ts.substr(dot + 1)
+		if enum_part.is_empty():
+			return false
+		if ClassDB.class_exists(class_part):
+			return ClassDB.class_has_enum(class_part, enum_part)
+		return _user_class_has_enum(class_part, enum_part)
 
 	# Engine class
 	if ClassDB.class_exists(ts):
@@ -267,6 +272,17 @@ static func find_top_level_comma(s: String) -> int:
 		elif c == "," and depth == 0:
 			return i
 	return -1
+
+
+## Check if a user-defined class has a specific enum.
+## Loads the script and checks its constant map (enums are stored as Dictionary constants).
+static func _user_class_has_enum(cls: String, enum_name: String) -> bool:
+	for entry in ProjectSettings.get_global_class_list():
+		if entry.get("class", "") == cls:
+			var script = load(entry.get("path", ""))
+			if script:
+				return enum_name in script.get_script_constant_map()
+	return false
 
 
 ## Check if name is a user-defined GDScript class (has class_name declaration).
