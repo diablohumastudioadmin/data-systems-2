@@ -7,6 +7,7 @@ extends Control
 ## The Panel overlay is created in code as a child of this Control.
 
 signal text_committed(text: String)
+signal validation_changed(has_error: bool)
 
 @onready var line_edit: LineEdit = %LineEdit
 
@@ -17,6 +18,8 @@ signal text_committed(text: String)
 			line_edit.placeholder_text = value
 
 var provider: SuggestionProvider
+var has_error: bool = false
+var last_error: String = ""
 
 var _panel: Panel
 var _list: ItemList
@@ -114,13 +117,26 @@ func _commit() -> void:
 
 
 func _validate(t: String) -> void:
-	if not provider:
-		return
-	var valid := t.is_empty() or provider.validate(t)
-	if valid:
+	if not provider or t.is_empty():
 		line_edit.remove_theme_color_override("font_color")
+		last_error = ""
+		_set_error(false)
+		return
+	var error: String = provider.validate(t)
+	if error.is_empty():
+		line_edit.remove_theme_color_override("font_color")
+		last_error = ""
+		_set_error(false)
 	else:
 		line_edit.add_theme_color_override("font_color", Color.RED)
+		last_error = error
+		_set_error(true)
+
+
+func _set_error(value: bool) -> void:
+	if has_error != value:
+		has_error = value
+		validation_changed.emit(has_error)
 
 
 # --- Keyboard navigation ----------------------------------------------------

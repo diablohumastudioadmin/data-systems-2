@@ -12,6 +12,6 @@ func get_suggestions(_text: String) -> Array[String]:
 	return []
 
 
-## Override: return true if the given text is considered valid input.
-func validate(_text: String) -> bool:
-	return true
+## Override: return empty string if valid, or an error message if invalid.
+func validate(_text: String) -> String:
+	return ""

@@ -32,4 +32,4 @@ next_id = 2
 [resource]
 script = ExtResource("1_0cp4g")
 tables = Array[ExtResource("2_mcntd")]([SubResource("Resource_muxde"), SubResource("Resource_mcntd")])
-last_modified = "2026-02-23T12:23:52"
+last_modified = "2026-02-23T17:34:45"

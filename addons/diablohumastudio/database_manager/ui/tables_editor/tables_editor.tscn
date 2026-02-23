@@ -30,11 +30,6 @@ size_flags_horizontal = 3
 [node name="VBox" type="VBoxContainer" parent="VBox/VBoxContainer/TableListPanel" unique_id=576778555]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="VBox/VBoxContainer/TableListPanel/VBox" unique_id=146599143]
-layout_mode = 2
-text = "Tables"
-horizontal_alignment = 1
-
 [node name="HBoxContainer" type="HBoxContainer" parent="VBox/VBoxContainer/TableListPanel/VBox" unique_id=1564982939]
 layout_mode = 2
 
@@ -99,7 +94,9 @@ placeholder_text = "MyTableName"
 
 [node name="FieldsLabel" type="Label" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=515102613]
 layout_mode = 2
+theme_override_font_sizes/font_size = 26
 text = "Fields:"
+horizontal_alignment = 1
 
 [node name="FieldsScroll" type="ScrollContainer" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=2062318375]
 layout_mode = 2
@@ -110,6 +107,12 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+
+[node name="ValidationErrorLabel" type="Label" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=1459637070]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
+theme_override_font_sizes/font_size = 13
 
 [node name="AddFieldBtn" type="Button" parent="VBox/HBox/EditorPanel/MarginContainer/EditorVBox" unique_id=210335099]
 unique_name_in_owner = true

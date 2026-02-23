@@ -5,6 +5,7 @@ extends HBoxContainer
 ## Layout: Name | FieldName | Type | LineEditAutocomplete | Default | [editor] | X
 
 signal remove_requested()
+signal validation_changed(error: String)
 
 @onready var field_name_edit: LineEdit = %FieldNameEdit
 @onready var type_autocomplete: LineEditAutocomplete = %TypeAutocomplete
@@ -26,6 +27,9 @@ func _ready() -> void:
 	var provider := TypeSuggestionProvider.new()
 	type_autocomplete.provider = provider
 	type_autocomplete.text_committed.connect(_on_type_committed)
+	type_autocomplete.validation_changed.connect(func(_has_err: bool):
+		validation_changed.emit(type_autocomplete.last_error)
+	)
 	remove_btn.pressed.connect(func(): remove_requested.emit())
 
 	if _has_deferred_data:
@@ -124,6 +128,14 @@ func _update_default_value_editor() -> void:
 
 	default_value_container.add_child(editor)
 	default_value_edit = editor
+
+
+func has_validation_error() -> bool:
+	return type_autocomplete.has_error
+
+
+func get_validation_error() -> String:
+	return type_autocomplete.last_error
 
 
 func get_field_data() -> Dictionary:

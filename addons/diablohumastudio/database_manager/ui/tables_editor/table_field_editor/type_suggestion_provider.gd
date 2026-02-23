@@ -40,13 +40,23 @@ func get_suggestions(typed: String) -> Array[String]:
 					and cls not in ResourceGenerator.PRIMITIVE_TYPES:
 				results.append(ctx.prefix + cls + ctx.suffix)
 
+	# d) enums — when partial contains a dot (e.g. "Control." or "Control.Fo")
+	if "." in ctx.partial:
+		var dot: int = ctx.partial.find(".")
+		var class_part: String = ctx.partial.substr(0, dot)
+		var enum_partial: String = ctx.partial.substr(dot + 1).to_lower()
+		var enum_names: Array[String] = _get_enum_names(class_part)
+		for en: String in enum_names:
+			if enum_partial.is_empty() or en.to_lower().begins_with(enum_partial):
+				results.append(ctx.prefix + class_part + "." + en + ctx.suffix)
+
 	if results.size() > 50:
 		results.resize(50)
 	return results
 
 
-func validate(text: String) -> bool:
-	return ResourceGenerator.is_valid_type_string(text)
+func validate(text: String) -> String:
+	return ResourceGenerator.validate_type_string(text)
 
 
 ## Returns {prefix, suffix, partial} describing the current completion context.
@@ -64,3 +74,22 @@ func _get_context(typed: String) -> Dictionary:
 			partial = inner.substr(comma + 1).strip_edges()
 		}
 	return {prefix = "", suffix = "", partial = typed}
+
+
+## Returns enum names for a class (engine or user-defined).
+func _get_enum_names(class_name_str: String) -> Array[String]:
+	var names: Array[String] = []
+	if ClassDB.class_exists(class_name_str):
+		for en: String in ClassDB.class_get_enum_list(class_name_str, true):
+			names.append(en)
+		return names
+	# User-defined class — check script constants (enums are Dictionary constants)
+	for entry: Dictionary in ProjectSettings.get_global_class_list():
+		if entry.get("class", "") == class_name_str:
+			var script: GDScript = load(entry.get("path", ""))
+			if script:
+				for key: String in script.get_script_constant_map():
+					if script.get_script_constant_map()[key] is Dictionary:
+						names.append(key)
+			break
+	return names

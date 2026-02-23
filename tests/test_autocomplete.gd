@@ -34,31 +34,43 @@ func _init() -> void:
 	_assert_contains(provider.get_suggestions("Dictionary[String, in"), "Dictionary[String, int]",
 		"'Dictionary[String, in' should suggest 'Dictionary[String, int]'")
 
-	_section("TypeSuggestionProvider.validate")
-	_assert_true(provider.validate("int"), "'int' is valid")
-	_assert_true(provider.validate("float"), "'float' is valid")
-	_assert_true(provider.validate("String"), "'String' is valid")
-	_assert_true(provider.validate("bool"), "'bool' is valid")
-	_assert_true(provider.validate("Array[int]"), "'Array[int]' is valid")
-	_assert_true(provider.validate("Array[String]"), "'Array[String]' is valid")
-	_assert_true(provider.validate("Dictionary[String, int]"),
-		"'Dictionary[String, int]' is valid")
-	_assert_false(provider.validate("notavalidtype"),
-		"'notavalidtype' is invalid")
-	_assert_false(provider.validate("Array[notvalid]"),
-		"'Array[notvalid]' is invalid")
+	_section("TypeSuggestionProvider.get_suggestions — Enum context")
+	_assert_contains(provider.get_suggestions("Control.Focus"), "Control.FocusMode",
+		"'Control.Focus' should suggest 'Control.FocusMode'")
+	_assert_contains(provider.get_suggestions("Control."), "Control.FocusMode",
+		"'Control.' should suggest 'Control.FocusMode'")
+	_assert_contains(provider.get_suggestions("Node.Process"), "Node.ProcessMode",
+		"'Node.Process' should suggest 'Node.ProcessMode'")
+	_assert_empty(provider.get_suggestions("Control.ZZZNonExistent"),
+		"'Control.ZZZNonExistent' should return no suggestions")
+
+	_section("TypeSuggestionProvider.validate — valid types return empty")
+	_assert_valid(provider.validate("int"), "'int'")
+	_assert_valid(provider.validate("float"), "'float'")
+	_assert_valid(provider.validate("String"), "'String'")
+	_assert_valid(provider.validate("bool"), "'bool'")
+	_assert_valid(provider.validate("Array[int]"), "'Array[int]'")
+	_assert_valid(provider.validate("Array[String]"), "'Array[String]'")
+	_assert_valid(provider.validate("Dictionary[String, int]"),
+		"'Dictionary[String, int]'")
+
+	_section("TypeSuggestionProvider.validate — invalid types return error")
+	_assert_error(provider.validate("notavalidtype"), "not a valid",
+		"'notavalidtype' returns error with 'not a valid'")
+	_assert_error(provider.validate("Array[notvalid]"), "Invalid element type",
+		"'Array[notvalid]' returns error about element type")
 
 	_section("TypeSuggestionProvider.validate — enums")
-	_assert_true(provider.validate("Control.FocusMode"),
-		"'Control.FocusMode' is valid (engine enum)")
-	_assert_false(provider.validate("Control.Fo"),
-		"'Control.Fo' is invalid (partial enum name)")
-	_assert_false(provider.validate("Control."),
-		"'Control.' is invalid (empty enum part)")
-	_assert_false(provider.validate("Control.NonExistentEnum"),
-		"'Control.NonExistentEnum' is invalid")
-	_assert_true(provider.validate("Node.ProcessMode"),
-		"'Node.ProcessMode' is valid (engine enum)")
+	_assert_valid(provider.validate("Control.FocusMode"),
+		"'Control.FocusMode' (engine enum)")
+	_assert_error(provider.validate("Control.Fo"), "Unknown enum",
+		"'Control.Fo' returns error about unknown enum")
+	_assert_error(provider.validate("Control."), "Expected enum name",
+		"'Control.' returns error about expected enum name")
+	_assert_error(provider.validate("Control.NonExistentEnum"), "Unknown enum",
+		"'Control.NonExistentEnum' returns error about unknown enum")
+	_assert_valid(provider.validate("Node.ProcessMode"),
+		"'Node.ProcessMode' (engine enum)")
 
 	_section("ResourceGenerator.is_valid_type_string")
 	_assert_true(ResourceGenerator.is_valid_type_string("int"),
@@ -130,6 +142,23 @@ func _assert_false(value: bool, desc: String) -> void:
 		_pass(desc)
 	else:
 		_fail(desc, "expected false, got true")
+
+
+## validate() returns "" for valid, non-empty error for invalid
+func _assert_valid(error: String, desc: String) -> void:
+	if error.is_empty():
+		_pass("%s is valid" % desc)
+	else:
+		_fail("%s is valid" % desc, "got error: '%s'" % error)
+
+
+func _assert_error(error: String, expected_substring: String, desc: String) -> void:
+	if not error.is_empty() and error.to_lower().contains(expected_substring.to_lower()):
+		_pass(desc)
+	elif error.is_empty():
+		_fail(desc, "expected error containing '%s', got empty (valid)" % expected_substring)
+	else:
+		_fail(desc, "expected error containing '%s', got '%s'" % [expected_substring, error])
 
 
 func _assert_eq(a: Variant, b: Variant, desc: String) -> void:

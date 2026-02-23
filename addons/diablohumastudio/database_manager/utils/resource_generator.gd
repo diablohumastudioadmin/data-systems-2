@@ -214,9 +214,65 @@ static func _hint_part_to_type(part: String) -> String:
 	return "Variant"
 
 
-## Returns true if ts is a syntactically valid GDScript type expression.
+## Returns an error message if ts is invalid, or empty string if valid.
 ## Validates primitives, typed Array/Dictionary (recursively), engine classes,
-## enums (Foo.Bar), and user GDScript class_names via EditorFileSystem scan.
+## enums (Foo.Bar), and user GDScript class_names.
+static func validate_type_string(ts: String) -> String:
+	ts = ts.strip_edges()
+	if ts.is_empty():
+		return "Type cannot be empty"
+
+	if ts in PRIMITIVE_TYPES:
+		return ""
+
+	if ts.begins_with("Array[") and ts.ends_with("]"):
+		var inner := ts.substr(6, ts.length() - 7)
+		var err := validate_type_string(inner)
+		if not err.is_empty():
+			return "Invalid element type in Array: %s" % err
+		return ""
+
+	if ts.begins_with("Dictionary[") and ts.ends_with("]"):
+		var inner := ts.substr(11, ts.length() - 12)
+		var comma := find_top_level_comma(inner)
+		if comma < 0:
+			return "Dictionary requires two types: Dictionary[Key, Value]"
+		var k := inner.substr(0, comma).strip_edges()
+		var v := inner.substr(comma + 1).strip_edges()
+		var k_err := validate_type_string(k)
+		if not k_err.is_empty():
+			return "Invalid key type in Dictionary: %s" % k_err
+		var v_err := validate_type_string(v)
+		if not v_err.is_empty():
+			return "Invalid value type in Dictionary: %s" % v_err
+		return ""
+
+	if "." in ts:
+		var dot := ts.find(".")
+		var class_part := ts.substr(0, dot)
+		var enum_part := ts.substr(dot + 1)
+		if enum_part.is_empty():
+			return "Expected enum name after '%s.'" % class_part
+		if ClassDB.class_exists(class_part):
+			if ClassDB.class_has_enum(class_part, enum_part):
+				return ""
+			return "Unknown enum '%s' in '%s'" % [enum_part, class_part]
+		if _is_user_class(class_part):
+			if _user_class_has_enum(class_part, enum_part):
+				return ""
+			return "Unknown enum '%s' in '%s'" % [enum_part, class_part]
+		return "Unknown class '%s'" % class_part
+
+	if ClassDB.class_exists(ts):
+		return ""
+
+	if _is_user_class(ts):
+		return ""
+
+	return "'%s' is not a valid GDScript type" % ts
+
+
+## Returns true if ts is a syntactically valid GDScript type expression.
 static func is_valid_type_string(ts: String) -> bool:
 	ts = ts.strip_edges()
 	if ts.is_empty():

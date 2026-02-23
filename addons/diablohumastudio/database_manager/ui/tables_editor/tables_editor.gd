@@ -17,6 +17,8 @@ signal table_saved(table_name: String)
 @onready var save_table_btn: Button = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox/SaveTableBtn
 @onready var delete_table_btn: Button = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox/DeleteTableBtn
 
+@onready var validation_error_label: Label = %ValidationErrorLabel
+
 @onready var new_table_btn: Button = $VBox/VBoxContainer/TableListPanel/VBox/HBoxContainer/NewTableBtn
 @onready var refresh_btn: Button = $VBox/VBoxContainer/TableListPanel/VBox/HBoxContainer/RefreshBtn
 
@@ -93,6 +95,8 @@ func _clear_fields() -> void:
 	for row in field_rows:
 		row.queue_free()
 	field_rows.clear()
+	if validation_error_label:
+		validation_error_label.text = ""
 
 
 func _on_new_table_pressed() -> void:
@@ -107,6 +111,7 @@ func _add_field_row(
 	var row = preload("table_field_editor/table_field_editor.tscn").instantiate()
 	row.set_field(field_name, type_string, default_value)
 	row.remove_requested.connect(_on_field_remove_requested.bind(row))
+	row.validation_changed.connect(_on_field_validation_changed)
 
 	fields_container.add_child(row)
 	field_rows.append(row)
@@ -119,6 +124,13 @@ func _on_add_field_pressed() -> void:
 func _on_field_remove_requested(row: Node) -> void:
 	field_rows.erase(row)
 	row.queue_free()
+	_update_save_button()
+	_refresh_error_label()
+
+
+func _on_field_validation_changed(_error: String) -> void:
+	_update_save_button()
+	_refresh_error_label()
 
 
 func _on_save_table_pressed() -> void:
@@ -127,6 +139,11 @@ func _on_save_table_pressed() -> void:
 	if table_name.is_empty():
 		_show_error("Table name cannot be empty")
 		return
+
+	for row in field_rows:
+		if row.has_validation_error():
+			_show_error("Fix type errors before saving")
+			return
 
 	# Collect fields from UI rows
 	var fields: Array[Dictionary] = []
@@ -173,8 +190,26 @@ func _on_delete_table_pressed() -> void:
 	confirm.popup_centered()
 
 
-func _on_table_name_changed(new_text: String) -> void:
-	save_table_btn.disabled = new_text.strip_edges().is_empty()
+func _on_table_name_changed(_new_text: String) -> void:
+	_update_save_button()
+
+
+func _refresh_error_label() -> void:
+	for row in field_rows:
+		if row.has_validation_error():
+			validation_error_label.text = row.get_validation_error()
+			return
+	validation_error_label.text = ""
+
+
+func _update_save_button() -> void:
+	var any_error := false
+	for row in field_rows:
+		if row.has_validation_error():
+			any_error = true
+			break
+	save_table_btn.disabled = any_error \
+			or table_name_edit.text.strip_edges().is_empty()
 
 
 func _show_error(message: String) -> void:
