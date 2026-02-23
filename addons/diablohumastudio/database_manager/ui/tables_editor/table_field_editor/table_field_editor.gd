@@ -1,13 +1,13 @@
 @tool
 extends HBoxContainer
 
-## Reusable field editor row for TablesEditor.
-## Layout: Name | FieldName | Type | TypeAutocomplete | Default | [editor] | X
+## Editor row for a single table field definition.
+## Layout: Name | FieldName | Type | LineEditAutocomplete | Default | [editor] | X
 
 signal remove_requested()
 
 @onready var field_name_edit: LineEdit = %FieldNameEdit
-@onready var type_autocomplete: TypeAutocomplete = %TypeAutocomplete
+@onready var type_autocomplete: LineEditAutocomplete = %TypeAutocomplete
 @onready var default_value_container: HBoxContainer = %DefaultValueContainer
 @onready var remove_btn: Button = %RemoveBtn
 
@@ -23,7 +23,9 @@ var _has_deferred_data: bool = false
 
 
 func _ready() -> void:
-	type_autocomplete.type_committed.connect(_on_type_committed)
+	var provider := TypeSuggestionProvider.new()
+	type_autocomplete.provider = provider
+	type_autocomplete.text_committed.connect(_on_type_committed)
 	remove_btn.pressed.connect(func(): remove_requested.emit())
 
 	if _has_deferred_data:
@@ -45,12 +47,12 @@ func set_field(field_name: String, type_string: String, default_value: Variant) 
 
 func _apply_field(field_name: String, type_string: String, default_value: Variant) -> void:
 	field_name_edit.text = field_name
-	type_autocomplete.set_type_string(type_string)
+	type_autocomplete.set_text(type_string)
 	_apply_type(type_string)
 	_set_default_value(default_value)
 
 
-func _on_type_committed(ts: String, _is_valid: bool) -> void:
+func _on_type_committed(ts: String) -> void:
 	_apply_type(ts)
 
 
@@ -128,7 +130,7 @@ func get_field_data() -> Dictionary:
 	var name_text := field_name_edit.text.strip_edges()
 	if name_text.is_empty():
 		return {}
-	var type_string: String = type_autocomplete.get_type_string()
+	var type_string: String = type_autocomplete.get_text()
 	if type_string.is_empty():
 		return {}
 	return {

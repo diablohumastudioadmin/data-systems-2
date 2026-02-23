@@ -104,7 +104,7 @@ func _add_field_row(
 		field_name: String = "",
 		type_string: String = "String",
 		default_value: Variant = null) -> void:
-	var row = preload("field_editor_row.tscn").instantiate()
+	var row = preload("table_field_editor/table_field_editor.tscn").instantiate()
 	row.set_field(field_name, type_string, default_value)
 	row.remove_requested.connect(_on_field_remove_requested.bind(row))
 
