@@ -21,6 +21,12 @@ func _ready() -> void:
 	%TablesEditor.table_saved.connect(_on_table_changed)
 	database_manager.tables_changed.connect(_on_table_changed)
 
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed \
+			and event.keycode == KEY_ESCAPE:
+		_on_close_requested()
+
+
 func _on_table_changed(_table_name: Variant = null) -> void:
 	%DataInstanceEditor.reload()
 

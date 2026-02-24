@@ -73,6 +73,11 @@ func _refresh_table_list() -> void:
 			display = "%s%s" % ["  ".repeat(depth), table_name]
 		table_list.add_item(display)
 
+	# Auto-select first table if none selected
+	if table_list.item_count > 0 and current_table_name.is_empty():
+		table_list.select(0)
+		_on_table_list_item_selected(0)
+
 
 func _get_sorted_table_names() -> Array[String]:
 	var all_names: Array[String] = []
@@ -164,7 +169,9 @@ func _rebuild_inherited_fields_display() -> void:
 		var header := Label.new()
 		header.text = "— %s —" % entry.table_name
 		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		header.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.22352941, 0.22352941, 0.22352941, 1)
+		header.add_theme_stylebox_override("normal", style)
 		inherited_fields_container.add_child(header)
 
 		for field in entry.fields:
