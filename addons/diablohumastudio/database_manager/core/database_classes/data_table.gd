@@ -10,3 +10,4 @@ extends Resource
 @export var instances: Array[DataItem] = []
 @export_storage var next_id: int = 0
 @export_storage var field_constraints: Dictionary = {}  # {field_name: {required: bool, foreign_key: String}}
+@export_storage var parent_table: String = ""  # empty = extends DataItem directly

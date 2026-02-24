@@ -6,13 +6,15 @@ extends Control
 signal table_selected(table_name: String)
 signal table_saved(table_name: String)
 
-# Note: These @onready vars will be converted to % unique names after scene is created
 @onready var table_list: ItemList = $VBox/HBox/TableList
 @onready var editor_panel: Panel = $VBox/HBox/EditorPanel
 @onready var editor_vbox: VBoxContainer = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox
 
 @onready var table_name_edit: LineEdit = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/TableNameBox/TableNameEdit
-@onready var fields_container: VBoxContainer = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/FieldsScroll/FieldsContainer
+@onready var parent_select: OptionButton = %ParentTableSelect
+@onready var inherited_fields_container: VBoxContainer = %InheritedFieldsContainer
+@onready var own_fields_label: Label = %OwnFieldsLabel
+@onready var fields_container: VBoxContainer = %FieldsContainer
 @onready var add_field_btn: Button = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/AddFieldBtn
 @onready var save_table_btn: Button = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox/SaveTableBtn
 @onready var delete_table_btn: Button = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox/DeleteTableBtn
@@ -56,19 +58,143 @@ func _connect_signals() -> void:
 	save_table_btn.pressed.connect(_on_save_table_pressed)
 	delete_table_btn.pressed.connect(_on_delete_table_pressed)
 	table_name_edit.text_changed.connect(_on_table_name_changed)
+	parent_select.item_selected.connect(_on_parent_selected)
 
+
+# --- Table List (with hierarchy) ---------------------------------------------
 
 func _refresh_table_list() -> void:
 	table_list.clear()
-	var table_names = database_manager.get_table_names()
-	for table_name in table_names:
-		table_list.add_item(table_name)
+	var sorted_names: Array[String] = _get_sorted_table_names()
+	for table_name in sorted_names:
+		var depth: int = _get_depth(table_name)
+		var display: String = table_name
+		if depth > 0:
+			display = "%s%s" % ["  ".repeat(depth), table_name]
+		table_list.add_item(display)
+
+
+func _get_sorted_table_names() -> Array[String]:
+	var all_names: Array[String] = []
+	all_names.assign(database_manager.get_table_names())
+	var sorted: Array[String] = []
+	for table_name in all_names:
+		if database_manager.get_parent_table(table_name).is_empty():
+			_add_with_children(table_name, sorted)
+	# Add any orphans (shouldn't happen, but safety)
+	for table_name in all_names:
+		if table_name not in sorted:
+			sorted.append(table_name)
+	return sorted
+
+
+func _add_with_children(table_name: String, sorted: Array[String]) -> void:
+	sorted.append(table_name)
+	for child in database_manager.get_child_tables(table_name):
+		_add_with_children(child, sorted)
+
+
+func _get_depth(table_name: String) -> int:
+	var depth := 0
+	var current: String = database_manager.get_parent_table(table_name)
+	while not current.is_empty():
+		depth += 1
+		current = database_manager.get_parent_table(current)
+	return depth
 
 
 func _on_table_list_item_selected(index: int) -> void:
-	var table_name = table_list.get_item_text(index)
+	var display_text: String = table_list.get_item_text(index)
+	var table_name: String = display_text.strip_edges()
 	_load_table(table_name)
 
+
+# --- Parent Selection --------------------------------------------------------
+
+func _refresh_parent_select(exclude_table: String = "") -> void:
+	parent_select.clear()
+	parent_select.add_item("— No Parent —")
+	for table_name in database_manager.get_table_names():
+		if table_name == exclude_table:
+			continue
+		# Exclude descendants of exclude_table (would create cycle)
+		if not exclude_table.is_empty() and database_manager.is_descendant_of(table_name, exclude_table):
+			continue
+		parent_select.add_item(table_name)
+
+
+func _select_parent_in_dropdown(parent_name: String) -> void:
+	if parent_name.is_empty():
+		parent_select.selected = 0
+		return
+	for i in range(parent_select.item_count):
+		if parent_select.get_item_text(i) == parent_name:
+			parent_select.selected = i
+			return
+	parent_select.selected = 0
+
+
+func _get_selected_parent() -> String:
+	if parent_select.selected <= 0:
+		return ""
+	return parent_select.get_item_text(parent_select.selected)
+
+
+func _on_parent_selected(_index: int) -> void:
+	_rebuild_inherited_fields_display()
+
+
+# --- Inherited Fields Cascade Display ----------------------------------------
+
+func _rebuild_inherited_fields_display() -> void:
+	for child in inherited_fields_container.get_children():
+		child.queue_free()
+
+	var parent_name: String = _get_selected_parent()
+	if parent_name.is_empty():
+		inherited_fields_container.visible = false
+		own_fields_label.visible = false
+		return
+
+	inherited_fields_container.visible = true
+	own_fields_label.visible = true
+
+	var chain: Array[Dictionary] = database_manager.get_inheritance_chain(parent_name)
+	for entry in chain:
+		var header := Label.new()
+		header.text = "— %s —" % entry.table_name
+		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		header.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		inherited_fields_container.add_child(header)
+
+		for field in entry.fields:
+			var row := _create_readonly_field_row(field)
+			inherited_fields_container.add_child(row)
+
+
+func _create_readonly_field_row(field: Dictionary) -> HBoxContainer:
+	var hbox := HBoxContainer.new()
+
+	var name_label := Label.new()
+	name_label.text = field.name
+	name_label.custom_minimum_size.x = 150
+	name_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	hbox.add_child(name_label)
+
+	var type_label := Label.new()
+	var type_str: String = ""
+	if field.has("type_string"):
+		type_str = field.type_string
+	elif field.has("type"):
+		type_str = ResourceGenerator.property_info_to_type_string(field)
+	type_label.text = ": %s" % type_str
+	type_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	hbox.add_child(type_label)
+
+	return hbox
+
+
+# --- Table Loading -----------------------------------------------------------
 
 func _load_table(table_name: String) -> void:
 	current_table_name = table_name
@@ -76,10 +202,17 @@ func _load_table(table_name: String) -> void:
 	table_name_edit.editable = true
 	_clear_fields()
 
+	# Parent selection
+	var parent_name: String = database_manager.get_parent_table(table_name)
+	_refresh_parent_select(table_name)
+	_select_parent_in_dropdown(parent_name)
+	_rebuild_inherited_fields_display()
+
+	# Load only own fields (not inherited)
 	var field_constraints: Dictionary = database_manager.get_field_constraints(table_name)
-	var fields = database_manager.get_table_fields(table_name)
+	var fields: Array[Dictionary] = database_manager.get_own_table_fields(table_name)
 	for field in fields:
-		var ts = ResourceGenerator.property_info_to_type_string(field)
+		var ts: String = ResourceGenerator.property_info_to_type_string(field)
 		var fc: Dictionary = field_constraints.get(field.name, {})
 		_add_field_row(field.name, ts, field.default, fc)
 
@@ -91,6 +224,9 @@ func _clear_editor() -> void:
 	table_name_edit.text = ""
 	table_name_edit.editable = true
 	_clear_fields()
+	_refresh_parent_select()
+	_select_parent_in_dropdown("")
+	_rebuild_inherited_fields_display()
 
 
 func _clear_fields() -> void:
@@ -137,6 +273,8 @@ func _on_field_validation_changed(_error: String) -> void:
 	_refresh_error_label()
 
 
+# --- Save / Delete -----------------------------------------------------------
+
 func _on_save_table_pressed() -> void:
 	var table_name = table_name_edit.text.strip_edges()
 
@@ -160,13 +298,15 @@ func _on_save_table_pressed() -> void:
 			constraints[field_data.name] = field_data.constraints
 		fields.append(field_data)
 
+	var parent_name: String = _get_selected_parent()
+
 	var success = false
 	if current_table_name.is_empty():
-		success = database_manager.add_table(table_name, fields, constraints)
+		success = database_manager.add_table(table_name, fields, constraints, parent_name)
 	elif table_name != current_table_name:
-		success = database_manager.rename_table(current_table_name, table_name, fields, constraints)
+		success = database_manager.rename_table(current_table_name, table_name, fields, constraints, parent_name)
 	else:
-		success = database_manager.update_table(table_name, fields, constraints)
+		success = database_manager.update_table(table_name, fields, constraints, parent_name)
 
 	if success:
 		print("[TablesEditor] Saved table: %s" % table_name)
@@ -179,6 +319,13 @@ func _on_save_table_pressed() -> void:
 
 func _on_delete_table_pressed() -> void:
 	if current_table_name.is_empty():
+		return
+
+	# Block deletion of parent tables
+	var children: Array[String] = database_manager.get_child_tables(current_table_name)
+	if not children.is_empty():
+		_show_error("Cannot delete '%s': it has child tables: %s\nDelete or re-parent children first." % [
+			current_table_name, ", ".join(children)])
 		return
 
 	var confirm = ConfirmationDialog.new()

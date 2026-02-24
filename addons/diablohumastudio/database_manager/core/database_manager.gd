@@ -112,17 +112,22 @@ func get_field_constraints(table_name: String) -> Dictionary:
 ## fields: Array of {name: String, type_string: String, default: Variant}
 ## constraints: {field_name: {required: bool, foreign_key: String}}
 func add_table(table_name: String, fields: Array[Dictionary],
-		constraints: Dictionary = {}) -> bool:
+		constraints: Dictionary = {}, parent_table: String = "") -> bool:
 	if _database.has_table(table_name):
 		push_warning("Table already exists: %s" % table_name)
 		return false
 
+	if not parent_table.is_empty() and _would_create_cycle(table_name, parent_table):
+		push_warning("Cannot set parent '%s': would create circular inheritance" % parent_table)
+		return false
+
 	ResourceGenerator.generate_resource_class(
-		table_name, fields, structures_path, constraints)
+		table_name, fields, structures_path, constraints, parent_table)
 
 	var table := DataTable.new()
 	table.table_name = table_name
 	table.field_constraints = constraints
+	table.parent_table = parent_table
 	_database.add_table(table)
 
 	var err := save()
@@ -138,15 +143,20 @@ func add_table(table_name: String, fields: Array[Dictionary],
 
 ## Update an existing table (regenerates .gd file)
 func update_table(table_name: String, fields: Array[Dictionary],
-		constraints: Dictionary = {}) -> bool:
+		constraints: Dictionary = {}, parent_table: String = "") -> bool:
 	if not _database.has_table(table_name):
 		push_warning("Table not found: %s" % table_name)
 		return false
 
+	if not parent_table.is_empty() and _would_create_cycle(table_name, parent_table):
+		push_warning("Cannot set parent '%s': would create circular inheritance" % parent_table)
+		return false
+
 	ResourceGenerator.generate_resource_class(
-		table_name, fields, structures_path, constraints)
+		table_name, fields, structures_path, constraints, parent_table)
 	var table: DataTable = _database.get_table(table_name)
 	table.field_constraints = constraints
+	table.parent_table = parent_table
 
 	# Reload the script in-place on the EXISTING cached GDScript object.
 	# All instances (ours + external editor resources) already hold a reference
@@ -177,7 +187,7 @@ func update_table(table_name: String, fields: Array[Dictionary],
 ## Rename a table and update its schema fields in one operation.
 ## Generates a new .gd at the new path, reassigns all instances, deletes the old .gd.
 func rename_table(old_name: String, new_name: String, fields: Array[Dictionary],
-		constraints: Dictionary = {}) -> bool:
+		constraints: Dictionary = {}, parent_table: String = "") -> bool:
 	if not _database.has_table(old_name):
 		push_warning("Table not found: %s" % old_name)
 		return false
@@ -201,7 +211,7 @@ func rename_table(old_name: String, new_name: String, fields: Array[Dictionary],
 
 	# Generate new .gd at the new path with the new class name + updated fields
 	ResourceGenerator.generate_resource_class(
-		new_name, fields, structures_path, constraints)
+		new_name, fields, structures_path, constraints, parent_table)
 
 	# Load the new script, swap every instance, then restore saved values
 	var new_script_path := structures_path.path_join("%s.gd" % new_name.to_lower())
@@ -217,6 +227,13 @@ func rename_table(old_name: String, new_name: String, fields: Array[Dictionary],
 	# Update the table record
 	table.table_name = new_name
 	table.field_constraints = constraints
+	table.parent_table = parent_table
+
+	# Update children that referenced the old name + regenerate their scripts
+	for child_table in _database.tables:
+		if child_table.parent_table == old_name:
+			child_table.parent_table = new_name
+			_regenerate_child_script(child_table)
 
 	# Remove old .gd and old enum
 	ResourceGenerator.delete_resource_class(old_name, structures_path)
@@ -245,6 +262,12 @@ func rename_table(old_name: String, new_name: String, fields: Array[Dictionary],
 func remove_table(table_name: String) -> bool:
 	if not _database.has_table(table_name):
 		push_warning("Table not found: %s" % table_name)
+		return false
+
+	var children: Array[String] = get_child_tables(table_name)
+	if not children.is_empty():
+		push_warning("Cannot delete '%s': has child tables: %s" % [
+			table_name, ", ".join(children)])
 		return false
 
 	_database.remove_table(table_name)
@@ -396,6 +419,119 @@ func _regenerate_enum(table_name: String) -> void:
 		return
 	ResourceGenerator.generate_enum_file(table_name, table.instances, ids_path)
 	_scan_filesystem()
+
+
+# --- Inheritance -------------------------------------------------------------
+
+func get_parent_table(table_name: String) -> String:
+	var table: DataTable = _database.get_table(table_name)
+	if table == null:
+		return ""
+	return table.parent_table
+
+
+func get_child_tables(table_name: String) -> Array[String]:
+	var children: Array[String] = []
+	for table in _database.tables:
+		if table.parent_table == table_name:
+			children.append(table.table_name)
+	return children
+
+
+## Get only the fields declared in this table's own script (excluding inherited fields).
+func get_own_table_fields(table_name: String) -> Array[Dictionary]:
+	var all_fields: Array[Dictionary] = get_table_fields(table_name)
+	var table: DataTable = _database.get_table(table_name)
+	if table == null or table.parent_table.is_empty():
+		return all_fields
+
+	var parent_fields: Array[Dictionary] = get_table_fields(table.parent_table)
+	var parent_names: Array[String] = []
+	for pf in parent_fields:
+		parent_names.append(pf.name)
+
+	var own: Array[Dictionary] = []
+	for f in all_fields:
+		if f.name not in parent_names:
+			own.append(f)
+	return own
+
+
+## Returns the inheritance chain from DataItem → ... → parent → this table.
+## Each entry: {table_name: String, fields: Array[Dictionary]}
+## First entry is DataItem (name, id), last is the table itself.
+func get_inheritance_chain(table_name: String) -> Array[Dictionary]:
+	var chain: Array[Dictionary] = []
+	var current: String = table_name
+	while not current.is_empty():
+		chain.push_front({
+			"table_name": current,
+			"fields": get_own_table_fields(current)
+		})
+		current = get_parent_table(current)
+	# Prepend DataItem base fields (name, id)
+	chain.push_front({
+		"table_name": "DataItem",
+		"fields": [
+			{"name": "name", "type": TYPE_STRING, "default": ""},
+			{"name": "id", "type": TYPE_INT, "default": -1}
+		]
+	})
+	return chain
+
+
+## Get all instances of a table AND all its descendants (polymorphic query).
+func get_data_items_polymorphic(table_name: String) -> Array[DataItem]:
+	var items: Array[DataItem] = []
+	items.append_array(get_data_items(table_name))
+	for child_name in get_child_tables(table_name):
+		items.append_array(get_data_items_polymorphic(child_name))
+	return items
+
+
+## Check if setting parent_name as parent of table_name would create a cycle.
+func _would_create_cycle(table_name: String, parent_name: String) -> bool:
+	var current: String = parent_name
+	while not current.is_empty():
+		if current == table_name:
+			return true
+		current = get_parent_table(current)
+	return false
+
+
+## Check if table_name is a descendant (child/grandchild/...) of potential_ancestor.
+func is_descendant_of(table_name: String, potential_ancestor: String) -> bool:
+	var current: String = get_parent_table(table_name)
+	while not current.is_empty():
+		if current == potential_ancestor:
+			return true
+		current = get_parent_table(current)
+	return false
+
+
+## Regenerate a child table's script (e.g. after parent rename).
+func _regenerate_child_script(child_table: DataTable) -> void:
+	var own_fields: Array[Dictionary] = get_own_table_fields(child_table.table_name)
+	# Convert reflection dicts back to generation format
+	var gen_fields: Array[Dictionary] = []
+	for f in own_fields:
+		gen_fields.append({
+			"name": f.name,
+			"type_string": ResourceGenerator.property_info_to_type_string(f),
+			"default": f.default
+		})
+	ResourceGenerator.generate_resource_class(
+		child_table.table_name, gen_fields, structures_path,
+		child_table.field_constraints, child_table.parent_table)
+
+	# Hot-reload the cached script so existing instances see the updated extends
+	var script_path := structures_path.path_join("%s.gd" % child_table.table_name.to_lower())
+	var cached_script: GDScript = load(script_path) as GDScript
+	if cached_script:
+		cached_script.source_code = FileAccess.get_file_as_string(script_path)
+		cached_script.reload(true)
+	if Engine.is_editor_hint():
+		EditorInterface.get_resource_filesystem().update_file(script_path)
 
 
 # --- Internal ----------------------------------------------------------------
