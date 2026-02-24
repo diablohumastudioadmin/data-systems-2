@@ -63,6 +63,8 @@ func _exit_tree() -> void:
 	_disconnect_inspector()
 	_end_bulk_edit()
 	_clear_inspected_item()
+	if Engine.is_editor_hint():
+		EditorInterface.inspect_object(null)
 
 
 # --- Setup -------------------------------------------------------------------
@@ -259,8 +261,9 @@ func _on_inspector_property_edited(property: String) -> void:
 		return
 
 	# The Inspector already modified the DataItem in-place (it's a Resource).
-	# We just need to save and refresh the Tree display.
+	# Save and refresh the Tree display.
 	database_manager.save_instances(current_table_name)
+	_check_required_violations(_inspected_item)
 	_refresh_instances()
 
 
@@ -436,3 +439,67 @@ func _value_to_display(value: Variant, field_type: int) -> String:
 func _update_status(message: String) -> void:
 	if status_label:
 		status_label.text = message
+
+
+# --- Required Field Validation -----------------------------------------------
+
+## Status bar warning for current item (non-blocking, informational)
+func _check_required_violations(item: DataItem) -> void:
+	var constraints: Dictionary = database_manager.get_field_constraints(current_table_name)
+	var violations: Array[String] = _get_required_violations_for(item, constraints)
+	if not violations.is_empty():
+		_update_status("Required fields empty: %s" % ", ".join(violations))
+
+
+## Returns a human-readable string listing all required violations across all tables.
+## Returns "" if no violations.
+func get_all_required_violations() -> String:
+	var lines: Array[String] = []
+	for table_name in database_manager.get_table_names():
+		var constraints: Dictionary = database_manager.get_field_constraints(table_name)
+		if constraints.is_empty():
+			continue
+		var items: Array[DataItem] = database_manager.get_data_items(table_name)
+		for item in items:
+			var v: Array[String] = _get_required_violations_for(item, constraints)
+			if not v.is_empty():
+				lines.append("  %s > %s: %s" % [table_name, item.name, ", ".join(v)])
+	return "\n".join(lines)
+
+
+## Delete all instances that violate required constraints, across all tables.
+func delete_violating_instances() -> void:
+	for table_name in database_manager.get_table_names():
+		var constraints: Dictionary = database_manager.get_field_constraints(table_name)
+		if constraints.is_empty():
+			continue
+		var table: DataTable = database_manager.get_table(table_name)
+		if table == null:
+			continue
+		# Collect violating indices in reverse order for safe removal
+		var to_remove: Array[int] = []
+		for i in range(table.instances.size()):
+			var v: Array[String] = _get_required_violations_for(table.instances[i], constraints)
+			if not v.is_empty():
+				to_remove.append(i)
+		to_remove.reverse()
+		for idx in to_remove:
+			database_manager.remove_instance(table_name, idx)
+
+
+func _get_required_violations_for(item: DataItem, constraints: Dictionary) -> Array[String]:
+	var violations: Array[String] = []
+	for field_name: String in constraints:
+		if constraints[field_name].get("required", false):
+			var value: Variant = item.get(field_name)
+			if _is_empty_value(value):
+				violations.append(field_name)
+	return violations
+
+
+func _is_empty_value(value: Variant) -> bool:
+	if value == null:
+		return true
+	if value is String and value.strip_edges().is_empty():
+		return true
+	return false

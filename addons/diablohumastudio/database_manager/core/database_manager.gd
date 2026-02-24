@@ -101,17 +101,28 @@ func table_has_field(table_name: String, field_name: String) -> bool:
 	return false
 
 
+func get_field_constraints(table_name: String) -> Dictionary:
+	var table: DataTable = _database.get_table(table_name)
+	if table == null:
+		return {}
+	return table.field_constraints
+
+
 ## Add a new table (generates .gd file + creates DataTable)
 ## fields: Array of {name: String, type_string: String, default: Variant}
-func add_table(table_name: String, fields: Array[Dictionary]) -> bool:
+## constraints: {field_name: {required: bool, foreign_key: String}}
+func add_table(table_name: String, fields: Array[Dictionary],
+		constraints: Dictionary = {}) -> bool:
 	if _database.has_table(table_name):
 		push_warning("Table already exists: %s" % table_name)
 		return false
 
-	ResourceGenerator.generate_resource_class(table_name, fields, structures_path)
+	ResourceGenerator.generate_resource_class(
+		table_name, fields, structures_path, constraints)
 
 	var table := DataTable.new()
 	table.table_name = table_name
+	table.field_constraints = constraints
 	_database.add_table(table)
 
 	var err := save()
@@ -126,12 +137,16 @@ func add_table(table_name: String, fields: Array[Dictionary]) -> bool:
 
 
 ## Update an existing table (regenerates .gd file)
-func update_table(table_name: String, fields: Array[Dictionary]) -> bool:
+func update_table(table_name: String, fields: Array[Dictionary],
+		constraints: Dictionary = {}) -> bool:
 	if not _database.has_table(table_name):
 		push_warning("Table not found: %s" % table_name)
 		return false
 
-	ResourceGenerator.generate_resource_class(table_name, fields, structures_path)
+	ResourceGenerator.generate_resource_class(
+		table_name, fields, structures_path, constraints)
+	var table: DataTable = _database.get_table(table_name)
+	table.field_constraints = constraints
 
 	# Reload the script in-place on the EXISTING cached GDScript object.
 	# All instances (ours + external editor resources) already hold a reference
@@ -161,7 +176,8 @@ func update_table(table_name: String, fields: Array[Dictionary]) -> bool:
 
 ## Rename a table and update its schema fields in one operation.
 ## Generates a new .gd at the new path, reassigns all instances, deletes the old .gd.
-func rename_table(old_name: String, new_name: String, fields: Array[Dictionary]) -> bool:
+func rename_table(old_name: String, new_name: String, fields: Array[Dictionary],
+		constraints: Dictionary = {}) -> bool:
 	if not _database.has_table(old_name):
 		push_warning("Table not found: %s" % old_name)
 		return false
@@ -184,7 +200,8 @@ func rename_table(old_name: String, new_name: String, fields: Array[Dictionary])
 		snapshots.append(snap)
 
 	# Generate new .gd at the new path with the new class name + updated fields
-	ResourceGenerator.generate_resource_class(new_name, fields, structures_path)
+	ResourceGenerator.generate_resource_class(
+		new_name, fields, structures_path, constraints)
 
 	# Load the new script, swap every instance, then restore saved values
 	var new_script_path := structures_path.path_join("%s.gd" % new_name.to_lower())
@@ -199,6 +216,7 @@ func rename_table(old_name: String, new_name: String, fields: Array[Dictionary])
 
 	# Update the table record
 	table.table_name = new_name
+	table.field_constraints = constraints
 
 	# Remove old .gd and old enum
 	ResourceGenerator.delete_resource_class(old_name, structures_path)

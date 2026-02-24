@@ -9,6 +9,8 @@ signal validation_changed(error: String)
 
 @onready var field_name_edit: LineEdit = %FieldNameEdit
 @onready var type_autocomplete: LineEditAutocomplete = %TypeAutocomplete
+@onready var required_checkbox: CheckBox = %RequiredCheckBox
+@onready var fk_select: OptionButton = %ForeignKeySelect
 @onready var default_value_container: HBoxContainer = %DefaultValueContainer
 @onready var remove_btn: Button = %RemoveBtn
 
@@ -20,7 +22,13 @@ var _current_editor_type: ResourceGenerator.DefaultEditorType = \
 var _deferred_name: String = ""
 var _deferred_type_string: String = "String"
 var _deferred_default: Variant = null
+var _deferred_constraints: Dictionary = {}
 var _has_deferred_data: bool = false
+
+## Saved type string before FK override (restored when FK is cleared)
+var _pre_fk_type: String = ""
+var _deferred_table_names: Array[String] = []
+var _deferred_exclude_table: String = ""
 
 
 func _ready() -> void:
@@ -31,29 +39,91 @@ func _ready() -> void:
 		validation_changed.emit(type_autocomplete.last_error)
 	)
 	remove_btn.pressed.connect(func(): remove_requested.emit())
+	fk_select.item_selected.connect(_on_fk_selected)
+
+	# Apply deferred table names before field data (FK needs the dropdown populated)
+	if not _deferred_table_names.is_empty():
+		set_table_names(_deferred_table_names, _deferred_exclude_table)
+		_deferred_table_names = []
+		_deferred_exclude_table = ""
 
 	if _has_deferred_data:
-		_apply_field(_deferred_name, _deferred_type_string, _deferred_default)
+		_apply_field(_deferred_name, _deferred_type_string, _deferred_default,
+				_deferred_constraints)
 		_has_deferred_data = false
 	else:
 		_apply_type("String")
 
 
-func set_field(field_name: String, type_string: String, default_value: Variant) -> void:
+func set_field(field_name: String, type_string: String, default_value: Variant,
+		constraints: Dictionary = {}) -> void:
 	if not is_node_ready():
 		_deferred_name = field_name
 		_deferred_type_string = type_string
 		_deferred_default = default_value
+		_deferred_constraints = constraints
 		_has_deferred_data = true
 		return
-	_apply_field(field_name, type_string, default_value)
+	_apply_field(field_name, type_string, default_value, constraints)
 
 
-func _apply_field(field_name: String, type_string: String, default_value: Variant) -> void:
+func _apply_field(field_name: String, type_string: String, default_value: Variant,
+		constraints: Dictionary = {}) -> void:
 	field_name_edit.text = field_name
 	type_autocomplete.set_text(type_string)
 	_apply_type(type_string)
 	_set_default_value(default_value)
+	_apply_constraints(constraints)
+
+
+func _apply_constraints(constraints: Dictionary) -> void:
+	required_checkbox.button_pressed = constraints.get("required", false)
+	if constraints.has("foreign_key"):
+		var fk_table: String = constraints["foreign_key"]
+		# Find and select the FK table in the dropdown
+		for i in range(fk_select.item_count):
+			if fk_select.get_item_text(i) == fk_table:
+				fk_select.selected = i
+				_apply_fk(fk_table)
+				return
+	# No FK — select first item ("— No FK —")
+	if fk_select.item_count > 0:
+		fk_select.selected = 0
+
+
+## Populate the ForeignKey dropdown with available table names.
+## exclude_table: name of the current table (can't FK to itself).
+func set_table_names(names: Array[String], exclude_table: String = "") -> void:
+	if not is_node_ready():
+		_deferred_table_names = names
+		_deferred_exclude_table = exclude_table
+		return
+	fk_select.clear()
+	fk_select.add_item("— No FK —")
+	for table_name in names:
+		if table_name != exclude_table:
+			fk_select.add_item(table_name)
+
+
+func _on_fk_selected(index: int) -> void:
+	if index <= 0:
+		# "— No FK —" selected — restore previous type
+		type_autocomplete.set_text(_pre_fk_type if not _pre_fk_type.is_empty() else "String")
+		type_autocomplete.set_editable(true)
+		_apply_type(type_autocomplete.get_text())
+	else:
+		var fk_table: String = fk_select.get_item_text(index)
+		_apply_fk(fk_table)
+
+
+func _apply_fk(fk_table: String) -> void:
+	# Save current type before overriding
+	var current_type: String = type_autocomplete.get_text()
+	if not current_type.ends_with("Ids.Id"):
+		_pre_fk_type = current_type
+	type_autocomplete.set_text("%sIds.Id" % fk_table)
+	type_autocomplete.set_editable(false)
+	_apply_type(type_autocomplete.get_text())
 
 
 func _on_type_committed(ts: String) -> void:
@@ -145,11 +215,20 @@ func get_field_data() -> Dictionary:
 	var type_string: String = type_autocomplete.get_text()
 	if type_string.is_empty():
 		return {}
-	return {
+	var result := {
 		"name": name_text,
 		"type_string": type_string,
 		"default": _get_default_value()
 	}
+	var constraints := {}
+	if required_checkbox.button_pressed:
+		constraints["required"] = true
+	var fk_idx: int = fk_select.selected
+	if fk_idx > 0:
+		constraints["foreign_key"] = fk_select.get_item_text(fk_idx)
+	if not constraints.is_empty():
+		result["constraints"] = constraints
+	return result
 
 
 func _set_default_value(value: Variant) -> void:

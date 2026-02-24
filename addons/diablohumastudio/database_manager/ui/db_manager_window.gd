@@ -25,4 +25,19 @@ func _on_table_changed(_table_name: Variant = null) -> void:
 	%DataInstanceEditor.reload()
 
 func _on_close_requested() -> void:
-	queue_free()
+	var violations: String = %DataInstanceEditor.get_all_required_violations()
+	if violations.is_empty():
+		queue_free()
+		return
+
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Required Fields Empty"
+	dialog.dialog_text = "The following instances have empty required fields and will be deleted:\n\n%s\n\nClose anyway?" % violations
+	dialog.confirmed.connect(func():
+		%DataInstanceEditor.delete_violating_instances()
+		dialog.queue_free()
+		queue_free()
+	)
+	dialog.canceled.connect(func(): dialog.queue_free())
+	add_child(dialog)
+	dialog.popup_centered()

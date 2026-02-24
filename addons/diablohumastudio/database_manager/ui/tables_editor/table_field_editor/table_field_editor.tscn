@@ -27,6 +27,21 @@ text = "Type:"
 unique_name_in_owner = true
 layout_mode = 2
 
+[node name="RequiredCheckBox" type="CheckBox" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Required (non-null)"
+text = "Req"
+
+[node name="FKLabel" type="Label" parent="."]
+layout_mode = 2
+text = "FK:"
+
+[node name="ForeignKeySelect" type="OptionButton" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+
 [node name="DefaultLabel" type="Label" parent="."]
 custom_minimum_size = Vector2(55, 0)
 layout_mode = 2

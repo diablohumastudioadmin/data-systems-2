@@ -76,10 +76,12 @@ func _load_table(table_name: String) -> void:
 	table_name_edit.editable = true
 	_clear_fields()
 
+	var field_constraints: Dictionary = database_manager.get_field_constraints(table_name)
 	var fields = database_manager.get_table_fields(table_name)
 	for field in fields:
 		var ts = ResourceGenerator.property_info_to_type_string(field)
-		_add_field_row(field.name, ts, field.default)
+		var fc: Dictionary = field_constraints.get(field.name, {})
+		_add_field_row(field.name, ts, field.default, fc)
 
 	table_selected.emit(table_name)
 
@@ -107,9 +109,11 @@ func _on_new_table_pressed() -> void:
 func _add_field_row(
 		field_name: String = "",
 		type_string: String = "String",
-		default_value: Variant = null) -> void:
+		default_value: Variant = null,
+		constraints: Dictionary = {}) -> void:
 	var row = preload("table_field_editor/table_field_editor.tscn").instantiate()
-	row.set_field(field_name, type_string, default_value)
+	row.set_table_names(database_manager.get_table_names(), current_table_name)
+	row.set_field(field_name, type_string, default_value, constraints)
 	row.remove_requested.connect(_on_field_remove_requested.bind(row))
 	row.validation_changed.connect(_on_field_validation_changed)
 
@@ -145,21 +149,24 @@ func _on_save_table_pressed() -> void:
 			_show_error("Fix type errors before saving")
 			return
 
-	# Collect fields from UI rows
+	# Collect fields and constraints from UI rows
 	var fields: Array[Dictionary] = []
+	var constraints: Dictionary = {}
 	for row in field_rows:
 		var field_data = row.get_field_data()
 		if field_data.is_empty():
 			continue
+		if field_data.has("constraints"):
+			constraints[field_data.name] = field_data.constraints
 		fields.append(field_data)
 
 	var success = false
 	if current_table_name.is_empty():
-		success = database_manager.add_table(table_name, fields)
+		success = database_manager.add_table(table_name, fields, constraints)
 	elif table_name != current_table_name:
-		success = database_manager.rename_table(current_table_name, table_name, fields)
+		success = database_manager.rename_table(current_table_name, table_name, fields, constraints)
 	else:
-		success = database_manager.update_table(table_name, fields)
+		success = database_manager.update_table(table_name, fields, constraints)
 
 	if success:
 		print("[TablesEditor] Saved table: %s" % table_name)

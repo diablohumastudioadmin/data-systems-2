@@ -62,6 +62,10 @@ func get_text() -> String:
 	return line_edit.text.strip_edges()
 
 
+func set_editable(value: bool) -> void:
+	line_edit.editable = value
+
+
 # --- Autocomplete -----------------------------------------------------------
 
 func _on_text_changed(text: String) -> void:

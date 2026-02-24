@@ -31,9 +31,9 @@ enum DefaultEditorType { INT, FLOAT, STRING, BOOL, COLOR, VECTOR2, VECTOR3, TEXT
 
 ## Generate Resource class file from table name and fields.
 ## fields: Array of {name: String, type_string: String, default: Variant}
-static func generate_resource_class(table_name: String, fields: Array[Dictionary], base_path: String = DEFAULT_STRUCTURES_PATH) -> Error:
+static func generate_resource_class(table_name: String, fields: Array[Dictionary], base_path: String = DEFAULT_STRUCTURES_PATH, constraints: Dictionary = {}) -> Error:
 	var file_path = base_path.path_join(table_name.to_lower() + ".gd")
-	var script_content = _generate_script_content(table_name, fields)
+	var script_content = _generate_script_content(table_name, fields, constraints)
 
 	var error = _ensure_directory(base_path)
 	if error != OK:
@@ -367,7 +367,7 @@ static func get_editor_type(ts: String) -> DefaultEditorType:
 
 # --- Script Content Generation -----------------------------------------------
 
-static func _generate_script_content(table_name: String, fields: Array[Dictionary]) -> String:
+static func _generate_script_content(table_name: String, fields: Array[Dictionary], constraints: Dictionary = {}) -> String:
 	var lines: Array[String] = []
 
 	lines.append("@tool")
@@ -380,6 +380,9 @@ static func _generate_script_content(table_name: String, fields: Array[Dictionar
 
 	for field in fields:
 		var type_str: String = field.get("type_string", "Variant")
+		var fc: Dictionary = constraints.get(field.name, {})
+		if fc.has("foreign_key"):
+			type_str = "%sIds.Id" % fc["foreign_key"]
 		var default_str = _get_default_value_string(field.get("default"), type_str)
 		lines.append("@export var %s: %s = %s" % [field.name, type_str, default_str])
 
@@ -421,6 +424,8 @@ static func _get_default_value_string(value: Variant, type_string: String) -> St
 		return "[]"
 	if type_string.begins_with("Dictionary"):
 		return "{}"
+	if "." in type_string:
+		return "0"  # Enum types are ints, default to 0
 	return "null"
 
 
