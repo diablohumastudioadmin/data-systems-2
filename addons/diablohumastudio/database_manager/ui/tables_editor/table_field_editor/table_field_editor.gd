@@ -7,13 +7,6 @@ extends HBoxContainer
 signal remove_requested()
 signal validation_changed(error: String)
 
-@onready var field_name_edit: LineEdit = %FieldNameEdit
-@onready var type_autocomplete: LineEditAutocomplete = %TypeAutocomplete
-@onready var required_checkbox: CheckBox = %RequiredCheckBox
-@onready var fk_select: OptionButton = %ForeignKeySelect
-@onready var default_value_container: HBoxContainer = %DefaultValueContainer
-@onready var remove_btn: Button = %RemoveBtn
-
 var default_value_edit: Control
 var _current_editor_type: ResourceGenerator.DefaultEditorType = \
 		ResourceGenerator.DefaultEditorType.NONE
@@ -33,13 +26,13 @@ var _deferred_exclude_table: String = ""
 
 func _ready() -> void:
 	var provider := TypeSuggestionProvider.new()
-	type_autocomplete.provider = provider
-	type_autocomplete.text_committed.connect(_on_type_committed)
-	type_autocomplete.validation_changed.connect(func(_has_err: bool):
-		validation_changed.emit(type_autocomplete.last_error)
+	%TypeAutocomplete.provider = provider
+	%TypeAutocomplete.text_committed.connect(_on_type_committed)
+	%TypeAutocomplete.validation_changed.connect(func(_has_err: bool):
+		validation_changed.emit(%TypeAutocomplete.last_error)
 	)
-	remove_btn.pressed.connect(func(): remove_requested.emit())
-	fk_select.item_selected.connect(_on_fk_selected)
+	%RemoveBtn.pressed.connect(func(): remove_requested.emit())
+	%ForeignKeySelect.item_selected.connect(_on_fk_selected)
 
 	# Apply deferred table names before field data (FK needs the dropdown populated)
 	if not _deferred_table_names.is_empty():
@@ -69,26 +62,26 @@ func set_field(field_name: String, type_string: String, default_value: Variant,
 
 func _apply_field(field_name: String, type_string: String, default_value: Variant,
 		constraints: Dictionary = {}) -> void:
-	field_name_edit.text = field_name
-	type_autocomplete.set_text(type_string)
+	%FieldNameEdit.text = field_name
+	%TypeAutocomplete.set_text(type_string)
 	_apply_type(type_string)
 	_set_default_value(default_value)
 	_apply_constraints(constraints)
 
 
 func _apply_constraints(constraints: Dictionary) -> void:
-	required_checkbox.button_pressed = constraints.get("required", false)
+	%RequiredCheckBox.button_pressed = constraints.get("required", false)
 	if constraints.has("foreign_key"):
 		var fk_table: String = constraints["foreign_key"]
 		# Find and select the FK table in the dropdown
-		for i in range(fk_select.item_count):
-			if fk_select.get_item_text(i) == fk_table:
-				fk_select.selected = i
+		for i in range(%ForeignKeySelect.item_count):
+			if %ForeignKeySelect.get_item_text(i) == fk_table:
+				%ForeignKeySelect.selected = i
 				_apply_fk(fk_table)
 				return
 	# No FK — select first item ("— No FK —")
-	if fk_select.item_count > 0:
-		fk_select.selected = 0
+	if %ForeignKeySelect.item_count > 0:
+		%ForeignKeySelect.selected = 0
 
 
 ## Populate the ForeignKey dropdown with available table names.
@@ -98,32 +91,32 @@ func set_table_names(names: Array[String], exclude_table: String = "") -> void:
 		_deferred_table_names = names
 		_deferred_exclude_table = exclude_table
 		return
-	fk_select.clear()
-	fk_select.add_item("— No FK —")
+	%ForeignKeySelect.clear()
+	%ForeignKeySelect.add_item("— No FK —")
 	for table_name in names:
 		if table_name != exclude_table:
-			fk_select.add_item(table_name)
+			%ForeignKeySelect.add_item(table_name)
 
 
 func _on_fk_selected(index: int) -> void:
 	if index <= 0:
 		# "— No FK —" selected — restore previous type
-		type_autocomplete.set_text(_pre_fk_type if not _pre_fk_type.is_empty() else "String")
-		type_autocomplete.set_editable(true)
-		_apply_type(type_autocomplete.get_text())
+		%TypeAutocomplete.set_text(_pre_fk_type if not _pre_fk_type.is_empty() else "String")
+		%TypeAutocomplete.set_editable(true)
+		_apply_type(%TypeAutocomplete.get_text())
 	else:
-		var fk_table: String = fk_select.get_item_text(index)
+		var fk_table: String = %ForeignKeySelect.get_item_text(index)
 		_apply_fk(fk_table)
 
 
 func _apply_fk(fk_table: String) -> void:
 	# Save current type before overriding
-	var current_type: String = type_autocomplete.get_text()
+	var current_type: String = %TypeAutocomplete.get_text()
 	if not current_type.ends_with("Ids.Id"):
 		_pre_fk_type = current_type
-	type_autocomplete.set_text("%sIds.Id" % fk_table)
-	type_autocomplete.set_editable(false)
-	_apply_type(type_autocomplete.get_text())
+	%TypeAutocomplete.set_text("%sIds.Id" % fk_table)
+	%TypeAutocomplete.set_editable(false)
+	_apply_type(%TypeAutocomplete.get_text())
 
 
 func _on_type_committed(ts: String) -> void:
@@ -136,7 +129,7 @@ func _apply_type(ts: String) -> void:
 
 
 func _update_default_value_editor() -> void:
-	for child in default_value_container.get_children():
+	for child in %DefaultValueContainer.get_children():
 		child.queue_free()
 
 	var editor: Control
@@ -196,23 +189,23 @@ func _update_default_value_editor() -> void:
 			line_edit.size_flags_horizontal = SIZE_EXPAND_FILL
 			editor = line_edit
 
-	default_value_container.add_child(editor)
+	%DefaultValueContainer.add_child(editor)
 	default_value_edit = editor
 
 
 func has_validation_error() -> bool:
-	return type_autocomplete.has_error
+	return %TypeAutocomplete.has_error
 
 
 func get_validation_error() -> String:
-	return type_autocomplete.last_error
+	return %TypeAutocomplete.last_error
 
 
 func get_field_data() -> Dictionary:
-	var name_text := field_name_edit.text.strip_edges()
+	var name_text: String = %FieldNameEdit.text.strip_edges()
 	if name_text.is_empty():
 		return {}
-	var type_string: String = type_autocomplete.get_text()
+	var type_string: String = %TypeAutocomplete.get_text()
 	if type_string.is_empty():
 		return {}
 	var result := {
@@ -221,11 +214,11 @@ func get_field_data() -> Dictionary:
 		"default": _get_default_value()
 	}
 	var constraints := {}
-	if required_checkbox.button_pressed:
+	if %RequiredCheckBox.button_pressed:
 		constraints["required"] = true
-	var fk_idx: int = fk_select.selected
+	var fk_idx: int = %ForeignKeySelect.selected
 	if fk_idx > 0:
-		constraints["foreign_key"] = fk_select.get_item_text(fk_idx)
+		constraints["foreign_key"] = %ForeignKeySelect.get_item_text(fk_idx)
 	if not constraints.is_empty():
 		result["constraints"] = constraints
 	return result

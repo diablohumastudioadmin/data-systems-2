@@ -9,8 +9,6 @@ var item_scene: PackedScene = preload("uid://70e3ag4jq3k6")
 var _scenes: Array[RunnerSceneData]
 var _current_item: SceneItem = null
 
-@onready var items_container: VBoxContainer = %ItemsContainer
-
 
 func _ready() -> void:
 	load_scenes()
@@ -42,9 +40,9 @@ func load_scenes():
 	_scenes = scenes_resource.scenes
 
 func _set_items_from_scenes():
-	for child in items_container.get_children():
+	for child in %ItemsContainer.get_children():
 		child.queue_free()
 	for scene_data in _scenes:
 		var new_item: SceneItem = item_scene.instantiate()
 		new_item.set_data(scene_data)
-		items_container.add_child(new_item)
+		%ItemsContainer.add_child(new_item)

@@ -9,13 +9,11 @@ extends Control
 signal text_committed(text: String)
 signal validation_changed(has_error: bool)
 
-@onready var line_edit: LineEdit = %LineEdit
-
 @export var placeholder_text: String = "":
 	set(value):
 		placeholder_text = value
-		if line_edit:
-			line_edit.placeholder_text = value
+		if %LineEdit:
+			%LineEdit.placeholder_text = value
 
 var provider: SuggestionProvider
 var has_error: bool = false
@@ -31,10 +29,10 @@ const _ITEM_H := 26.0
 func _ready() -> void:
 	_build_overlay()
 
-	line_edit.placeholder_text = placeholder_text
-	line_edit.text_changed.connect(_on_text_changed)
-	line_edit.focus_exited.connect(_on_focus_exited)
-	line_edit.text_submitted.connect(func(_t): _on_focus_exited())
+	%LineEdit.placeholder_text = placeholder_text
+	%LineEdit.text_changed.connect(_on_text_changed)
+	%LineEdit.focus_exited.connect(_on_focus_exited)
+	%LineEdit.text_submitted.connect(func(_t): _on_focus_exited())
 
 
 func _build_overlay() -> void:
@@ -54,16 +52,16 @@ func _build_overlay() -> void:
 # --- Public API -------------------------------------------------------------
 
 func set_text(t: String) -> void:
-	line_edit.text = t
+	%LineEdit.text = t
 	_validate(t)
 
 
 func get_text() -> String:
-	return line_edit.text.strip_edges()
+	return %LineEdit.text.strip_edges()
 
 
 func set_editable(value: bool) -> void:
-	line_edit.editable = value
+	%LineEdit.editable = value
 
 
 # --- Autocomplete -----------------------------------------------------------
@@ -99,9 +97,9 @@ func _hide() -> void:
 
 func _on_suggestion_selected(index: int) -> void:
 	var selected := _list.get_item_text(index)
-	line_edit.text = selected
-	line_edit.grab_focus()
-	line_edit.set_caret_column(selected.length())
+	%LineEdit.text = selected
+	%LineEdit.grab_focus()
+	%LineEdit.set_caret_column(selected.length())
 	if not selected.ends_with(", "):
 		_hide()
 		_commit()
@@ -115,24 +113,24 @@ func _on_focus_exited() -> void:
 
 
 func _commit() -> void:
-	var t := line_edit.text.strip_edges()
+	var t: String = %LineEdit.text.strip_edges()
 	_validate(t)
 	text_committed.emit(t)
 
 
 func _validate(t: String) -> void:
 	if not provider or t.is_empty():
-		line_edit.remove_theme_color_override("font_color")
+		%LineEdit.remove_theme_color_override("font_color")
 		last_error = ""
 		_set_error(false)
 		return
 	var error: String = provider.validate(t)
 	if error.is_empty():
-		line_edit.remove_theme_color_override("font_color")
+		%LineEdit.remove_theme_color_override("font_color")
 		last_error = ""
 		_set_error(false)
 	else:
-		line_edit.add_theme_color_override("font_color", Color.RED)
+		%LineEdit.add_theme_color_override("font_color", Color.RED)
 		last_error = error
 		_set_error(true)
 
@@ -148,7 +146,7 @@ func _set_error(value: bool) -> void:
 func _input(event: InputEvent) -> void:
 	if not _panel or not _panel.visible:
 		return
-	if not line_edit.has_focus():
+	if not %LineEdit.has_focus():
 		return
 	if not (event is InputEventKey and event.pressed):
 		return

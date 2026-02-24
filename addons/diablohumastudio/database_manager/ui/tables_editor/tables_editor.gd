@@ -6,24 +6,6 @@ extends Control
 signal table_selected(table_name: String)
 signal table_saved(table_name: String)
 
-@onready var table_list: ItemList = $VBox/HBox/TableList
-@onready var editor_panel: Panel = $VBox/HBox/EditorPanel
-@onready var editor_vbox: VBoxContainer = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox
-
-@onready var table_name_edit: LineEdit = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/TableNameBox/TableNameEdit
-@onready var parent_select: OptionButton = %ParentTableSelect
-@onready var inherited_fields_container: VBoxContainer = %InheritedFieldsContainer
-@onready var own_fields_label: Label = %OwnFieldsLabel
-@onready var fields_container: VBoxContainer = %FieldsContainer
-@onready var add_field_btn: Button = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/AddFieldBtn
-@onready var save_table_btn: Button = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox/SaveTableBtn
-@onready var delete_table_btn: Button = $VBox/HBox/EditorPanel/MarginContainer/EditorVBox/ButtonBox/DeleteTableBtn
-
-@onready var validation_error_label: Label = %ValidationErrorLabel
-
-@onready var new_table_btn: Button = $VBox/VBoxContainer/TableListPanel/VBox/HBoxContainer/NewTableBtn
-@onready var refresh_btn: Button = $VBox/VBoxContainer/TableListPanel/VBox/HBoxContainer/RefreshBtn
-
 var database_manager: DatabaseManager: set = _set_database_manager
 var current_table_name: String = ""
 var field_rows: Array = []  # Array of FieldEditorRow nodes
@@ -51,31 +33,31 @@ func _initialize() -> void:
 
 
 func _connect_signals() -> void:
-	table_list.item_selected.connect(_on_table_list_item_selected)
-	new_table_btn.pressed.connect(_on_new_table_pressed)
-	refresh_btn.pressed.connect(_refresh_table_list)
-	add_field_btn.pressed.connect(_on_add_field_pressed)
-	save_table_btn.pressed.connect(_on_save_table_pressed)
-	delete_table_btn.pressed.connect(_on_delete_table_pressed)
-	table_name_edit.text_changed.connect(_on_table_name_changed)
-	parent_select.item_selected.connect(_on_parent_selected)
+	%TableList.item_selected.connect(_on_table_list_item_selected)
+	%NewTableBtn.pressed.connect(_on_new_table_pressed)
+	%RefreshBtn.pressed.connect(_refresh_table_list)
+	%AddFieldBtn.pressed.connect(_on_add_field_pressed)
+	%SaveTableBtn.pressed.connect(_on_save_table_pressed)
+	%DeleteTableBtn.pressed.connect(_on_delete_table_pressed)
+	%TableNameEdit.text_changed.connect(_on_table_name_changed)
+	%ParentTableSelect.item_selected.connect(_on_parent_selected)
 
 
 # --- Table List (with hierarchy) ---------------------------------------------
 
 func _refresh_table_list() -> void:
-	table_list.clear()
+	%TableList.clear()
 	var sorted_names: Array[String] = _get_sorted_table_names()
 	for table_name in sorted_names:
 		var depth: int = _get_depth(table_name)
 		var display: String = table_name
 		if depth > 0:
 			display = "%s%s" % ["  ".repeat(depth), table_name]
-		table_list.add_item(display)
+		%TableList.add_item(display)
 
 	# Auto-select first table if none selected
-	if table_list.item_count > 0 and current_table_name.is_empty():
-		table_list.select(0)
+	if %TableList.item_count > 0 and current_table_name.is_empty():
+		%TableList.select(0)
 		_on_table_list_item_selected(0)
 
 
@@ -109,7 +91,7 @@ func _get_depth(table_name: String) -> int:
 
 
 func _on_table_list_item_selected(index: int) -> void:
-	var display_text: String = table_list.get_item_text(index)
+	var display_text: String = %TableList.get_item_text(index)
 	var table_name: String = display_text.strip_edges()
 	_load_table(table_name)
 
@@ -117,32 +99,32 @@ func _on_table_list_item_selected(index: int) -> void:
 # --- Parent Selection --------------------------------------------------------
 
 func _refresh_parent_select(exclude_table: String = "") -> void:
-	parent_select.clear()
-	parent_select.add_item("— No Parent —")
+	%ParentTableSelect.clear()
+	%ParentTableSelect.add_item("— No Parent —")
 	for table_name in database_manager.get_table_names():
 		if table_name == exclude_table:
 			continue
 		# Exclude descendants of exclude_table (would create cycle)
 		if not exclude_table.is_empty() and database_manager.is_descendant_of(table_name, exclude_table):
 			continue
-		parent_select.add_item(table_name)
+		%ParentTableSelect.add_item(table_name)
 
 
 func _select_parent_in_dropdown(parent_name: String) -> void:
 	if parent_name.is_empty():
-		parent_select.selected = 0
+		%ParentTableSelect.selected = 0
 		return
-	for i in range(parent_select.item_count):
-		if parent_select.get_item_text(i) == parent_name:
-			parent_select.selected = i
+	for i in range(%ParentTableSelect.item_count):
+		if %ParentTableSelect.get_item_text(i) == parent_name:
+			%ParentTableSelect.selected = i
 			return
-	parent_select.selected = 0
+	%ParentTableSelect.selected = 0
 
 
 func _get_selected_parent() -> String:
-	if parent_select.selected <= 0:
+	if %ParentTableSelect.selected <= 0:
 		return ""
-	return parent_select.get_item_text(parent_select.selected)
+	return %ParentTableSelect.get_item_text(%ParentTableSelect.selected)
 
 
 func _on_parent_selected(_index: int) -> void:
@@ -152,17 +134,17 @@ func _on_parent_selected(_index: int) -> void:
 # --- Inherited Fields Cascade Display ----------------------------------------
 
 func _rebuild_inherited_fields_display() -> void:
-	for child in inherited_fields_container.get_children():
+	for child in %InheritedFieldsContainer.get_children():
 		child.queue_free()
 
 	var parent_name: String = _get_selected_parent()
 	if parent_name.is_empty():
-		inherited_fields_container.visible = false
-		own_fields_label.visible = false
+		%InheritedFieldsContainer.visible = false
+		%OwnFieldsLabel.visible = false
 		return
 
-	inherited_fields_container.visible = true
-	own_fields_label.visible = true
+	%InheritedFieldsContainer.visible = true
+	%OwnFieldsLabel.visible = true
 
 	var chain: Array[Dictionary] = database_manager.get_inheritance_chain(parent_name)
 	for entry in chain:
@@ -172,11 +154,11 @@ func _rebuild_inherited_fields_display() -> void:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.22352941, 0.22352941, 0.22352941, 1)
 		header.add_theme_stylebox_override("normal", style)
-		inherited_fields_container.add_child(header)
+		%InheritedFieldsContainer.add_child(header)
 
 		for field in entry.fields:
 			var row := _create_readonly_field_row(field)
-			inherited_fields_container.add_child(row)
+			%InheritedFieldsContainer.add_child(row)
 
 
 func _create_readonly_field_row(field: Dictionary) -> HBoxContainer:
@@ -205,8 +187,8 @@ func _create_readonly_field_row(field: Dictionary) -> HBoxContainer:
 
 func _load_table(table_name: String) -> void:
 	current_table_name = table_name
-	table_name_edit.text = table_name
-	table_name_edit.editable = true
+	%TableNameEdit.text = table_name
+	%TableNameEdit.editable = true
 	_clear_fields()
 
 	# Parent selection
@@ -228,8 +210,8 @@ func _load_table(table_name: String) -> void:
 
 func _clear_editor() -> void:
 	current_table_name = ""
-	table_name_edit.text = ""
-	table_name_edit.editable = true
+	%TableNameEdit.text = ""
+	%TableNameEdit.editable = true
 	_clear_fields()
 	_refresh_parent_select()
 	_select_parent_in_dropdown("")
@@ -240,13 +222,13 @@ func _clear_fields() -> void:
 	for row in field_rows:
 		row.queue_free()
 	field_rows.clear()
-	if validation_error_label:
-		validation_error_label.text = ""
+	if %ValidationErrorLabel:
+		%ValidationErrorLabel.text = ""
 
 
 func _on_new_table_pressed() -> void:
 	_clear_editor()
-	table_list.deselect_all()
+	%TableList.deselect_all()
 
 
 func _add_field_row(
@@ -260,7 +242,7 @@ func _add_field_row(
 	row.remove_requested.connect(_on_field_remove_requested.bind(row))
 	row.validation_changed.connect(_on_field_validation_changed)
 
-	fields_container.add_child(row)
+	%FieldsContainer.add_child(row)
 	field_rows.append(row)
 
 
@@ -283,7 +265,7 @@ func _on_field_validation_changed(_error: String) -> void:
 # --- Save / Delete -----------------------------------------------------------
 
 func _on_save_table_pressed() -> void:
-	var table_name = table_name_edit.text.strip_edges()
+	var table_name = %TableNameEdit.text.strip_edges()
 
 	if table_name.is_empty():
 		_show_error("Table name cannot be empty")
@@ -358,9 +340,9 @@ func _on_table_name_changed(_new_text: String) -> void:
 func _refresh_error_label() -> void:
 	for row in field_rows:
 		if row.has_validation_error():
-			validation_error_label.text = row.get_validation_error()
+			%ValidationErrorLabel.text = row.get_validation_error()
 			return
-	validation_error_label.text = ""
+	%ValidationErrorLabel.text = ""
 
 
 func _update_save_button() -> void:
@@ -369,8 +351,8 @@ func _update_save_button() -> void:
 		if row.has_validation_error():
 			any_error = true
 			break
-	save_table_btn.disabled = any_error \
-			or table_name_edit.text.strip_edges().is_empty()
+	%SaveTableBtn.disabled = any_error \
+			or %TableNameEdit.text.strip_edges().is_empty()
 
 
 func _show_error(message: String) -> void:
