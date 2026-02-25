@@ -9,10 +9,8 @@ var _fail_count := 0
 
 func _init() -> void:
 	var test_dir := "res://tests/tmp_inheritance/"
-	var structures_dir := test_dir.path_join("structures/")
-	var ids_dir := test_dir.path_join("ids/")
+	var structures_dir := test_dir.path_join("table_structures/")
 	DirAccess.make_dir_recursive_absolute(structures_dir)
-	DirAccess.make_dir_recursive_absolute(ids_dir)
 
 	_section("ResourceGenerator — parent_class in script generation")
 
@@ -57,11 +55,6 @@ func _init() -> void:
 	var db_manager := DatabaseManager.new()
 	db_manager.base_path = test_dir
 	DirAccess.make_dir_recursive_absolute(db_manager.structures_path)
-	DirAccess.make_dir_recursive_absolute(db_manager.ids_path)
-
-	var db := Database.new()
-	ResourceSaver.save(db, db_manager.database_path)
-	db_manager.reload()
 
 	# Add parent table
 	var success := db_manager.add_table("Item", [

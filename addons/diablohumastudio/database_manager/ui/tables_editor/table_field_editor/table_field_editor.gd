@@ -112,9 +112,11 @@ func _on_fk_selected(index: int) -> void:
 func _apply_fk(fk_table: String) -> void:
 	# Save current type before overriding
 	var current_type: String = %TypeAutocomplete.get_text()
-	if not current_type.ends_with("Ids.Id"):
+	# Don't save the FK type itself as the pre-FK type
+	if current_type != fk_table and not current_type.ends_with("Ids.Id"):
 		_pre_fk_type = current_type
-	%TypeAutocomplete.set_text("%sIds.Id" % fk_table)
+	# FK generates a Resource reference (class name directly, not enum)
+	%TypeAutocomplete.set_text(fk_table)
 	%TypeAutocomplete.set_editable(false)
 	_apply_type(%TypeAutocomplete.get_text())
 

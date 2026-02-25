@@ -4,6 +4,30 @@ Consolidated from Claude and Gemini analyses, adjusted for user decisions.
 
 ---
 
+## Implementation Status
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Phase 1 (Storage + FK + Enums) | **DONE** | Per-instance `.tres` files, Resource FK, enum gen removed, migration helper |
+| Phase 2.2 (Fix dual instance) | **DONE** | Toolbar uses autoload singleton |
+| Phase 3.3 (Delete by ID) | **DONE** | `remove_instance()` takes stable ID, not array index |
+| Phase 3.5 (Fix `_is_empty_value`) | **DONE** | Handles int, float, Array, Dict, Vector2/3, Color, Resource |
+| Phase 3.8 (Debug prints) | **DONE** | Removed `print(id)` and `print("sss")` from toolbar |
+| Phase 2.1 (Split god object) | TODO | Extract SchemaManager + InstanceManager |
+| Phase 3.1 (Schema cache) | TODO | Cache reflection results by file mod time |
+| Phase 3.2 (Debounce scan) | TODO | 500ms timer for `_scan_filesystem()` |
+| Phase 3.4 (Field name validation) | TODO | GDScript reserved words, DataItem reserved fields |
+| Phase 3.6 (FK rename update) | TODO | Update FK refs in other tables on rename |
+| Phase 3.7 (Schema change warning) | TODO | Warn before destructive field removal/type change |
+
+### Key implementation decisions (deviating from original plan):
+- **Constraints use `_init()` override**, not consts — GDScript disallows redeclaring consts/vars in child classes. Base `DataItem` declares `_required_fields` and `_fk_fields`, generated subclasses set values in `_init()`.
+- **`get_field_constraints()` parses source text** — reads `_init()` assignments directly from `.gd` file rather than instantiating the script. Robust when FK target classes don't exist yet.
+- **Inspector edits don't auto-save** — in-memory only until explicit "Save All". Window close warns about unsaved changes with Save/Discard dialog.
+- **`Database.gd` and `DataTable.gd` kept** — needed for v1→v2 migration compatibility. Can be deleted once all users have migrated.
+
+---
+
 ## 1. Unified Priority Table
 
 | # | Priority | Change | Source | Phase | Effort |
@@ -748,27 +772,19 @@ BEFORE:                                AFTER:
 ## 10. Recommended Implementation Order
 
 ```
-Phase 2.2  Fix dual instance (quick win, no data model change)
+Phase 2.2  Fix dual instance ✅ DONE
     │
     ▼
-Phase 1    All together as single migration:
-           1.1 Per-instance files
-           1.2 Resource FK refs
-           1.3 Remove enums
-    │
+Phase 1    Per-instance files + Resource FK + Remove enums ✅ DONE
+    │      (also done: 3.3 delete by ID, 3.5 _is_empty_value, 3.8 debug prints)
     ▼
-Phase 2.1  Split god object (refactor on new data model)
-    │
+Phase 2.1  Split god object ← NEXT
+    │      Extract SchemaManager + InstanceManager from DatabaseManager
     ▼
-Phase 3    In any order (start with 3.8 trivial debug prints):
+Phase 3    Remaining items (any order):
            3.1 Schema cache
            3.2 Debounce scan
-           3.3 Delete by ID
            3.4 Field name validation
-           3.5 Fix _is_empty_value
            3.6 FK rename update
            3.7 Schema change warning
-           3.8 Debug prints
 ```
-
-**Rationale**: Fix the dual instance first (trivial, no risk). Then do all of Phase 1 together so there's only one migration/breaking change. Split the god object after the data model is settled. Phase 3 items are independent and can be done in any order.

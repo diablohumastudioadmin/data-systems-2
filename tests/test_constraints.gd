@@ -8,11 +8,12 @@ var _fail_count := 0
 
 
 func _init() -> void:
-	_section("ResourceGenerator — FK enum type generation")
-	# _generate_script_content is private static, but we can test via
-	# generate_resource_class + read back the file contents.
 	var test_dir := "res://tests/tmp_constraints/"
+	# Clean up any leftover artifacts from previous runs
+	_cleanup_dir(test_dir)
 	DirAccess.make_dir_recursive_absolute(test_dir)
+
+	_section("ResourceGenerator — FK Resource type generation")
 
 	var fields: Array[Dictionary] = [
 		{"name": "hp", "type_string": "int", "default": 10},
@@ -30,8 +31,8 @@ func _init() -> void:
 
 	var content := FileAccess.get_file_as_string(test_dir.path_join("testmonster.gd"))
 	_assert_true(not content.is_empty(), "generated file is not empty")
-	_assert_true(content.contains("@export var zone_id: ZoneIds.Id = 0"),
-		"FK field uses ZoneIds.Id enum type")
+	_assert_true(content.contains("@export var zone_id: Zone = null"),
+		"FK field uses Resource type (Zone), not enum")
 	_assert_true(content.contains("@export var hp: int = 10"),
 		"non-FK required field keeps original type")
 	_assert_true(content.contains("@export var label: String = \"\""),
@@ -39,8 +40,13 @@ func _init() -> void:
 	_assert_true(content.contains("class_name TestMonster"),
 		"class_name is correct")
 
+	_section("ResourceGenerator — _init() constraint vars")
+	_assert_true(content.contains('_required_fields = ["hp", "zone_id"]'),
+		"_init() sets _required_fields")
+	_assert_true(content.contains('_fk_fields = {"zone_id": "Zone"}'),
+		"_init() sets _fk_fields")
+
 	_section("ResourceGenerator — default values for enum/FK types")
-	# A type containing "." should default to "0" (enum int)
 	_assert_eq(ResourceGenerator.is_valid_type_string("Control.FocusMode"), true,
 		"Control.FocusMode is valid")
 
@@ -53,31 +59,15 @@ func _init() -> void:
 	var content2 := FileAccess.get_file_as_string(test_dir.path_join("testscore.gd"))
 	_assert_true(content2.contains("@export var score: float = 0.0"),
 		"field without constraints generates normally")
+	_assert_false(content2.contains("_required_fields"),
+		"no _init() when no constraints")
+	_assert_false(content2.contains("_fk_fields"),
+		"no _fk_fields when no constraints")
 
-	_section("DataTable — field_constraints storage")
-	var table := DataTable.new()
-	table.table_name = "Enemy"
-	_assert_eq(table.field_constraints.is_empty(), true,
-		"field_constraints defaults to empty")
-	table.field_constraints = {"hp": {"required": true}, "zone": {"foreign_key": "Zone"}}
-	_assert_eq(table.field_constraints.has("hp"), true,
-		"can store 'hp' constraint")
-	_assert_eq(table.field_constraints["hp"]["required"], true,
-		"'hp' required == true")
-	_assert_eq(table.field_constraints["zone"]["foreign_key"], "Zone",
-		"'zone' foreign_key == 'Zone'")
-
-	_section("DatabaseManager — constraint roundtrip (add + get)")
+	_section("DatabaseManager — constraint roundtrip (add + get from script consts)")
 	var db_manager := DatabaseManager.new()
 	db_manager.base_path = "res://tests/tmp_constraints/db/"
-	# Ensure dirs exist
 	DirAccess.make_dir_recursive_absolute(db_manager.structures_path)
-	DirAccess.make_dir_recursive_absolute(db_manager.ids_path)
-
-	# Create a fake database file so reload() doesn't error
-	var db := Database.new()
-	ResourceSaver.save(db, db_manager.database_path)
-	db_manager.reload()
 
 	var add_fields: Array[Dictionary] = [
 		{"name": "damage", "type_string": "int", "default": 5},
@@ -92,7 +82,12 @@ func _init() -> void:
 	_assert_eq(retrieved["damage"]["required"], true,
 		"retrieved constraint 'required' is true")
 
-	# Update table with new constraints
+	# Create a target table for FK reference
+	db_manager.add_table("Enemy", [
+		{"name": "hp", "type_string": "int", "default": 100},
+	])
+
+	# Update table with new constraints (add FK to existing table)
 	var update_constraints := {"damage": {"required": true, "foreign_key": "Enemy"}}
 	success = db_manager.update_table("Weapon", add_fields, update_constraints)
 	_assert_true(success, "update_table with constraints succeeds")
@@ -142,6 +137,13 @@ func _assert_true(value: bool, desc: String) -> void:
 		_pass(desc)
 	else:
 		_fail(desc, "expected true, got false")
+
+
+func _assert_false(value: bool, desc: String) -> void:
+	if not value:
+		_pass(desc)
+	else:
+		_fail(desc, "expected false, got true")
 
 
 func _assert_eq(a: Variant, b: Variant, desc: String) -> void:

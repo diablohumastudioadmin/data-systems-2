@@ -9,6 +9,11 @@ extends Resource
 ## Human-readable name set by the designer. Becomes the enum key in generated IDs file.
 @export var name: String = ""
 
-## Stable auto-incremented ID. Assigned by DatabaseManager, never reused.
-## This is the enum value — do not edit manually.
+## Stable unique ID. Assigned by DatabaseManager via ResourceUID.create_id().
 @export_storage var id: int = -1
+
+## Constraint metadata — set in _init() of generated subclasses.
+## Names of fields that must be non-empty for this table.
+var _required_fields: Array[String] = []
+## FK field mappings: {field_name: target_table_class_name}
+var _fk_fields: Dictionary = {}

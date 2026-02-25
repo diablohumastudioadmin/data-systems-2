@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="UserLevelData" format=3 uid="uid://dko6y5o8orrdp"]
+
+[ext_resource type="Script" uid="uid://hiu48ee6slwg" path="res://database/res/table_structures/userleveldata.gd" id="1_ksq5n"]
+
+[resource]
+script = ExtResource("1_ksq5n")
+name = "a"
+id = 676499402693431774

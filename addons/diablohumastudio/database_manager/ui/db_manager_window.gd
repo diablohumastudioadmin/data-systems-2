@@ -31,6 +31,30 @@ func _on_table_changed(_table_name: Variant = null) -> void:
 	%DataInstanceEditor.reload()
 
 func _on_close_requested() -> void:
+	if %DataInstanceEditor.has_unsaved_changes():
+		var dialog := ConfirmationDialog.new()
+		dialog.title = "Unsaved Changes"
+		dialog.dialog_text = "You have unsaved changes.\nSave before closing?"
+		dialog.ok_button_text = "Save & Close"
+		dialog.cancel_button_text = "Discard"
+		dialog.confirmed.connect(func():
+			%DataInstanceEditor.save_all()
+			dialog.queue_free()
+			_close_with_violation_check()
+		)
+		dialog.canceled.connect(func():
+			%DataInstanceEditor.discard_changes()
+			dialog.queue_free()
+			queue_free()
+		)
+		add_child(dialog)
+		dialog.popup_centered()
+		return
+
+	_close_with_violation_check()
+
+
+func _close_with_violation_check() -> void:
 	var violations: String = %DataInstanceEditor.get_all_required_violations()
 	if violations.is_empty():
 		queue_free()

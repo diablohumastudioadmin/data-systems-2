@@ -4,8 +4,10 @@ extends Node
 
 ## Single orchestrator for the database system.
 ## Registered as an autoload by the plugin. Works in editor and at runtime.
-## Manages tables (via generated .gd scripts), instances (via DataTable),
-## and enum ID files for @export referencing.
+## The filesystem IS the database:
+##   - Schema = table_structures/*.gd files
+##   - Data = instances/<table>/*.tres files
+##   - Constraints = REQUIRED_FIELDS + FK_FIELDS consts inside .gd scripts
 
 signal data_changed(table_name: String)
 signal tables_changed()
@@ -21,18 +23,21 @@ const DEFAULT_BASE_PATH := "res://database/res/"
 var base_path: String = DEFAULT_BASE_PATH
 var structures_path: String:
 	get: return base_path.path_join("table_structures/")
-var ids_path: String:
-	get: return base_path.path_join("ids/")
-var database_path: String:
-	get: return base_path.path_join("database.tres")
+var instances_path: String:
+	get: return base_path.path_join("instances/")
 
-var _storage_adapter: StorageAdapter
-var _database: Database
-var _id_cache: Dictionary = {}  # {table_name: {id_int: DataItem}}
+var _storage: StorageAdapter
+## {table_name: Array[DataItem]} — populated lazily on first access
+var _instance_cache: Dictionary = {}
+## {table_name: {id_int: DataItem}} — for fast ID lookups
+var _id_cache: Dictionary = {}
+## Cached list of table names from filesystem
+var _table_names_cache: Array[String] = []
+var _table_names_dirty: bool = true
 
 
 func _init() -> void:
-	_storage_adapter = ResourceStorageAdapter.new()
+	_storage = ResourceStorageAdapter.new()
 
 
 func _ready() -> void:
@@ -42,35 +47,31 @@ func _ready() -> void:
 # --- Core -------------------------------------------------------------------
 
 func reload() -> void:
-	_database = _storage_adapter.load_database(database_path)
-	_migrate_legacy_instances()
-	_rebuild_id_cache()
-
-
-func save() -> Error:
-	_database.last_modified = Time.get_datetime_string_from_system()
-	return _storage_adapter.save_database(_database, database_path)
+	if MigrationHelper.needs_migration(base_path):
+		MigrationHelper.migrate_v1_to_v2(base_path, _storage)
+	_instance_cache.clear()
+	_id_cache.clear()
+	_table_names_dirty = true
 
 
 # --- Table Management --------------------------------------------------------
 
 func get_table_names() -> Array[String]:
-	return _database.get_table_names()
-
-
-func get_table(table_name: String) -> DataTable:
-	return _database.get_table(table_name)
+	if _table_names_dirty:
+		_table_names_cache = _scan_table_names()
+		_table_names_dirty = false
+	return _table_names_cache
 
 
 func has_table(table_name: String) -> bool:
-	return _database.has_table(table_name)
+	return table_name in get_table_names()
 
 
 ## Read schema from the generated .gd script via reflection.
 ## Only returns @export fields declared in the generated subclass.
-## Returns: [{name, type (Variant.Type), default, hint, hint_string, class_name}, ...]
+## Returns: [{name, type, default, hint, hint_string, class_name}, ...]
 func get_table_fields(table_name: String) -> Array[Dictionary]:
-	var script_path = structures_path.path_join("%s.gd" % table_name.to_lower())
+	var script_path := structures_path.path_join("%s.gd" % table_name.to_lower())
 	var script: GDScript = _load_fresh_script(script_path)
 	if script == null:
 		return []
@@ -101,19 +102,63 @@ func table_has_field(table_name: String, field_name: String) -> bool:
 	return false
 
 
+## Get constraints from the _required_fields and _fk_fields vars set in _init().
+## Parses the _init() assignments from source text (robust even when the script
+## can't compile due to missing FK target classes).
+## Returns: {field_name: {required: bool, foreign_key: String}}
 func get_field_constraints(table_name: String) -> Dictionary:
-	var table: DataTable = _database.get_table(table_name)
-	if table == null:
+	var script_path := structures_path.path_join("%s.gd" % table_name.to_lower())
+	if not FileAccess.file_exists(script_path):
 		return {}
-	return table.field_constraints
+
+	var source := FileAccess.get_file_as_string(script_path)
+	if source.is_empty():
+		return {}
+
+	var required: Array[String] = []
+	var fk: Dictionary = {}
+
+	for line in source.split("\n"):
+		var stripped := line.strip_edges()
+		# Parse: _required_fields = ["a", "b"]
+		if stripped.begins_with("_required_fields = ["):
+			var bracket_start := stripped.find("[")
+			var bracket_end := stripped.rfind("]")
+			if bracket_start >= 0 and bracket_end > bracket_start:
+				var inner := stripped.substr(bracket_start + 1, bracket_end - bracket_start - 1)
+				for part in inner.split(","):
+					var val := part.strip_edges().trim_prefix('"').trim_suffix('"')
+					if not val.is_empty():
+						required.append(val)
+		# Parse: _fk_fields = {"a": "B", "c": "D"}
+		elif stripped.begins_with("_fk_fields = {"):
+			var brace_start := stripped.find("{")
+			var brace_end := stripped.rfind("}")
+			if brace_start >= 0 and brace_end > brace_start:
+				var inner := stripped.substr(brace_start + 1, brace_end - brace_start - 1)
+				for part in inner.split(","):
+					var kv := part.split(":")
+					if kv.size() == 2:
+						var k := kv[0].strip_edges().trim_prefix('"').trim_suffix('"')
+						var v := kv[1].strip_edges().trim_prefix('"').trim_suffix('"')
+						fk[k] = v
+
+	var result: Dictionary = {}
+	for field_name in required:
+		if not result.has(field_name):
+			result[field_name] = {}
+		result[field_name]["required"] = true
+	for field_name in fk:
+		if not result.has(field_name):
+			result[field_name] = {}
+		result[field_name]["foreign_key"] = fk[field_name]
+	return result
 
 
-## Add a new table (generates .gd file + creates DataTable)
-## fields: Array of {name: String, type_string: String, default: Variant}
-## constraints: {field_name: {required: bool, foreign_key: String}}
+## Add a new table (generates .gd file + creates instances directory)
 func add_table(table_name: String, fields: Array[Dictionary],
 		constraints: Dictionary = {}, parent_table: String = "") -> bool:
-	if _database.has_table(table_name):
+	if has_table(table_name):
 		push_warning("Table already exists: %s" % table_name)
 		return false
 
@@ -124,18 +169,11 @@ func add_table(table_name: String, fields: Array[Dictionary],
 	ResourceGenerator.generate_resource_class(
 		table_name, fields, structures_path, constraints, parent_table)
 
-	var table := DataTable.new()
-	table.table_name = table_name
-	table.field_constraints = constraints
-	table.parent_table = parent_table
-	_database.add_table(table)
+	# Create the instances directory for this table
+	var inst_dir := instances_path.path_join(table_name.to_lower())
+	DirAccess.make_dir_recursive_absolute(inst_dir)
 
-	var err := save()
-	if err != OK:
-		push_error("Failed to save after adding table: %s" % table_name)
-		return false
-
-	_regenerate_enum(table_name)
+	_table_names_dirty = true
 	_scan_filesystem()
 	tables_changed.emit()
 	return true
@@ -144,7 +182,7 @@ func add_table(table_name: String, fields: Array[Dictionary],
 ## Update an existing table (regenerates .gd file)
 func update_table(table_name: String, fields: Array[Dictionary],
 		constraints: Dictionary = {}, parent_table: String = "") -> bool:
-	if not _database.has_table(table_name):
+	if not has_table(table_name):
 		push_warning("Table not found: %s" % table_name)
 		return false
 
@@ -154,29 +192,18 @@ func update_table(table_name: String, fields: Array[Dictionary],
 
 	ResourceGenerator.generate_resource_class(
 		table_name, fields, structures_path, constraints, parent_table)
-	var table: DataTable = _database.get_table(table_name)
-	table.field_constraints = constraints
-	table.parent_table = parent_table
 
 	# Reload the script in-place on the EXISTING cached GDScript object.
-	# All instances (ours + external editor resources) already hold a reference
-	# to that same object, so they all see the updated properties immediately —
-	# no set_script() needed. This is the same mechanism Godot uses when you
-	# manually re-save a .gd file in the script editor.
 	var script_path := structures_path.path_join("%s.gd" % table_name.to_lower())
 	var cached_script: GDScript = load(script_path) as GDScript
 	if cached_script:
 		cached_script.source_code = FileAccess.get_file_as_string(script_path)
-		cached_script.reload(true)  # keep_state=true preserves existing instance values
+		cached_script.reload(true)
 
-	var err := save()
-	if err != OK:
-		push_error("Failed to save after updating table: %s" % table_name)
-		return false
+	# Invalidate instance cache so fresh instances pick up schema changes
+	_instance_cache.erase(table_name)
+	_id_cache.erase(table_name)
 
-	_rebuild_id_cache()
-	# update_file() notifies the editor about the specific changed file so the
-	# Script Editor refreshes its buffer; _scan_filesystem() handles class registration.
 	if Engine.is_editor_hint():
 		EditorInterface.get_resource_filesystem().update_file(script_path)
 	_scan_filesystem()
@@ -185,22 +212,19 @@ func update_table(table_name: String, fields: Array[Dictionary],
 
 
 ## Rename a table and update its schema fields in one operation.
-## Generates a new .gd at the new path, reassigns all instances, deletes the old .gd.
 func rename_table(old_name: String, new_name: String, fields: Array[Dictionary],
 		constraints: Dictionary = {}, parent_table: String = "") -> bool:
-	if not _database.has_table(old_name):
+	if not has_table(old_name):
 		push_warning("Table not found: %s" % old_name)
 		return false
-	if _database.has_table(new_name):
+	if has_table(new_name):
 		push_warning("Table already exists: %s" % new_name)
 		return false
 
-	var table: DataTable = _database.get_table(old_name)
-
-	# Snapshot all instance property values before swapping the script.
-	# set_script() does not reliably preserve GDScript Resource properties.
+	# Load existing instances and snapshot their property values
+	var items: Array[DataItem] = get_data_items(old_name)
 	var snapshots: Array[Dictionary] = []
-	for item in table.instances:
+	for item in items:
 		var snap := {"id": item.id, "name": item.name}
 		var old_script: GDScript = item.get_script()
 		if old_script:
@@ -209,47 +233,36 @@ func rename_table(old_name: String, new_name: String, fields: Array[Dictionary],
 					snap[p.name] = item.get(p.name)
 		snapshots.append(snap)
 
-	# Generate new .gd at the new path with the new class name + updated fields
+	# Generate new .gd at the new path
 	ResourceGenerator.generate_resource_class(
 		new_name, fields, structures_path, constraints, parent_table)
 
-	# Load the new script, swap every instance, then restore saved values
+	# Load the new script, swap every instance, restore values, save to new dir
 	var new_script_path := structures_path.path_join("%s.gd" % new_name.to_lower())
 	var new_script = ResourceLoader.load(
 		new_script_path, "", ResourceLoader.CACHE_MODE_REUSE) as GDScript
 	if new_script:
-		for i in range(table.instances.size()):
-			var item = table.instances[i]
+		for i in range(items.size()):
+			var item := items[i]
 			item.set_script(new_script)
 			for key in snapshots[i]:
 				item.set(key, snapshots[i][key])
+			_storage.save_instance(item, new_name, base_path)
 
-	# Update the table record
-	table.table_name = new_name
-	table.field_constraints = constraints
-	table.parent_table = parent_table
+	# Delete old instances directory
+	_storage.delete_table_instances_dir(old_name, base_path)
 
 	# Update children that referenced the old name + regenerate their scripts
-	for child_table in _database.tables:
-		if child_table.parent_table == old_name:
-			child_table.parent_table = new_name
-			_regenerate_child_script(child_table)
+	for child_name in get_child_tables(old_name):
+		_regenerate_child_script_for_rename(child_name, new_name)
 
-	# Remove old .gd and old enum
+	# Remove old .gd
 	ResourceGenerator.delete_resource_class(old_name, structures_path)
-	ResourceGenerator.delete_enum_file(old_name, ids_path)
 
-	# Regenerate enum under new name
-	ResourceGenerator.generate_enum_file(new_name, table.instances, ids_path)
-
-	# Move ID cache to new key
-	_id_cache[new_name] = _id_cache.get(old_name, {})
+	# Update caches
+	_instance_cache.erase(old_name)
 	_id_cache.erase(old_name)
-
-	var err := save()
-	if err != OK:
-		push_error("Failed to save after renaming table: %s → %s" % [old_name, new_name])
-		return false
+	_table_names_dirty = true
 
 	if Engine.is_editor_hint():
 		EditorInterface.get_resource_filesystem().update_file(new_script_path)
@@ -258,9 +271,9 @@ func rename_table(old_name: String, new_name: String, fields: Array[Dictionary],
 	return true
 
 
-## Remove a table (deletes .gd file + enum file + removes DataTable)
+## Remove a table (deletes .gd file + instances directory)
 func remove_table(table_name: String) -> bool:
-	if not _database.has_table(table_name):
+	if not has_table(table_name):
 		push_warning("Table not found: %s" % table_name)
 		return false
 
@@ -270,15 +283,11 @@ func remove_table(table_name: String) -> bool:
 			table_name, ", ".join(children)])
 		return false
 
-	_database.remove_table(table_name)
 	ResourceGenerator.delete_resource_class(table_name, structures_path)
-	ResourceGenerator.delete_enum_file(table_name, ids_path)
+	_storage.delete_table_instances_dir(table_name, base_path)
+	_instance_cache.erase(table_name)
 	_id_cache.erase(table_name)
-
-	var err := save()
-	if err != OK:
-		push_error("Failed to save after removing table: %s" % table_name)
-		return false
+	_table_names_dirty = true
 
 	_scan_filesystem()
 	tables_changed.emit()
@@ -287,38 +296,30 @@ func remove_table(table_name: String) -> bool:
 
 # --- Instance Management -----------------------------------------------------
 
+## Get all instances for a table (lazy-loaded from disk on first call)
 func get_data_items(table_name: String) -> Array[DataItem]:
-	var table: DataTable = _database.get_table(table_name)
-	if table == null:
-		return []
+	if not _instance_cache.has(table_name):
+		_load_table_instances(table_name)
 	var items: Array[DataItem] = []
-	items.assign(table.instances)
+	items.assign(_instance_cache.get(table_name, []))
 	return items
 
 
-## Get a specific instance by its stable ID (the enum value)
+## Get a specific instance by its stable ID
 func get_by_id(table_name: String, id: int) -> DataItem:
-	if _id_cache.has(table_name):
-		var cache: Dictionary = _id_cache[table_name]
-		if cache.has(id):
-			return cache[id]
-	var table: DataTable = _database.get_table(table_name)
-	if table == null:
-		return null
-	for item in table.instances:
-		if item.id == id:
-			return item
-	return null
+	if not _id_cache.has(table_name):
+		_load_table_instances(table_name)
+	var cache: Dictionary = _id_cache.get(table_name, {})
+	return cache.get(id, null)
 
 
-## Add a new instance with a required name and a stable ID
+## Add a new instance with a required name and a unique ID
 func add_instance(table_name: String, instance_name: String) -> DataItem:
 	if instance_name.strip_edges().is_empty():
 		push_error("Instance name cannot be empty")
 		return null
 
-	var table: DataTable = _database.get_table(table_name)
-	if table == null:
+	if not has_table(table_name):
 		push_error("Table not found: %s" % table_name)
 		return null
 
@@ -327,78 +328,95 @@ func add_instance(table_name: String, instance_name: String) -> DataItem:
 		return null
 
 	item.name = instance_name.strip_edges()
-	item.id = table.next_id
-	table.next_id += 1
+	item.id = ResourceUID.create_id()
 
-	table.instances.append(item)
-	save()
+	# Ensure cache is loaded BEFORE saving (so lazy-load doesn't pick up the new file)
+	_ensure_table_loaded(table_name)
+
+	# Save to individual .tres file
+	_storage.save_instance(item, table_name, base_path)
+
+	# Update caches
+	_instance_cache[table_name].append(item)
 	_cache_item(table_name, item)
-	_regenerate_enum(table_name)
+
+	_request_scan()
 	data_changed.emit(table_name)
 	return item
 
 
-func remove_instance(table_name: String, index: int) -> bool:
-	var table: DataTable = _database.get_table(table_name)
-	if table == null:
-		return false
-	if index < 0 or index >= table.instances.size():
+## Remove an instance by its stable ID (not array index)
+func remove_instance(table_name: String, id: int) -> bool:
+	var item: DataItem = get_by_id(table_name, id)
+	if item == null:
 		return false
 
-	table.instances.remove_at(index)
-	save()
-	_rebuild_table_cache(table_name)
-	_regenerate_enum(table_name)
+	_storage.delete_instance(item, table_name, base_path)
+
+	# Update caches
+	if _instance_cache.has(table_name):
+		var items: Array = _instance_cache[table_name]
+		for i in range(items.size()):
+			if items[i].id == id:
+				items.remove_at(i)
+				break
+	_uncache_item(table_name, id)
+
+	_request_scan()
 	data_changed.emit(table_name)
 	return true
 
 
+## Save all instances for a table (re-saves each .tres file)
 func save_instances(table_name: String) -> Error:
-	var err := save()
-	_rebuild_table_cache(table_name)
-	_regenerate_enum(table_name)
-	return err
+	var items: Array[DataItem] = get_data_items(table_name)
+	var last_err := OK
+	for item in items:
+		var err := _storage.save_instance(item, table_name, base_path)
+		if err != OK:
+			last_err = err
+	return last_err
 
 
-func load_instances(_table_name: String) -> void:
-	reload()
+## Reload instances from disk (invalidates cache)
+func load_instances(table_name: String) -> void:
+	_instance_cache.erase(table_name)
+	_id_cache.erase(table_name)
 
 
+## Delete all instances for a table
 func clear_instances(table_name: String) -> void:
-	var table: DataTable = _database.get_table(table_name)
-	if table == null:
-		return
-	table.instances.clear()
-	save()
-	_rebuild_table_cache(table_name)
-	_regenerate_enum(table_name)
+	_storage.delete_table_instances_dir(table_name, base_path)
+	# Recreate the empty directory
+	var inst_dir := instances_path.path_join(table_name.to_lower())
+	DirAccess.make_dir_recursive_absolute(inst_dir)
+	_instance_cache[table_name] = []
+	_id_cache[table_name] = {}
+	_request_scan()
 	data_changed.emit(table_name)
 
 
 func get_instance_count(table_name: String) -> int:
-	var table: DataTable = _database.get_table(table_name)
-	if table == null:
-		return 0
-	return table.instances.size()
+	return get_data_items(table_name).size()
 
 
 # --- ID Cache ----------------------------------------------------------------
 
-func _rebuild_id_cache() -> void:
-	_id_cache.clear()
-	if _database == null:
-		return
-	for table in _database.tables:
-		_rebuild_table_cache(table.table_name)
+func _load_table_instances(table_name: String) -> void:
+	var items: Array[DataItem] = _storage.load_instances(table_name, base_path)
+	_instance_cache[table_name] = items
+	_rebuild_table_id_cache(table_name)
 
 
-func _rebuild_table_cache(table_name: String) -> void:
-	var table: DataTable = _database.get_table(table_name)
-	if table == null:
-		_id_cache.erase(table_name)
-		return
+func _ensure_table_loaded(table_name: String) -> void:
+	if not _instance_cache.has(table_name):
+		_load_table_instances(table_name)
+
+
+func _rebuild_table_id_cache(table_name: String) -> void:
+	var items: Array = _instance_cache.get(table_name, [])
 	var cache := {}
-	for item in table.instances:
+	for item in items:
 		if item.id >= 0:
 			cache[item.id] = item
 	_id_cache[table_name] = cache
@@ -411,41 +429,55 @@ func _cache_item(table_name: String, item: DataItem) -> void:
 		_id_cache[table_name][item.id] = item
 
 
-# --- Enum Generation ---------------------------------------------------------
-
-func _regenerate_enum(table_name: String) -> void:
-	var table: DataTable = _database.get_table(table_name)
-	if table == null:
-		return
-	ResourceGenerator.generate_enum_file(table_name, table.instances, ids_path)
-	_scan_filesystem()
+func _uncache_item(table_name: String, id: int) -> void:
+	if _id_cache.has(table_name):
+		_id_cache[table_name].erase(id)
 
 
 # --- Inheritance -------------------------------------------------------------
 
+## Get parent table via script reflection (get_base_script)
 func get_parent_table(table_name: String) -> String:
-	var table: DataTable = _database.get_table(table_name)
-	if table == null:
+	var script_path := structures_path.path_join("%s.gd" % table_name.to_lower())
+	var script: GDScript = _load_fresh_script(script_path)
+	if script == null:
 		return ""
-	return table.parent_table
+
+	var base: GDScript = script.get_base_script()
+	if base == null:
+		return ""
+
+	# Check if base is DataItem (no parent table)
+	var base_path_str: String = base.resource_path
+	if base_path_str.is_empty():
+		return ""
+
+	# If the base script is in our structures directory, extract the table name
+	if base_path_str.begins_with(structures_path):
+		var file_name := base_path_str.get_file().get_basename()
+		# Find the matching table name (case-sensitive) from known tables
+		for name in get_table_names():
+			if name.to_lower() == file_name:
+				return name
+	return ""
 
 
 func get_child_tables(table_name: String) -> Array[String]:
 	var children: Array[String] = []
-	for table in _database.tables:
-		if table.parent_table == table_name:
-			children.append(table.table_name)
+	for name in get_table_names():
+		if get_parent_table(name) == table_name:
+			children.append(name)
 	return children
 
 
 ## Get only the fields declared in this table's own script (excluding inherited fields).
 func get_own_table_fields(table_name: String) -> Array[Dictionary]:
 	var all_fields: Array[Dictionary] = get_table_fields(table_name)
-	var table: DataTable = _database.get_table(table_name)
-	if table == null or table.parent_table.is_empty():
+	var parent_name: String = get_parent_table(table_name)
+	if parent_name.is_empty():
 		return all_fields
 
-	var parent_fields: Array[Dictionary] = get_table_fields(table.parent_table)
+	var parent_fields: Array[Dictionary] = get_table_fields(parent_name)
 	var parent_names: Array[String] = []
 	for pf in parent_fields:
 		parent_names.append(pf.name)
@@ -458,8 +490,6 @@ func get_own_table_fields(table_name: String) -> Array[Dictionary]:
 
 
 ## Returns the inheritance chain from DataItem → ... → parent → this table.
-## Each entry: {table_name: String, fields: Array[Dictionary]}
-## First entry is DataItem (name, id), last is the table itself.
 func get_inheritance_chain(table_name: String) -> Array[Dictionary]:
 	var chain: Array[Dictionary] = []
 	var current: String = table_name
@@ -489,7 +519,6 @@ func get_data_items_polymorphic(table_name: String) -> Array[DataItem]:
 	return items
 
 
-## Check if setting parent_name as parent of table_name would create a cycle.
 func _would_create_cycle(table_name: String, parent_name: String) -> bool:
 	var current: String = parent_name
 	while not current.is_empty():
@@ -499,7 +528,6 @@ func _would_create_cycle(table_name: String, parent_name: String) -> bool:
 	return false
 
 
-## Check if table_name is a descendant (child/grandchild/...) of potential_ancestor.
 func is_descendant_of(table_name: String, potential_ancestor: String) -> bool:
 	var current: String = get_parent_table(table_name)
 	while not current.is_empty():
@@ -509,10 +537,10 @@ func is_descendant_of(table_name: String, potential_ancestor: String) -> bool:
 	return false
 
 
-## Regenerate a child table's script (e.g. after parent rename).
-func _regenerate_child_script(child_table: DataTable) -> void:
-	var own_fields: Array[Dictionary] = get_own_table_fields(child_table.table_name)
-	# Convert reflection dicts back to generation format
+## Regenerate a child table's script after parent rename
+func _regenerate_child_script_for_rename(child_name: String,
+		new_parent_name: String) -> void:
+	var own_fields: Array[Dictionary] = get_own_table_fields(child_name)
 	var gen_fields: Array[Dictionary] = []
 	for f in own_fields:
 		gen_fields.append({
@@ -520,12 +548,11 @@ func _regenerate_child_script(child_table: DataTable) -> void:
 			"type_string": ResourceGenerator.property_info_to_type_string(f),
 			"default": f.default
 		})
+	var constraints: Dictionary = get_field_constraints(child_name)
 	ResourceGenerator.generate_resource_class(
-		child_table.table_name, gen_fields, structures_path,
-		child_table.field_constraints, child_table.parent_table)
+		child_name, gen_fields, structures_path, constraints, new_parent_name)
 
-	# Hot-reload the cached script so existing instances see the updated extends
-	var script_path := structures_path.path_join("%s.gd" % child_table.table_name.to_lower())
+	var script_path := structures_path.path_join("%s.gd" % child_name.to_lower())
 	var cached_script: GDScript = load(script_path) as GDScript
 	if cached_script:
 		cached_script.source_code = FileAccess.get_file_as_string(script_path)
@@ -562,6 +589,7 @@ func _load_fresh_script(script_path: String) -> GDScript:
 	if source.is_empty():
 		return null
 
+	# Strip class_name to make it anonymous (avoids conflicts with cached version)
 	var lines := source.split("\n")
 	var filtered_lines: PackedStringArray = []
 	for line in lines:
@@ -575,22 +603,47 @@ func _load_fresh_script(script_path: String) -> GDScript:
 	return script
 
 
-## Assign stable IDs to any legacy instances loaded with id == -1
-func _migrate_legacy_instances() -> void:
-	if _database == null:
-		return
-	var migrated := false
-	for table in _database.tables:
-		for item in table.instances:
-			if item.id < 0:
-				item.id = table.next_id
-				table.next_id += 1
-				migrated = true
-	if migrated:
-		save()
-		print("[DatabaseManager] Migrated legacy instances with stable IDs")
+## Scan table_structures/ directory for .gd files → table names
+func _scan_table_names() -> Array[String]:
+	var names: Array[String] = []
+	if not DirAccess.dir_exists_absolute(structures_path):
+		return names
+
+	var dir := DirAccess.open(structures_path)
+	if dir == null:
+		return names
+
+	dir.list_dir_begin()
+	var file_name := dir.get_next()
+	while not file_name.is_empty():
+		if not dir.current_is_dir() and file_name.ends_with(".gd"):
+			# Read class_name from the script to get the proper-case table name
+			var class_name_str := _read_class_name(
+				structures_path.path_join(file_name))
+			if not class_name_str.is_empty():
+				names.append(class_name_str)
+		file_name = dir.get_next()
+	dir.list_dir_end()
+	return names
+
+
+## Read class_name from a .gd file
+func _read_class_name(script_path: String) -> String:
+	var source := FileAccess.get_file_as_string(script_path)
+	if source.is_empty():
+		return ""
+	for line in source.split("\n"):
+		line = line.strip_edges()
+		if line.begins_with("class_name "):
+			return line.substr(11).strip_edges()
+	return ""
 
 
 func _scan_filesystem() -> void:
 	if Engine.is_editor_hint():
 		EditorInterface.get_resource_filesystem().scan()
+
+
+func _request_scan() -> void:
+	# Simple scan for now — Phase 3 will add debouncing
+	_scan_filesystem()

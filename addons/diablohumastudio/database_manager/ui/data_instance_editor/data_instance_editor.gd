@@ -25,6 +25,9 @@ var _is_bulk_editing: bool = false
 var _inspector_connected: bool = false
 var _initialized: bool = false
 
+## Track whether in-memory data differs from disk
+var _has_unsaved_changes: bool = false
+
 
 # --- Lifecycle ---------------------------------------------------------------
 
@@ -104,6 +107,26 @@ func reload() -> void:
 	_refresh_table_selector()
 
 
+func has_unsaved_changes() -> bool:
+	return _has_unsaved_changes
+
+
+## Discard in-memory changes by reloading all instances from disk
+func discard_changes() -> void:
+	if not current_table_name.is_empty():
+		database_manager.load_instances(current_table_name)
+	_has_unsaved_changes = false
+	_refresh_instances()
+
+
+## Save all loaded tables to disk
+func save_all() -> void:
+	for table_name in database_manager.get_table_names():
+		if database_manager._instance_cache.has(table_name):
+			database_manager.save_instances(table_name)
+	_has_unsaved_changes = false
+
+
 # --- Table Selection ---------------------------------------------------------
 
 func _refresh_table_selector() -> void:
@@ -167,7 +190,8 @@ func _refresh_instances() -> void:
 
 		# Column 0: array index
 		tree_item.set_text(0, str(idx))
-		tree_item.set_metadata(0, idx)
+		# Store stable ID as metadata (used for deletion and lookup)
+		tree_item.set_metadata(0, data_item.id)
 
 		# Column 1: stable ID
 		tree_item.set_text(1, str(data_item.id))
@@ -196,11 +220,12 @@ func _on_selection_changed() -> void:
 
 	if selected.size() == 1:
 		# Single selection: inspect the DataItem in Godot's Inspector
-		var idx: int = selected[0].get_metadata(0)
-		if idx >= 0 and idx < _data_items.size():
+		var item_id: int = selected[0].get_metadata(0)
+		var item: DataItem = database_manager.get_by_id(current_table_name, item_id)
+		if item:
 			_end_bulk_edit()
-			_inspect_item(_data_items[idx])
-			_update_status("Editing instance #%d in Inspector" % idx)
+			_inspect_item(item)
+			_update_status("Editing instance '%s' in Inspector" % item.name)
 		%BulkEditBtn.disabled = true
 
 	elif selected.size() > 1:
@@ -252,8 +277,9 @@ func _on_inspector_property_edited(property: String) -> void:
 		return
 
 	# The Inspector already modified the DataItem in-place (it's a Resource).
-	# Save and refresh the Tree display.
-	database_manager.save_instances(current_table_name)
+	# Don't save to disk on every keystroke — just refresh the Tree display.
+	# Disk persistence happens on explicit "Save All".
+	_has_unsaved_changes = true
 	_check_required_violations(_inspected_item)
 	_refresh_instances()
 
@@ -289,9 +315,10 @@ func _start_bulk_edit(field: Dictionary) -> void:
 	var selected := _get_selected_tree_items()
 	var initial_value = field.default
 	if selected.size() > 0:
-		var idx: int = selected[0].get_metadata(0)
-		if idx >= 0 and idx < _data_items.size():
-			initial_value = _data_items[idx].get(field.name)
+		var item_id: int = selected[0].get_metadata(0)
+		var item: DataItem = database_manager.get_by_id(current_table_name, item_id)
+		if item:
+			initial_value = item.get(field.name)
 
 	# Create proxy Resource with one dynamic field
 	_bulk_proxy = BulkEditProxyScript.new()
@@ -306,12 +333,12 @@ func _start_bulk_edit(field: Dictionary) -> void:
 func _on_bulk_value_changed(field_name: String, new_value: Variant) -> void:
 	var selected := _get_selected_tree_items()
 	for tree_item in selected:
-		var idx: int = tree_item.get_metadata(0)
-		if idx >= 0 and idx < _data_items.size():
-			_data_items[idx].set(field_name, new_value)
+		var item_id: int = tree_item.get_metadata(0)
+		var item: DataItem = database_manager.get_by_id(current_table_name, item_id)
+		if item:
+			item.set(field_name, new_value)
 
-	# Persist and refresh
-	database_manager.save_instances(current_table_name)
+	_has_unsaved_changes = true
 	_refresh_instances()
 
 
@@ -366,15 +393,10 @@ func _on_delete_instance_pressed() -> void:
 	var confirm := ConfirmationDialog.new()
 	confirm.dialog_text = "Delete %d instance(s)?\nThis cannot be undone." % selected.size()
 	confirm.confirmed.connect(func():
-		# Collect indices and delete in reverse order (highest first)
-		var indices: Array[int] = []
-		for item in selected:
-			indices.append(item.get_metadata(0))
-		indices.sort()
-		indices.reverse()
-
-		for idx in indices:
-			database_manager.remove_instance(current_table_name, idx)
+		# Delete by stable ID (order doesn't matter)
+		for tree_item in selected:
+			var item_id: int = tree_item.get_metadata(0)
+			database_manager.remove_instance(current_table_name, item_id)
 
 		_clear_inspected_item()
 		_end_bulk_edit()
@@ -389,6 +411,7 @@ func _on_delete_instance_pressed() -> void:
 func _on_save_all_pressed() -> void:
 	if not current_table_name.is_empty():
 		database_manager.save_instances(current_table_name)
+		_has_unsaved_changes = false
 		_update_status("Saved all instances")
 
 
@@ -408,7 +431,7 @@ func _value_to_display(value: Variant, field_type: int) -> String:
 		TYPE_BOOL:
 			return "true" if value else "false"
 		TYPE_OBJECT:
-			if value is Texture2D:
+			if value is Resource and not value.resource_path.is_empty():
 				return value.resource_path.get_file()
 			return str(value)
 		TYPE_VECTOR2:
@@ -464,18 +487,11 @@ func delete_violating_instances() -> void:
 		var constraints: Dictionary = database_manager.get_field_constraints(table_name)
 		if constraints.is_empty():
 			continue
-		var table: DataTable = database_manager.get_table(table_name)
-		if table == null:
-			continue
-		# Collect violating indices in reverse order for safe removal
-		var to_remove: Array[int] = []
-		for i in range(table.instances.size()):
-			var v: Array[String] = _get_required_violations_for(table.instances[i], constraints)
+		var items: Array[DataItem] = database_manager.get_data_items(table_name)
+		for item in items:
+			var v: Array[String] = _get_required_violations_for(item, constraints)
 			if not v.is_empty():
-				to_remove.append(i)
-		to_remove.reverse()
-		for idx in to_remove:
-			database_manager.remove_instance(table_name, idx)
+				database_manager.remove_instance(table_name, item.id)
 
 
 func _get_required_violations_for(item: DataItem, constraints: Dictionary) -> Array[String]:
@@ -488,9 +504,15 @@ func _get_required_violations_for(item: DataItem, constraints: Dictionary) -> Ar
 	return violations
 
 
-func _is_empty_value(value: Variant) -> bool:
-	if value == null:
-		return true
-	if value is String and value.strip_edges().is_empty():
-		return true
+static func _is_empty_value(value: Variant) -> bool:
+	if value == null: return true
+	if value is String: return value.strip_edges().is_empty()
+	if value is int: return value == 0
+	if value is float: return is_zero_approx(value)
+	if value is Array: return value.is_empty()
+	if value is Dictionary: return value.is_empty()
+	if value is Vector2: return value == Vector2.ZERO
+	if value is Vector3: return value == Vector3.ZERO
+	if value is Color: return value == Color(0, 0, 0, 0)
+	if value is Resource: return false  # non-null Resource is never "empty"
 	return false

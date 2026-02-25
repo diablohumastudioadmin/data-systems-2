@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="LevelDat" format=3 uid="uid://4bat4upg76w0"]
+
+[ext_resource type="Script" uid="uid://bm1m0j2mexkgd" path="res://database/res/table_structures/leveldat.gd" id="1_b5hj8"]
+
+[resource]
+script = ExtResource("1_b5hj8")
+reward = 350
+name = "level 1"
+id = 8399090698701607886
