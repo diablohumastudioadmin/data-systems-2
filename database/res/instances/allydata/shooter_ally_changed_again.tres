@@ -1,8 +1,0 @@
-[gd_resource type="Resource" script_class="AllyData" format=3 uid="uid://d1ng7garjmfae"]
-
-[ext_resource type="Script" uid="uid://da2dq6wo7140b" path="res://database/res/table_structures/allydata.gd" id="1_a2qwd"]
-
-[resource]
-script = ExtResource("1_a2qwd")
-name = "shooter_ally_changed_again"
-id = 5017188290425638852

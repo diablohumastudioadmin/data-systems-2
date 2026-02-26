@@ -12,6 +12,9 @@ extends Resource
 ## Stable unique ID. Assigned by DatabaseManager via ResourceUID.create_id().
 @export_storage var id: int = -1
 
+## Internal flag to prevent saving deleted items if they are still referenced in memory
+var _is_deleted: bool = false
+
 ## Constraint metadata — set in _init() of generated subclasses.
 ## Names of fields that must be non-empty for this table.
 var _required_fields: Array[String] = []

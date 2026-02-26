@@ -13,7 +13,7 @@ Consolidated from Claude and Gemini analyses, adjusted for user decisions.
 | Phase 3.3 (Delete by ID) | **DONE** | `remove_instance()` takes stable ID, not array index |
 | Phase 3.5 (Fix `_is_empty_value`) | **DONE** | Handles int, float, Array, Dict, Vector2/3, Color, Resource |
 | Phase 3.8 (Debug prints) | **DONE** | Removed `print(id)` and `print("sss")` from toolbar |
-| Phase 2.1 (Split god object) | TODO | Extract SchemaManager + InstanceManager |
+| Phase 2.1 (Split god object) | **DONE** | Extract SchemaManager + InstanceManager |
 | Phase 3.1 (Schema cache) | TODO | Cache reflection results by file mod time |
 | Phase 3.2 (Debounce scan) | TODO | 500ms timer for `_scan_filesystem()` |
 | Phase 3.4 (Field name validation) | TODO | GDScript reserved words, DataItem reserved fields |

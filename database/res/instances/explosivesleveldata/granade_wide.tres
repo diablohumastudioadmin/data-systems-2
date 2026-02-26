@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ExplosivesLevelData" format=3 uid="uid://bbendvau7n2im"]
+
+[ext_resource type="Script" uid="uid://c2f0tnfq3og3" path="res://database/res/table_structures/explosivesleveldata.gd" id="1_2u1kp"]
+[ext_resource type="Resource" uid="uid://iy8vluhqr4jg" path="res://database/res/instances/allydata/granade.tres" id="1_8sano"]
+
+[resource]
+script = ExtResource("1_2u1kp")
+range = 6
+price = 350
+ally = ExtResource("1_8sano")
+name = "granade_wide"
+id = 875250587239861913
