@@ -14,7 +14,11 @@ signal tables_changed()
 
 const DEFAULT_BASE_PATH := "res://database/res/"
 
-var base_path: String = DEFAULT_BASE_PATH
+var base_path: String = DEFAULT_BASE_PATH:
+	set(value):
+		base_path = value
+		if _storage != null:
+			reload()
 var structures_path: String:
 	get: return base_path.path_join("table_structures/")
 var instances_path: String:

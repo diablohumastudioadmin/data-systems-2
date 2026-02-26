@@ -265,13 +265,13 @@ func _test_lazy_loading(test_dir: String, structures_dir: String) -> void:
 	db_manager.add_instance("LazyTable", "item2")
 
 	# Clear instance cache to simulate fresh start
-	db_manager._instance_cache.clear()
-	db_manager._id_cache.clear()
+	db_manager.instances._instance_cache.clear()
+	db_manager.instances._id_cache.clear()
 
 	# Accessing should lazy-load
 	var items: Array[DataItem] = db_manager.get_data_items("LazyTable")
 	_assert_eq(items.size(), 2, "lazy-loaded 2 items from disk")
-	_assert_true(db_manager._instance_cache.has("LazyTable"),
+	_assert_true(db_manager.instances._instance_cache.has("LazyTable"),
 		"instance cache populated after first access")
 
 

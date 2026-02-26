@@ -88,55 +88,12 @@ func get_field_constraints(table_name: String) -> Dictionary:
 	var required: Array[String] = []
 	var fk: Dictionary = {}
 
+	# Constraints are set via _init() assignments (consts can't be redeclared in subclasses).
+	# Generated format:  _required_fields = ["hp", "zone_id"]
+	#                    _fk_fields = {"zone_id": "Zone"}
 	for line in source.split("
 "):
 		var stripped := line.strip_edges()
-		# Parse: const REQUIRED_FIELDS = ["a", "b"]
-		# Also support old _required_fields format if needed, but we are moving to consts.
-		# The plan says: "Generated script now includes constraint consts"
-		# const REQUIRED_FIELDS: Array[String] = ["health", "damage"]
-		
-		if stripped.begins_with("const REQUIRED_FIELDS"):
-			var bracket_start := stripped.find("[")
-			var bracket_end := stripped.rfind("]")
-			if bracket_start >= 0 and bracket_end > bracket_start:
-				var inner := stripped.substr(bracket_start + 1, bracket_end - bracket_start - 1)
-				for part in inner.split(","):
-					var val := part.strip_edges().trim_prefix('"').trim_suffix('"')
-					if not val.is_empty():
-						required.append(val)
-		# const FK_FIELDS: Dictionary = { "weapon": "Weapon" }
-		elif stripped.begins_with("const FK_FIELDS"):
-			var brace_start := stripped.find("{")
-			var brace_end := stripped.rfind("}")
-			if brace_start >= 0 and brace_end > brace_start:
-				var inner := stripped.substr(brace_start + 1, brace_end - brace_start - 1)
-				for part in inner.split(","):
-					var kv := part.split(":")
-					if kv.size() == 2:
-						var k := kv[0].strip_edges().trim_prefix('"').trim_suffix('"')
-						var v := kv[1].strip_edges().trim_prefix('"').trim_suffix('"')
-						fk[k] = v
-		
-		# Fallback to checking for _init() assignment (old style) if consts missing?
-		# For now, let's look for the new CONST format as per plan, but also support the _init check 
-		# since we might be in transition. The DatabaseManager code I read uses _required_fields = ...
-		# I should support what is currently generated.
-		# The plan says: "Constraints use _init() override, not consts — GDScript disallows redeclaring consts/vars in child classes."
-		# WAIT. The plan explicitly says in "Key implementation decisions":
-		# "Constraints use _init() override, not consts"
-		# BUT then in "4.1 Per-Instance File Storage" it says:
-		# "Generated script now includes constraint consts"
-		# And shows: const REQUIRED_FIELDS ...
-		# There is a contradiction in the plan text I read.
-		# Let's check the merged plan again.
-		# "Key implementation decisions (deviating from original plan): Constraints use _init() override..."
-		# "4.1 ... Generated script now includes constraint consts: const REQUIRED_FIELDS..."
-		#
-		# If `DataItem` defines `const REQUIRED_FIELDS`, subclasses cannot redefine it.
-		# Unless `DataItem` does NOT define it.
-		# Let's check `DataItem`.
-		
 		if stripped.begins_with("_required_fields = ["):
 			var bracket_start := stripped.find("[")
 			var bracket_end := stripped.rfind("]")
