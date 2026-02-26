@@ -2,9 +2,11 @@
 
 [ext_resource type="Script" uid="uid://bm1m0j2mexkgd" path="res://database/res/table_structures/leveldat.gd" id="1_b5hj8"]
 [ext_resource type="Script" uid="uid://dso826stdr8fk" path="res://database/res/table_structures/conditions.gd" id="2_lu0j0"]
+[ext_resource type="Resource" uid="uid://q1pu6lufgyti" path="res://database/res/instances/conditions/condition_2.tres" id="3_vffpn"]
 
 [resource]
 script = ExtResource("1_b5hj8")
+unlocked_conditions = Array[ExtResource("2_lu0j0")]([ExtResource("3_vffpn")])
 reward = 350
 name = "level 1"
 id = 8399090698701607886

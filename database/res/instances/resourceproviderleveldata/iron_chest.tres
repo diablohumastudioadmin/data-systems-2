@@ -1,9 +1,0 @@
-[gd_resource type="Resource" script_class="ResourceProviderLevelData" format=3 uid="uid://7w03e7yhcqst"]
-
-[ext_resource type="Script" uid="uid://buhtfqyluxilm" path="res://database/res/table_structures/resourceproviderleveldata.gd" id="1_41sks"]
-
-[resource]
-script = ExtResource("1_41sks")
-providing_interval_seconds = 3.0
-name = "iron chest"
-id = 9136775020041041962

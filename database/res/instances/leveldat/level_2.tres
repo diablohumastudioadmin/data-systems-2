@@ -1,9 +1,13 @@
 [gd_resource type="Resource" script_class="LevelDat" format=3 uid="uid://rdc4npb7whwl"]
 
 [ext_resource type="Script" uid="uid://bm1m0j2mexkgd" path="res://database/res/table_structures/leveldat.gd" id="1_mium6"]
+[ext_resource type="Script" uid="uid://dso826stdr8fk" path="res://database/res/table_structures/conditions.gd" id="2_8lde3"]
+[ext_resource type="Resource" uid="uid://i4rel14wuin1" path="res://database/res/instances/conditions/condition_1.tres" id="3_pesvi"]
+[ext_resource type="Resource" uid="uid://q1pu6lufgyti" path="res://database/res/instances/conditions/condition_2.tres" id="4_1ah15"]
 
 [resource]
 script = ExtResource("1_mium6")
+unlocked_conditions = Array[ExtResource("2_8lde3")]([ExtResource("3_pesvi"), ExtResource("4_1ah15")])
 reward = 300
 name = "level 2"
 id = 3511534977698007449

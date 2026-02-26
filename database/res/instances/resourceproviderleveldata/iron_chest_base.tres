@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ResourceProviderLevelData" format=3 uid="uid://dok6gmr5tpgps"]
+
+[ext_resource type="Script" uid="uid://buhtfqyluxilm" path="res://database/res/table_structures/resourceproviderleveldata.gd" id="1_eu482"]
+[ext_resource type="Resource" uid="uid://dvqo0pkdfw5jm" path="res://database/res/instances/allydata/iron_chest.tres" id="1_uwije"]
+
+[resource]
+script = ExtResource("1_eu482")
+providing_interval_seconds = 3.0
+price = 20
+ally = ExtResource("1_uwije")
+name = "iron chest base"
+id = 9136775020041041962
