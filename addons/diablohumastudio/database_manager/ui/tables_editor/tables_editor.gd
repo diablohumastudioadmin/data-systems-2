@@ -271,6 +271,10 @@ func _on_save_table_pressed() -> void:
 		_show_error("Table name cannot be empty")
 		return
 
+	if not table_name.is_valid_identifier():
+		_show_error("Table name must be a valid identifier")
+		return
+
 	for row in field_rows:
 		if row.has_validation_error():
 			_show_error("Fix type errors before saving")
@@ -279,16 +283,61 @@ func _on_save_table_pressed() -> void:
 	# Collect fields and constraints from UI rows
 	var fields: Array[Dictionary] = []
 	var constraints: Dictionary = {}
+	var existing_names: Array[String] = []
+
 	for row in field_rows:
 		var field_data = row.get_field_data()
 		if field_data.is_empty():
 			continue
+
+		var validation_err := FieldValidator.validate_field_name(field_data.name, existing_names)
+		if not validation_err.is_empty():
+			_show_error(validation_err)
+			return
+		existing_names.append(field_data.name)
+
 		if field_data.has("constraints"):
 			constraints[field_data.name] = field_data.constraints
 		fields.append(field_data)
 
 	var parent_name: String = _get_selected_parent()
 
+	# Check for destructive changes
+	if not current_table_name.is_empty() and table_name == current_table_name:
+		var old_fields = database_manager.get_own_table_fields(current_table_name)
+		var destructive_warning := ""
+		for old_f in old_fields:
+			var found = false
+			var type_changed = false
+			for new_f in fields:
+				if new_f.name == old_f.name:
+					found = true
+					var old_type_str = ResourceGenerator.property_info_to_type_string(old_f)
+					var new_type_str = new_f.type_string if new_f.has("type_string") else ResourceGenerator.property_info_to_type_string(new_f)
+					if old_type_str != new_type_str:
+						type_changed = true
+					break
+			if not found:
+				destructive_warning += "• Field '%s' was removed.\n" % old_f.name
+			elif type_changed:
+				destructive_warning += "• Field '%s' type changed.\n" % old_f.name
+
+		if not destructive_warning.is_empty():
+			var confirm = ConfirmationDialog.new()
+			confirm.dialog_text = "Destructive schema changes detected:\n\n%s\nThis may cause data loss in existing instances. Continue?" % destructive_warning
+			confirm.confirmed.connect(func():
+				_execute_save(table_name, fields, constraints, parent_name)
+				confirm.queue_free()
+			)
+			confirm.canceled.connect(func(): confirm.queue_free())
+			add_child(confirm)
+			confirm.popup_centered()
+			return
+
+	_execute_save(table_name, fields, constraints, parent_name)
+
+
+func _execute_save(table_name: String, fields: Array[Dictionary], constraints: Dictionary, parent_name: String) -> void:
 	var success = false
 	if current_table_name.is_empty():
 		success = database_manager.add_table(table_name, fields, constraints, parent_name)

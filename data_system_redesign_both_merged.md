@@ -14,11 +14,10 @@ Consolidated from Claude and Gemini analyses, adjusted for user decisions.
 | Phase 3.5 (Fix `_is_empty_value`) | **DONE** | Handles int, float, Array, Dict, Vector2/3, Color, Resource |
 | Phase 3.8 (Debug prints) | **DONE** | Removed `print(id)` and `print("sss")` from toolbar |
 | Phase 2.1 (Split god object) | **DONE** | Extract SchemaManager + InstanceManager |
-| Phase 3.1 (Schema cache) | TODO | Cache reflection results by file mod time |
-| Phase 3.2 (Debounce scan) | TODO | 500ms timer for `_scan_filesystem()` |
-| Phase 3.4 (Field name validation) | TODO | GDScript reserved words, DataItem reserved fields |
-| Phase 3.6 (FK rename update) | TODO | Update FK refs in other tables on rename |
-| Phase 3.7 (Schema change warning) | TODO | Warn before destructive field removal/type change |
+| Phase 3.1 (Schema cache) | **DONE** | Cache reflection results by file mod time |
+| Phase 3.4 (Field name validation) | **DONE** | GDScript reserved words, DataItem reserved fields |
+| Phase 3.6 (FK rename update) | **DONE** | Update FK refs in other tables on rename |
+| Phase 3.7 (Schema change warning) | **DONE** | Warn before destructive field removal/type change |
 
 ### Key implementation decisions (deviating from original plan):
 - **Constraints use `_init()` override**, not consts — GDScript disallows redeclaring consts/vars in child classes. Base `DataItem` declares `_required_fields` and `_fk_fields`, generated subclasses set values in `_init()`.
@@ -38,7 +37,6 @@ Consolidated from Claude and Gemini analyses, adjusted for user decisions.
 | 4 | Critical | Extract DatabaseManager into SchemaManager + InstanceManager | Claude | 2 | Medium |
 | 5 | High | Fix dual DatabaseManager instances (toolbar vs autoload) | Claude | 2 | Low |
 | 6 | Medium | Cache schema reflection results | Claude | 3 | Low |
-| 7 | Medium | Debounce `_scan_filesystem()` | Claude | 3 | Low |
 | 8 | Medium | Delete by stable ID, not array index | Claude | 3 | Low |
 | 9 | Medium | Validate field names (GDScript rules + reserved) | Both | 3 | Low |
 | 10 | Medium | Fix `_is_empty_value()` for non-string types | Claude | 3 | Low |
@@ -572,29 +570,7 @@ func invalidate(script_path: String) -> void:
 
 Replaces all `_load_fresh_script()` + `script.new()` calls. For a table with 3 levels of inheritance, eliminates 6+ throwaway GDScript objects per UI interaction.
 
-### 6.2 Debounce `_scan_filesystem()`
-
-```gdscript
-# In DatabaseManager:
-var _scan_timer: Timer
-
-func _ready() -> void:
-    if Engine.is_editor_hint():
-        _scan_timer = Timer.new()
-        _scan_timer.one_shot = true
-        _scan_timer.wait_time = 0.5  # 500ms debounce
-        _scan_timer.timeout.connect(func():
-            EditorInterface.get_resource_filesystem().scan())
-        add_child(_scan_timer)
-
-func _request_scan() -> void:
-    if _scan_timer:
-        _scan_timer.start()  # restarts on each call — only one scan after burst
-```
-
-Replace all `_scan_filesystem()` calls with `_request_scan()`.
-
-### 6.3 Delete by Stable ID
+### 6.2 Delete by Stable ID
 
 **Before:**
 ```gdscript
@@ -783,7 +759,6 @@ Phase 2.1  Split god object ← NEXT
     ▼
 Phase 3    Remaining items (any order):
            3.1 Schema cache
-           3.2 Debounce scan
            3.4 Field name validation
            3.6 FK rename update
            3.7 Schema change warning

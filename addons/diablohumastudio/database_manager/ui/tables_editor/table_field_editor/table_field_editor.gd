@@ -29,7 +29,10 @@ func _ready() -> void:
 	%TypeAutocomplete.provider = provider
 	%TypeAutocomplete.text_committed.connect(_on_type_committed)
 	%TypeAutocomplete.validation_changed.connect(func(_has_err: bool):
-		validation_changed.emit(%TypeAutocomplete.last_error)
+		validation_changed.emit(get_validation_error())
+	)
+	%FieldNameEdit.text_changed.connect(func(_new_text: String):
+		validation_changed.emit(get_validation_error())
 	)
 	%RemoveBtn.pressed.connect(func(): remove_requested.emit())
 	%ForeignKeySelect.item_selected.connect(_on_fk_selected)
@@ -196,11 +199,16 @@ func _update_default_value_editor() -> void:
 
 
 func has_validation_error() -> bool:
-	return %TypeAutocomplete.has_error
+	return %TypeAutocomplete.has_error or not get_validation_error().is_empty()
 
 
 func get_validation_error() -> String:
-	return %TypeAutocomplete.last_error
+	var name_err = FieldValidator.validate_field_name(%FieldNameEdit.text)
+	if not name_err.is_empty():
+		return name_err
+	if %TypeAutocomplete.has_error:
+		return %TypeAutocomplete.last_error
+	return ""
 
 
 func get_field_data() -> Dictionary:

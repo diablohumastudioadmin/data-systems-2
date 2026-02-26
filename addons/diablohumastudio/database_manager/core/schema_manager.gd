@@ -11,6 +11,8 @@ var structures_path: String:
 
 var instance_manager: Object # Type hint: InstanceManager (circular dep avoidance)
 
+var _schema_cache : SchemaCache = preload("res://addons/diablohumastudio/database_manager/utils/schema_cache.gd").new()
+
 ## Cached list of table names from filesystem
 var _table_names_cache: Array[String] = []
 var _table_names_dirty: bool = true
@@ -42,7 +44,7 @@ func has_table(table_name: String) -> bool:
 ## Returns: [{name, type, default, hint, hint_string, class_name}, ...]
 func get_table_fields(table_name: String) -> Array[Dictionary]:
 	var script_path := structures_path.path_join("%s.gd" % table_name.to_lower())
-	var script: GDScript = _load_fresh_script(script_path)
+	var script: GDScript = _schema_cache.retrieve_script(script_path, _load_fresh_script)
 	if script == null:
 		return []
 
@@ -189,6 +191,7 @@ func add_table(table_name: String, fields: Array[Dictionary],
 	DirAccess.make_dir_recursive_absolute(inst_dir)
 
 	_table_names_dirty = true
+	_schema_cache.clear()
 	_request_scan()
 	tables_changed.emit()
 	return true
@@ -221,6 +224,7 @@ func update_table(table_name: String, fields: Array[Dictionary],
 
 	if Engine.is_editor_hint():
 		EditorInterface.get_resource_filesystem().update_file(script_path)
+	_schema_cache.clear()
 	_request_scan()
 	tables_changed.emit()
 	return true
@@ -281,6 +285,37 @@ func rename_table(old_name: String, new_name: String, fields: Array[Dictionary],
 	for child_name in get_child_tables(old_name):
 		_regenerate_child_script_for_rename(child_name, new_name)
 
+	# Update foreign key references in all other tables
+	for other_table in get_table_names():
+		if other_table == old_name or other_table == new_name:
+			continue
+		var other_constraints = get_field_constraints(other_table)
+		var needs_update = false
+		for field_name in other_constraints:
+			if other_constraints[field_name].get("foreign_key") == old_name:
+				other_constraints[field_name]["foreign_key"] = new_name
+				needs_update = true
+		if needs_update:
+			var own_fields = get_own_table_fields(other_table)
+			var gen_fields: Array[Dictionary] = []
+			for f in own_fields:
+				gen_fields.append({
+					"name": f.name,
+					"type_string": ResourceGenerator.property_info_to_type_string(f),
+					"default": f.default
+				})
+			var other_parent = get_parent_table(other_table)
+			ResourceGenerator.generate_resource_class(
+				other_table, gen_fields, structures_path, other_constraints, other_parent)
+			var other_script_path := structures_path.path_join("%s.gd" % other_table.to_lower())
+			var cached_other_script: GDScript = load(other_script_path) as GDScript
+			if cached_other_script:
+				cached_other_script.source_code = FileAccess.get_file_as_string(other_script_path)
+				cached_other_script.reload(true)
+			if Engine.is_editor_hint():
+				EditorInterface.get_resource_filesystem().update_file(other_script_path)
+			_schema_cache.invalidate(other_script_path)
+
 	# Remove old .gd
 	ResourceGenerator.delete_resource_class(old_name, structures_path)
 
@@ -290,6 +325,7 @@ func rename_table(old_name: String, new_name: String, fields: Array[Dictionary],
 		# instance_manager.clear_cache(new_name) # implicitly clear/empty
 		
 	_table_names_dirty = true
+	_schema_cache.clear()
 
 	if Engine.is_editor_hint():
 		EditorInterface.get_resource_filesystem().update_file(new_script_path)
@@ -317,6 +353,7 @@ func remove_table(table_name: String) -> bool:
 		instance_manager.clear_cache(table_name)
 	
 	_table_names_dirty = true
+	_schema_cache.clear()
 
 	_request_scan()
 	tables_changed.emit()
@@ -327,7 +364,7 @@ func remove_table(table_name: String) -> bool:
 ## Get parent table via script reflection (get_base_script)
 func get_parent_table(table_name: String) -> String:
 	var script_path := structures_path.path_join("%s.gd" % table_name.to_lower())
-	var script: GDScript = _load_fresh_script(script_path)
+	var script: GDScript = _schema_cache.retrieve_script(script_path, _load_fresh_script)
 	if script == null:
 		return ""
 

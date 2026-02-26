@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="Conditions" format=3 uid="uid://i4rel14wuin1"]
+
+[ext_resource type="Script" uid="uid://dso826stdr8fk" path="res://database/res/table_structures/conditions.gd" id="1_lauh7"]
+
+[resource]
+script = ExtResource("1_lauh7")
+name = "condition 1"
+id = 5895544892299084991
