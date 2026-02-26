@@ -116,13 +116,12 @@ func discard_changes() -> void:
 	if not current_table_name.is_empty():
 		database_manager.load_instances(current_table_name)
 	_has_unsaved_changes = false
-	_refresh_instances()
 
 
 ## Save all loaded tables to disk
 func save_all() -> void:
 	for table_name in database_manager.get_table_names():
-		if database_manager._instance_cache.has(table_name):
+		if database_manager.instances._instance_cache.has(table_name):
 			database_manager.save_instances(table_name)
 	_has_unsaved_changes = false
 
