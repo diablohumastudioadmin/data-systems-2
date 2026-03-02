@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://b6ssn0jpljw4r"]
+
+[ext_resource type="Script" uid="uid://dxrryiiulb1v7" path="res://addons/diablohumastudio/visual_resources_editor/ui/visual_resources_editor_window.gd" id="1_w7ie3"]
+
+[node name="VisualResourcesEditorWindow" type="Window" unique_id=382482314]
+oversampling_override = 1.0
+position = Vector2i(0, 36)
+script = ExtResource("1_w7ie3")
+
+[connection signal="close_requested" from="." to="." method="_on_close_requested"]
