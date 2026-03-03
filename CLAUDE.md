@@ -16,6 +16,9 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 - **Exception**: Only use `@onready var` when the node is accessed in a tight loop (e.g. nested `for` inside `for`), to avoid repeated lookup cost.
 - Example: `%MyButton.pressed.connect(...)` instead of `@onready var my_button = $Path/To/MyButton` then `my_button.pressed.connect(...)`
 
+## Type Inference Convention
+- **Never use `:=` for type inference** — always use explicit types with `=`. GDScript's `:=` fails when the right-hand side doesn't have a clear type (e.g. properties from `%UniqueNode`). Write `var pos: Vector2 = %Node.position` instead of `var pos := %Node.position`.
+
 ## GDScript Inheritance Gotcha
 - **GDScript disallows redeclaring `const` or `var` (properties) in child classes** if the same name exists in a parent class. This applies to all consts and exported properties — the child will fail to compile with "already exists in parent class". The correct pattern: declare the variable in the base class, then override its **value** in `_init()` of each subclass.
 
