@@ -1,10 +1,42 @@
 [gd_scene format=3 uid="uid://b6ssn0jpljw4r"]
 
 [ext_resource type="Script" uid="uid://dxrryiiulb1v7" path="res://addons/diablohumastudio/visual_resources_editor/ui/visual_resources_editor_window.gd" id="1_w7ie3"]
+[ext_resource type="PackedScene" uid="uid://bkuj0fqxrjoj8" path="res://addons/diablohumastudio/visual_resources_editor/ui/class_selector/class_selector.tscn" id="2_cls"]
+[ext_resource type="PackedScene" uid="uid://c113p8acip31a" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/resource_list.tscn" id="3_list"]
 
 [node name="VisualResourcesEditorWindow" type="Window" unique_id=382482314]
 oversampling_override = 1.0
+title = "Visual Resources Editor"
 position = Vector2i(0, 36)
+size = Vector2i(1200, 700)
 script = ExtResource("1_w7ie3")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=2033942770]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer" unique_id=635016055]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ClassSelector" parent="MarginContainer/VBox" unique_id=2133691582 instance=ExtResource("2_cls")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBox" unique_id=1020269689]
+layout_mode = 2
+
+[node name="ResourceList" parent="MarginContainer/VBox" unique_id=1200495979 instance=ExtResource("3_list")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
 
 [connection signal="close_requested" from="." to="." method="_on_close_requested"]

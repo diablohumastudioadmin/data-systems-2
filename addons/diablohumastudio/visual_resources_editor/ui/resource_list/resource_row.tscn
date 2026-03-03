@@ -1,0 +1,33 @@
+[gd_scene format=3 uid="uid://dukcnu4xa4lbd"]
+
+[ext_resource type="Script" uid="uid://clxxgcsp18f1o" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/resource_row.gd" id="1_row"]
+
+[node name="ResourceRow" type="HBoxContainer" unique_id=1555570518]
+size_flags_horizontal = 3
+script = ExtResource("1_row")
+
+[node name="SelectCheck" type="CheckBox" parent="." unique_id=1874053454]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(24, 0)
+layout_mode = 2
+
+[node name="FileNameLabel" type="Label" parent="." unique_id=780503217]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="FieldsContainer" type="HBoxContainer" parent="." unique_id=1344206157]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 3.0
+
+[node name="DeleteBtn" type="Button" parent="." unique_id=841477081]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "X"
+flat = true

@@ -7,7 +7,7 @@ func _enter_tree() -> void:
 	add_toolbar_menu()
 
 func add_toolbar_menu():
-	var tool_bar_menu := VisualResourcesEditorToolbar.new()
+	var tool_bar_menu: VisualResourcesEditorToolbar = VisualResourcesEditorToolbar.new()
 	MainToolbarPlugin.add_toolbar_shubmenu(TOOLBAR_MENU_NAME, tool_bar_menu, self)
 
 func _exit_tree() -> void:

@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://bkuj0fqxrjoj8"]
+
+[ext_resource type="Script" uid="uid://dodeyqrfb0lsj" path="res://addons/diablohumastudio/visual_resources_editor/ui/class_selector/class_selector.gd" id="1_cls"]
+
+[node name="ClassSelector" type="HBoxContainer" unique_id=2105379804]
+size_flags_horizontal = 3
+script = ExtResource("1_cls")
+
+[node name="Label" type="Label" parent="." unique_id=529713665]
+layout_mode = 2
+text = "Class:"
+
+[node name="SearchField" type="LineEdit" parent="." unique_id=161410134]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Type to search..."
+
+[node name="ClassList" type="PopupMenu" parent="." unique_id=1309653384]
+unique_name_in_owner = true
