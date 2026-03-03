@@ -2,11 +2,11 @@
 class_name VisualResourcesEditorGeminiToolbar
 extends DiablohumaStudioToolMenu
 
-const VisualResourcesEditorWindowPksc = preload("uid://b6ssn0jpljw4r")
+const VisualResourcesEditorWindowPksc = preload("uid://cxe6plodx1eyy")
 var visual_resources_editor_window: Window
 
 func _enter_tree() -> void:
-	add_item("Launch Visual Editor", 0, KEY_F3)
+	add_item("Launch Visual Editor", 0, KEY_F4)
 	id_pressed.connect(_on_menu_id_pressed)
 
 func _exit_tree() -> void:

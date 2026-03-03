@@ -1,0 +1,45 @@
+[gd_scene format=3 uid="uid://c8nqm0s843k1i"]
+
+[ext_resource type="Script" path="res://addons/diablohumastudio/visual_resources_editor_gemini/ui/visual_data_instance_row.gd" id="1_xab1c"]
+
+[node name="VisualDataInstanceRow" type="HBoxContainer"]
+custom_minimum_size = Vector2(0, 40)
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+script = ExtResource("1_xab1c")
+
+[node name="CheckBox" type="CheckBox" parent="."]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="NameLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Instance Name"
+
+[node name="PathLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 10
+text = "res://path/to/instance.tres"
+
+[node name="ActionBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 8
+alignment = 1
+
+[node name="EditButton" type="Button" parent="ActionBox"]
+layout_mode = 2
+size_flags_vertical = 4
+text = "Edit"
+
+[node name="DeleteButton" type="Button" parent="ActionBox"]
+layout_mode = 2
+size_flags_vertical = 4
+text = "Delete"
