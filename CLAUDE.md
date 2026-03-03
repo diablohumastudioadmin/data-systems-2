@@ -23,6 +23,11 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 ## GDScript Inheritance Gotcha
 - **GDScript disallows redeclaring `const` or `var` (properties) in child classes** if the same name exists in a parent class. This applies to all consts and exported properties — the child will fail to compile with "already exists in parent class". The correct pattern: declare the variable in the base class, then override its **value** in `_init()` of each subclass.
 
+## ButtonGroup as Shared Resource (Single-Select Rows)
+- To make a group of Buttons mutually exclusive, create a `ButtonGroup` as a `.tres` file (e.g. `row_button_group.tres`), assign it in the `.tscn` on the Button node, and ensure `resource_local_to_scene = false` (the default for external resources). All instances that share this resource file will be part of the same exclusive group.
+- **Limitation**: ButtonGroup does not support Ctrl+Click multi-select. For multi-select scenarios, manage selection state manually in the parent script (set `toggle_mode = true` on buttons, deselect all + select clicked on normal click, toggle on Ctrl+Click).
+- **TODO**: Create a skill `diablohumastudio-shared-button-group` to scaffold a ButtonGroup `.tres` resource and wire it to a scene node.
+
 ## Running Tests
 - **Godot binary**: `Godot4.6` (alias or full path: `/Volumes/Fer/RespaldoFER/Documentos/GODOT/Editor/Executables/Godot_v4.6-stable_macos.universal.app/Contents/MacOS/Godot`)
 - **Command**: `Godot4.6 --headless --path . --script tests/test_<name>.gd`

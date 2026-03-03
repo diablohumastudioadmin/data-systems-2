@@ -20,7 +20,6 @@ func _exit_tree() -> void:
 
 func _on_class_selected(class_name_str: String, script_path: String) -> void:
 	%ResourceList.set_resource_class(class_name_str, script_path)
-	%ResourceList._update_bulk_edit_popup()
 
 
 func _on_filesystem_changed() -> void:
@@ -28,19 +27,4 @@ func _on_filesystem_changed() -> void:
 
 
 func _on_close_requested() -> void:
-	if %ResourceList.has_unsaved_changes():
-		var dialog: ConfirmationDialog = ConfirmationDialog.new()
-		dialog.dialog_text = "You have unsaved changes. Close anyway?"
-		dialog.ok_button_text = "Discard & Close"
-
-		dialog.confirmed.connect(func():
-			dialog.queue_free()
-			queue_free()
-		)
-		dialog.canceled.connect(func(): dialog.queue_free())
-
-		add_child(dialog)
-		dialog.popup_centered()
-		return
-
 	queue_free()

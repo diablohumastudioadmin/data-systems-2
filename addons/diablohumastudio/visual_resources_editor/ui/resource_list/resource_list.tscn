@@ -32,13 +32,6 @@ layout_mode = 2
 disabled = true
 text = "Bulk Edit"
 
-[node name="Sep2" type="VSeparator" parent="Toolbar" unique_id=2066546245]
-layout_mode = 2
-
-[node name="SaveAllBtn" type="Button" parent="Toolbar" unique_id=851324827]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Save All"
 
 [node name="RefreshBtn" type="Button" parent="Toolbar" unique_id=1482022476]
 unique_name_in_owner = true

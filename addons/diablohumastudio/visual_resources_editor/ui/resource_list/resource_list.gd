@@ -10,9 +10,8 @@ var _current_class_name: String = ""
 var _current_script_path: String = ""
 var _columns: Array[Dictionary] = []
 var _loaded_resources: Dictionary = {}  # resource_path → Resource
-var _dirty_paths: Dictionary = {}       # resource_path → true
 var _rows: Array = []                   # ResourceRow nodes
-var _highlighted_row: Node = null
+var _inspected_path: String = ""
 var _bulk_proxy: Resource = null
 var _is_bulk_editing: bool = false
 var _inspector_connected: bool = false
@@ -21,7 +20,6 @@ var _inspector_connected: bool = false
 func _ready() -> void:
 	%CreateBtn.pressed.connect(_on_create_pressed)
 	%DeleteSelectedBtn.pressed.connect(_on_delete_selected_pressed)
-	%SaveAllBtn.pressed.connect(_on_save_all_pressed)
 	%RefreshBtn.pressed.connect(_on_refresh_pressed)
 	%IncludeSubclassesCheck.toggled.connect(func(_v): _rescan_and_rebuild())
 
@@ -46,10 +44,6 @@ func refresh() -> void:
 	_rescan_and_rebuild()
 
 
-func has_unsaved_changes() -> bool:
-	return not _dirty_paths.is_empty()
-
-
 # ── Scanning ──────────────────────────────────────────────────────────────────
 
 func _rescan_and_rebuild() -> void:
@@ -61,6 +55,7 @@ func _rescan_and_rebuild() -> void:
 	var paths: Array[String] = _scan_project_for_class()
 	_build_header_row()
 	_build_rows(paths)
+	_update_bulk_edit_popup()
 	_update_status("%d resource(s) found" % paths.size())
 
 
@@ -109,7 +104,6 @@ func _read_tres_class(path: String) -> String:
 	var header: String = f.get_buffer(500).get_string_from_utf8()
 	f.close()
 
-	# User-script resource: script_class="ClassName"
 	var sc_idx: int = header.find('script_class="')
 	if sc_idx >= 0:
 		var start: int = sc_idx + 14
@@ -117,7 +111,6 @@ func _read_tres_class(path: String) -> String:
 		if end > start:
 			return header.substr(start, end - start)
 
-	# Built-in type: type="ClassName"
 	var t_idx: int = header.find('type="')
 	if t_idx >= 0:
 		var start: int = t_idx + 6
@@ -135,14 +128,12 @@ func _build_valid_class_set() -> Dictionary:
 	if not %IncludeSubclassesCheck.button_pressed:
 		return valid
 
-	# Build parent→children map from global class list
 	var class_entries: Dictionary = {}
 	for entry: Dictionary in ProjectSettings.get_global_class_list():
 		var cls: String = entry.get("class", "")
 		if not cls.is_empty():
 			class_entries[cls] = entry.get("base", "")
 
-	# Collect all descendants
 	var changed: bool = true
 	while changed:
 		changed = false
@@ -193,11 +184,6 @@ func _build_header_row() -> void:
 	for child in %HeaderRow.get_children():
 		child.queue_free()
 
-	# Match the layout of resource_row: checkbox spacer + filename + fields + delete spacer
-	var check_spacer: Control = Control.new()
-	check_spacer.custom_minimum_size = Vector2(24, 0)
-	%HeaderRow.add_child(check_spacer)
-
 	var file_label: Label = Label.new()
 	file_label.text = "File"
 	file_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -205,17 +191,19 @@ func _build_header_row() -> void:
 	file_label.add_theme_font_size_override("font_size", 12)
 	%HeaderRow.add_child(file_label)
 
-	var fields_header: HBoxContainer = HBoxContainer.new()
-	fields_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	fields_header.size_flags_stretch_ratio = 3.0
 	for col: Dictionary in _columns:
+		var sep: VSeparator = VSeparator.new()
+		%HeaderRow.add_child(sep)
+
 		var lbl: Label = Label.new()
 		lbl.text = col.name
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		lbl.clip_text = true
 		lbl.add_theme_font_size_override("font_size", 12)
-		fields_header.add_child(lbl)
-	%HeaderRow.add_child(fields_header)
+		%HeaderRow.add_child(lbl)
+
+	var sep_del: VSeparator = VSeparator.new()
+	%HeaderRow.add_child(sep_del)
 
 	var del_spacer: Control = Control.new()
 	del_spacer.custom_minimum_size = Vector2(28, 0)
@@ -225,6 +213,7 @@ func _build_header_row() -> void:
 func _build_rows(paths: Array[String]) -> void:
 	_clear_rows()
 	_loaded_resources.clear()
+	_inspected_path = ""
 
 	for path: String in paths:
 		var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
@@ -236,7 +225,6 @@ func _build_rows(paths: Array[String]) -> void:
 		%RowsContainer.add_child(row)
 		row.setup(res, _columns)
 		row.row_clicked.connect(_on_row_clicked)
-		row.row_selected.connect(_on_row_selection_changed)
 		row.delete_requested.connect(_on_row_delete_requested)
 		_rows.append(row)
 
@@ -246,7 +234,6 @@ func _clear_rows() -> void:
 		if is_instance_valid(row):
 			row.queue_free()
 	_rows.clear()
-	_highlighted_row = null
 
 
 # ── Inspector integration ─────────────────────────────────────────────────────
@@ -271,42 +258,45 @@ func _disconnect_inspector() -> void:
 	_inspector_connected = false
 
 
-func _on_row_clicked(resource_path: String) -> void:
-	if _is_bulk_editing:
+func _on_row_clicked(resource_path: String, ctrl_held: bool) -> void:
+	if ctrl_held:
+		for row in _rows:
+			if is_instance_valid(row) and row.get_resource_path() == resource_path:
+				row.set_selected(!row.is_selected())
+				break
+	else:
+		for row in _rows:
+			if is_instance_valid(row):
+				row.set_selected(row.get_resource_path() == resource_path)
+
+		if not _is_bulk_editing:
+			var res: Resource = _loaded_resources.get(resource_path)
+			if res:
+				_inspected_path = resource_path
+				EditorInterface.inspect_object(res)
+				resource_clicked.emit(res)
+
+	_update_selection_ui()
+
+
+func _on_inspector_property_edited(_property: String) -> void:
+	if _is_bulk_editing or _inspected_path.is_empty():
 		return
 
-	var res: Resource = _loaded_resources.get(resource_path)
-	if res == null:
-		return
-
-	# Highlight this row, unhighlight previous
-	for row in _rows:
-		if is_instance_valid(row):
-			row.set_highlighted(row.get_resource_path() == resource_path)
-
-	EditorInterface.inspect_object(res)
 	var inspector: EditorInspector = EditorInterface.get_inspector()
-	if inspector:
-		inspector.grab_focus()
-
-	resource_clicked.emit(res)
-
-
-func _on_inspector_property_edited(property: String) -> void:
-	if _is_bulk_editing:
+	if inspector == null:
+		return
+	var edited_obj: Object = inspector.get_edited_object()
+	var expected_res: Resource = _loaded_resources.get(_inspected_path)
+	if edited_obj == null or edited_obj != expected_res:
 		return
 
-	# Find the row being inspected and update it
-	for row in _rows:
-		if not is_instance_valid(row):
-			continue
-		var res: Resource = row.get_resource()
-		# Check if this resource is the one currently in the inspector
-		if res and _is_column_property(property):
-			_dirty_paths[row.get_resource_path()] = true
-			row.update_display()
+	ResourceSaver.save(expected_res, _inspected_path)
 
-	_update_save_status()
+	for row in _rows:
+		if is_instance_valid(row) and row.get_resource_path() == _inspected_path:
+			row.update_display()
+			break
 
 
 func _is_column_property(property: String) -> bool:
@@ -318,17 +308,20 @@ func _is_column_property(property: String) -> bool:
 
 # ── Selection & Bulk Edit ─────────────────────────────────────────────────────
 
-func _on_row_selection_changed(_resource_path: String, _is_selected: bool) -> void:
+func _update_selection_ui() -> void:
 	var selected_count: int = _get_selected_rows().size()
 	%BulkEditBtn.disabled = selected_count < 2
 	%DeleteSelectedBtn.text = "Delete Selected (%d)" % selected_count if selected_count > 0 else "Delete Selected"
-	_update_status("%d selected" % selected_count if selected_count > 0 else "%d resource(s)" % _rows.size())
+	if selected_count > 0:
+		_update_status("%d selected" % selected_count)
+	else:
+		_update_status("%d resource(s)" % _rows.size())
 
 
 func _get_selected_rows() -> Array:
 	var selected: Array = []
 	for row in _rows:
-		if is_instance_valid(row) and row.is_checked():
+		if is_instance_valid(row) and row.is_selected():
 			selected.append(row)
 	return selected
 
@@ -370,9 +363,8 @@ func _on_bulk_value_changed(field_name: String, new_value: Variant) -> void:
 		var res: Resource = row.get_resource()
 		if res:
 			res.set(field_name, new_value)
-			_dirty_paths[row.get_resource_path()] = true
+			ResourceSaver.save(res, row.get_resource_path())
 			row.update_display()
-	_update_save_status()
 
 
 func _end_bulk_edit() -> void:
@@ -400,7 +392,6 @@ func _on_create_pressed() -> void:
 			var res: Resource = script.new()
 			ResourceSaver.save(res, path)
 			EditorInterface.get_resource_filesystem().scan()
-			# Defer rebuild to let filesystem update
 			_rescan_and_rebuild.call_deferred()
 		dialog.queue_free()
 	)
@@ -435,7 +426,6 @@ func _confirm_delete(paths: Array[String]) -> void:
 		for path: String in paths:
 			DirAccess.remove_absolute(path)
 			_loaded_resources.erase(path)
-			_dirty_paths.erase(path)
 		EditorInterface.get_resource_filesystem().scan()
 		_end_bulk_edit()
 		_rescan_and_rebuild.call_deferred()
@@ -445,17 +435,6 @@ func _confirm_delete(paths: Array[String]) -> void:
 
 	add_child(dialog)
 	dialog.popup_centered()
-
-
-func _on_save_all_pressed() -> void:
-	var saved_count: int = 0
-	for path: String in _dirty_paths:
-		var res: Resource = _loaded_resources.get(path)
-		if res:
-			ResourceSaver.save(res, path)
-			saved_count += 1
-	_dirty_paths.clear()
-	_update_status("Saved %d resource(s)" % saved_count)
 
 
 func _on_refresh_pressed() -> void:
@@ -475,9 +454,3 @@ func _update_bulk_edit_popup() -> void:
 
 func _update_status(text: String) -> void:
 	%StatusLabel.text = text
-
-
-func _update_save_status() -> void:
-	if _dirty_paths.is_empty():
-		return
-	%StatusLabel.text = "%d unsaved change(s)" % _dirty_paths.size()

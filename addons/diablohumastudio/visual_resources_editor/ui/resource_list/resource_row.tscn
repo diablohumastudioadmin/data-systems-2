@@ -6,11 +6,6 @@
 size_flags_horizontal = 3
 script = ExtResource("1_row")
 
-[node name="SelectCheck" type="CheckBox" parent="." unique_id=1874053454]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(24, 0)
-layout_mode = 2
-
 [node name="FileNameLabel" type="Label" parent="." unique_id=780503217]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 0)
@@ -19,11 +14,17 @@ size_flags_horizontal = 3
 clip_text = true
 text_overrun_behavior = 3
 
+[node name="ColSep" type="VSeparator" parent="." unique_id=1874053454]
+layout_mode = 2
+
 [node name="FieldsContainer" type="HBoxContainer" parent="." unique_id=1344206157]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 3.0
+
+[node name="DelSep" type="VSeparator" parent="." unique_id=1309653384]
+layout_mode = 2
 
 [node name="DeleteBtn" type="Button" parent="." unique_id=841477081]
 unique_name_in_owner = true
