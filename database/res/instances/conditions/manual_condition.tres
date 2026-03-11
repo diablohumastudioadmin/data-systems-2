@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="Conditions" format=3 uid="uid://ojy5wdi8g8rq"]
+
+[ext_resource type="Script" uid="uid://dso826stdr8fk" path="res://database/res/table_structures/conditions.gd" id="1_7blh7"]
+
+[resource]
+script = ExtResource("1_7blh7")
+name = "manual condition"
+metadata/_custom_type_script = "uid://dso826stdr8fk"
