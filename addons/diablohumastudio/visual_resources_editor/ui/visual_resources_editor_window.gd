@@ -24,6 +24,7 @@ func _on_class_selected(class_name_str: String, script_path: String) -> void:
 
 func _on_filesystem_changed() -> void:
 	%ResourceList.refresh()
+	%ClassSelector.refresh()
 
 
 func _on_close_requested() -> void:

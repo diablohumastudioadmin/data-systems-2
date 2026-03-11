@@ -1,6 +1,7 @@
-[gd_scene format=3 uid="uid://c113p8acip31a"]
+[gd_scene load_steps=2 format=3 uid="uid://c113p8acip31a"]
 
 [ext_resource type="Script" uid="uid://bdgqiegljl3yg" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/resource_list.gd" id="1_list"]
+[ext_resource type="PackedScene" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/header_row.tscn" id="2_hdr"]
 
 [node name="ResourceList" type="VBoxContainer" unique_id=1598452339]
 anchors_preset = 15
@@ -26,13 +27,6 @@ text = "Delete Selected"
 [node name="Sep1" type="VSeparator" parent="Toolbar" unique_id=1585828051]
 layout_mode = 2
 
-[node name="BulkEditBtn" type="MenuButton" parent="Toolbar" unique_id=286088333]
-unique_name_in_owner = true
-layout_mode = 2
-disabled = true
-text = "Bulk Edit"
-
-
 [node name="RefreshBtn" type="Button" parent="Toolbar" unique_id=1482022476]
 unique_name_in_owner = true
 layout_mode = 2
@@ -41,18 +35,28 @@ text = "Refresh"
 [node name="Sep3" type="VSeparator" parent="Toolbar" unique_id=62506189]
 layout_mode = 2
 
-[node name="IncludeSubclassesCheck" type="CheckBox" parent="Toolbar" unique_id=620498068]
+[node name="VBoxContainer" type="VBoxContainer" parent="Toolbar" unique_id=559344752]
+layout_mode = 2
+theme_override_constants/separation = -4
+
+[node name="IncludeSubclassesCheck" type="CheckBox" parent="Toolbar/VBoxContainer" unique_id=620498068]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
-text = "Include subclasses"
+text = "Include subclasses
+"
+
+[node name="Label" type="Label" parent="Toolbar/VBoxContainer" unique_id=176336212]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.28235295, 0.27058825, 1)
+theme_override_font_sizes/font_size = 10
+text = "Warn: Don't work with string path extend"
 
 [node name="HSeparator" type="HSeparator" parent="." unique_id=1867903496]
 layout_mode = 2
 
-[node name="HeaderRow" type="HBoxContainer" parent="." unique_id=232825132]
+[node name="HeaderRow" parent="." unique_id=232825132 instance=ExtResource("2_hdr")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
 
 [node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=712941535]

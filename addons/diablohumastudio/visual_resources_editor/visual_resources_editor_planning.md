@@ -205,6 +205,13 @@ ResourceList (VBoxContainer) [anchors full rect]
 6. "X" on row or "Delete Selected" → file removed → list updates
 7. "Save All" → dirty resources saved
 
+## TODO — Performance & Quality
+
+- [ ] **Debounce `filesystem_changed`** — Add a Timer (e.g. 0.3s) to coalesce rapid `filesystem_changed` signals into a single `_rescan_and_rebuild()` call
+- [ ] **Eager loading** — All matching `.tres` files are loaded into RAM at rebuild time. For large datasets, consider virtualized/lazy row loading (only load resources for visible rows)
+- [ ] **O(n²) subclass propagation** in `_build_valid_class_set()` — Replace the `while changed` loop with a parent→children map + BFS/DFS for linear-time resolution
+- [ ] **O(n²) inheritance check** in `class_selector.gd:_is_resource_descendant()` — Pre-index `get_global_class_list()` into a Dictionary before walking the inheritance chain
+
 ## Reference (copy patterns from, don't import)
 
 - [data_instance_editor.gd](addons/diablohumastudio/database_manager/ui/data_instance_editor/data_instance_editor.gd) — Inspector integration, value display, selection handling

@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/header_row.gd" id="1_hdr"]
+
+[node name="HeaderRow" type="HBoxContainer"]
+custom_minimum_size = Vector2(0, 24)
+script = ExtResource("1_hdr")
+
+[node name="FileLabel" type="Label" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(150, 0)
+theme_override_font_sizes/font_size = 12
+text = "File"
+
+[node name="ColSep" type="VSeparator" parent="."]
+layout_mode = 2
+
+[node name="FieldsContainer" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 3.0
+
+[node name="DelSep" type="VSeparator" parent="."]
+layout_mode = 2
+
+[node name="DelSpacer" type="Control" parent="."]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2

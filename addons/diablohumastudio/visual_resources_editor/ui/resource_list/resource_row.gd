@@ -1,42 +1,27 @@
 @tool
-extends HBoxContainer
+class_name ResourceRow
+extends Button
 
-signal row_clicked(resource_path: String, ctrl_held: bool)
+signal row_clicked(row: ResourceRow, shift_held: bool)
 signal delete_requested(resource_path: String)
 
-var _resource: Resource
-var _resource_path: String
-var _columns: Array[Dictionary]
+var resource: Resource
+var columns: Array[Dictionary]
 var _field_labels: Array[Label] = []
-var _is_selected: bool = false
-
-var _normal_style: StyleBoxFlat
-var _highlight_style: StyleBoxFlat
+var _color_style: StyleBoxFlat
 
 
 func _ready() -> void:
-	_normal_style = StyleBoxFlat.new()
-	_normal_style.bg_color = Color.TRANSPARENT
+	_color_style = StyleBoxFlat.new()
+	_color_style.corner_radius_top_left = 2
+	_color_style.corner_radius_top_right = 2
+	_color_style.corner_radius_bottom_left = 2
+	_color_style.corner_radius_bottom_right = 2
 
-	_highlight_style = StyleBoxFlat.new()
-	_highlight_style.bg_color = Color(0.2, 0.4, 0.7, 0.3)
-	_highlight_style.corner_radius_top_left = 4
-	_highlight_style.corner_radius_top_right = 4
-	_highlight_style.corner_radius_bottom_left = 4
-	_highlight_style.corner_radius_bottom_right = 4
+	%DeleteBtn.pressed.connect(func(): delete_requested.emit(resource.resource_path))
 
-	add_theme_stylebox_override("panel", _normal_style)
-
-	%DeleteBtn.pressed.connect(func(): delete_requested.emit(_resource_path))
-
-
-func setup(resource: Resource, columns: Array[Dictionary]) -> void:
-	_resource = resource
-	_resource_path = resource.resource_path
-	_columns = columns
-
-	%FileNameLabel.text = _resource_path.get_file()
-	%FileNameLabel.tooltip_text = _resource_path
+	%FileNameLabel.text = resource.resource_path.get_file()
+	%FileNameLabel.tooltip_text = resource.resource_path
 
 	_build_field_labels()
 
@@ -46,60 +31,56 @@ func _build_field_labels() -> void:
 		child.queue_free()
 	_field_labels.clear()
 
-	for i in range(_columns.size()):
+	for i in range(columns.size()):
 		if i > 0:
 			var sep: VSeparator = VSeparator.new()
+			sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			%FieldsContainer.add_child(sep)
 
 		var label: Label = Label.new()
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		label.clip_text = true
 		label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		_set_label_value(label, _columns[i])
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_set_label_value(label, columns[i])
 		%FieldsContainer.add_child(label)
 		_field_labels.append(label)
 
 
 func update_display() -> void:
-	if not _resource:
+	if not resource:
 		return
-	for i in range(_columns.size()):
+	for i in range(columns.size()):
 		if i < _field_labels.size():
-			_set_label_value(_field_labels[i], _columns[i])
+			_set_label_value(_field_labels[i], columns[i])
 
 
 func is_selected() -> bool:
-	return _is_selected
+	return button_pressed
 
 
 func set_selected(selected: bool) -> void:
-	_is_selected = selected
-	add_theme_stylebox_override("panel", _highlight_style if selected else _normal_style)
+	button_pressed = selected
 
 
 func get_resource() -> Resource:
-	return _resource
+	return resource
 
 
 func get_resource_path() -> String:
-	return _resource_path
+	return resource.resource_path
 
 
 func _set_label_value(label: Label, col: Dictionary) -> void:
-	var value: Variant = _resource.get(col.name)
+	var value: Variant = resource.get(col.name)
 	label.text = _format_value(value, col.type)
 	label.tooltip_text = "%s: %s" % [col.name, label.text]
 
 	if col.type == TYPE_COLOR and value is Color:
-		var sb: StyleBoxFlat = StyleBoxFlat.new()
-		sb.bg_color = value
-		sb.corner_radius_top_left = 2
-		sb.corner_radius_top_right = 2
-		sb.corner_radius_bottom_left = 2
-		sb.corner_radius_bottom_right = 2
-		label.add_theme_stylebox_override("normal", sb)
+		_color_style.bg_color = value
+		label.add_theme_stylebox_override("normal", _color_style.duplicate())
 		label.add_theme_color_override("font_color",
-			Color.BLACK if value.v > 0.5 else Color.WHITE)
+			Color.BLACK if value.get_luminance() > 0.5 else Color.WHITE)
 	else:
 		label.remove_theme_stylebox_override("normal")
 		label.remove_theme_color_override("font_color")
@@ -124,6 +105,5 @@ func _format_value(value: Variant, type: int) -> String:
 	return str(value)
 
 
-func _gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		row_clicked.emit(_resource_path, event.ctrl_pressed)
+func _on_pressed() -> void:
+	row_clicked.emit(self, Input.is_key_pressed(KEY_SHIFT))

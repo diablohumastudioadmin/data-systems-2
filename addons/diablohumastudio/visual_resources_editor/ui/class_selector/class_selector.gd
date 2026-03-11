@@ -50,7 +50,7 @@ func _is_resource_descendant(entry: Dictionary) -> bool:
 	return false
 
 
-func refresh_classes() -> void:
+func refresh() -> void:
 	_gather_classes()
 
 

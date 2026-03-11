@@ -4,5 +4,4 @@
 
 [resource]
 script = ExtResource("1_u4dc5")
-name = "iron chest"
-id = 6357227820310843698
+metadata/_custom_type_script = "uid://da2dq6wo7140b"
