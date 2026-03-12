@@ -27,9 +27,9 @@ func _exit_tree() -> void:
 	_disconnect_inspector()
 
 
-func set_resource_class(class_name_str: String, script_path: String) -> void:
+func set_resource_class(class_name_str: String) -> void:
 	_current_class_name = class_name_str
-	_current_script_path = script_path
+	_current_script_path = ProjectClassScanner.build_project_classes_parent_map()[_current_class_name]
 	_end_bulk_edit()
 	_rescan_and_rebuild()
 
@@ -269,7 +269,8 @@ func _confirm_delete(paths: Array[String]) -> void:
 
 	dialog.confirmed.connect(func():
 		for path: String in paths:
-			DirAccess.remove_absolute(path)
+			var abs_path := ProjectSettings.globalize_path(path)
+			DirAccess.remove_absolute(abs_path)
 			_loaded_resources.erase(path)
 		EditorInterface.get_resource_filesystem().scan()
 		_end_bulk_edit()

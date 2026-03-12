@@ -1,8 +1,21 @@
 @tool
 extends Window
 
+var _included_classes_names_paths: Array[Dictionary] = ProjectClassScanner.get_resource_classes_in_folder([],[]) :
+	set(new_value):
+		_included_classes_names_paths = new_value
+		if is_node_ready():
+			set_class_selector_class_names()
+
+func set_class_selector_class_names():
+	var class_names: Array
+	class_names = _included_classes_names_paths \
+		.map(func(class_name_and_path): return class_name_and_path.name as String)
+	print(class_names)
+	%ClassSelector._classes_names = class_names
 
 func _ready() -> void:
+	set_class_selector_class_names()
 	%ClassSelector.class_selected.connect(_on_class_selected)
 
 	if Engine.is_editor_hint():
@@ -18,8 +31,8 @@ func _exit_tree() -> void:
 			efs.filesystem_changed.disconnect(_on_filesystem_changed)
 
 
-func _on_class_selected(class_name_str: String, script_path: String) -> void:
-	%ResourceList.set_resource_class(class_name_str, script_path)
+func _on_class_selected(class_name_str: String) -> void:
+	%ResourceList.set_resource_class(class_name_str)
 
 
 func _on_filesystem_changed() -> void:

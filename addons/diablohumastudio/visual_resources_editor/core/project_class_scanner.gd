@@ -1,6 +1,21 @@
 @tool
 class_name ProjectClassScanner
 
+static func get_resource_classes_in_folder(included_folder_paths: Array[String], excluded_folder_paths: Array[String]) -> Array[Dictionary]:
+	var resource_classes: Array[Dictionary]
+	var parent_map: Dictionary = build_project_classes_parent_map()
+
+	for entry: Dictionary in ProjectSettings.get_global_class_list():
+		var cls_name: String = entry.get("class", "")
+		var cls_path: String = entry.get("path", "")
+
+		if cls_name.is_empty() or cls_path.is_empty() or cls_path.contains("addons/"):
+			continue
+
+		if class_is_resource_descendant(cls_name, parent_map):
+			resource_classes.append({"name": cls_name, "path": cls_path})
+	return resource_classes
+
 
 static func build_project_classes_parent_map() -> Dictionary:
 	var map: Dictionary = {}
@@ -66,7 +81,7 @@ static func scan_folder_for_classed_tres(
 
 
 static func get_class_from_tres_file(tres_file_path: String) -> String:
-	var loaded_resource: Resource = load(tres_file_path)
+	var loaded_resource: Resource = ResourceLoader.load(tres_file_path, "", ResourceLoader.CACHE_MODE_IGNORE)
 	if loaded_resource == null: return ""
 	var resource_script: Script = loaded_resource.get_script()
 	if resource_script == null: return ""
@@ -82,14 +97,11 @@ static func get_properties_from_script_path(script_path: String) -> Array[Dictio
 	if script == null:
 		return properties
 
-	var temp_instance: Resource = script.new()
-	if temp_instance == null:
-		return properties
-
-	for prop: Dictionary in temp_instance.get_property_list():
+	for prop: Dictionary in script.get_script_property_list():
 		if not (prop.usage & PROPERTY_USAGE_EDITOR):
 			continue
 		var prop_name: String = prop.name
+		print(prop_name)
 		if prop_name.begins_with("resource_") or prop_name.begins_with("metadata/"):
 			continue
 		if prop_name in ["script", "resource_local_to_scene"]:

@@ -1,45 +1,36 @@
 @tool
 extends HBoxContainer
 
-signal class_selected(class_name_str: String, script_path: String)
+signal class_selected(class_name_str: String)
 
-var _all_classes: Array[Dictionary] = []
+var _classes_names: Array = [] : 
+	set(new_value):
+		_classes_names = new_value
+		if is_node_ready(): 
+			set_classes_in_dropdown()
 
 
 func _ready() -> void:
-	%ClassDropdown.item_selected.connect(_on_item_selected)
 	set_classes_in_dropdown()
 
 
 func set_classes_in_dropdown() -> void:
-	_all_classes.clear()
 	%ClassDropdown.clear()
 	%ClassDropdown.add_item("-- Select a class --", 0)
 
-	var parent_map: Dictionary = ProjectClassScanner.build_project_classes_parent_map()
+	_classes_names.sort_custom(func(a: String, b: String): return a.nocasecmp_to(b) < 0)
 
-	for entry: Dictionary in ProjectSettings.get_global_class_list():
-		var cls_name: String = entry.get("class", "")
-		var cls_path: String = entry.get("path", "")
-		if cls_name.is_empty() or cls_path.is_empty() or cls_path.contains("addons/"):
-			continue
-		if ProjectClassScanner.class_is_resource_descendant(cls_name, parent_map):
-			_all_classes.append({"name": cls_name, "path": cls_path})
-
-	_all_classes.sort_custom(func(a, b): return a.name.nocasecmp_to(b.name) < 0)
-
-	for i in range(_all_classes.size()):
-		%ClassDropdown.add_item(_all_classes[i].name, i + 1)
+	for i in range(_classes_names.size()):
+		%ClassDropdown.add_item(_classes_names[i], i + 1)
 
 
 func refresh() -> void:
 	set_classes_in_dropdown()
 
 
-func _on_item_selected(index: int) -> void:
-	if index == 0:
-		return
-	var entry_index: int = index - 1
-	if entry_index >= 0 and entry_index < _all_classes.size():
-		var entry: Dictionary = _all_classes[entry_index]
-		class_selected.emit(entry.name, entry.path)
+func _on_class_dropdown_item_selected(index: int) -> void:
+	if index == 0: return
+	var class_name_index: int = index - 1
+	if class_name_index >= 0 and class_name_index < _classes_names.size():
+		var _class_name: String = _classes_names[class_name_index]
+		class_selected.emit(_class_name)
