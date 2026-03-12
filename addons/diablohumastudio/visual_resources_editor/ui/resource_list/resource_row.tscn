@@ -71,5 +71,4 @@ layout_mode = 2
 text = "X"
 flat = true
 
-[connection signal="mouse_entered" from="." to="." method="_on_mouse_entered"]
 [connection signal="pressed" from="." to="." method="_on_pressed"]

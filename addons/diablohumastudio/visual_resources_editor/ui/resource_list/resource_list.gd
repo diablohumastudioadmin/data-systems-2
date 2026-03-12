@@ -150,6 +150,9 @@ func _on_inspector_property_edited(property: String) -> void:
 		return
 	var edited_obj: Object = inspector.get_edited_object()
 
+	if edited_obj != _bulk_proxy and not _loaded_resources.values().has(edited_obj):
+		return
+
 	if _is_bulk_editing and _bulk_proxy and edited_obj == _bulk_proxy:
 		var new_value: Variant = _bulk_proxy.get(property)
 		for row in _get_selected_rows():
@@ -235,7 +238,6 @@ func _on_create_pressed() -> void:
 			var res: Resource = script.new()
 			ResourceSaver.save(res, path)
 			EditorInterface.get_resource_filesystem().scan()
-			_rescan_and_rebuild.call_deferred()
 		dialog.queue_free()
 	)
 	dialog.canceled.connect(func(): dialog.queue_free())
@@ -271,7 +273,6 @@ func _confirm_delete(paths: Array[String]) -> void:
 			_loaded_resources.erase(path)
 		EditorInterface.get_resource_filesystem().scan()
 		_end_bulk_edit()
-		_rescan_and_rebuild.call_deferred()
 		dialog.queue_free()
 	)
 	dialog.canceled.connect(func(): dialog.queue_free())

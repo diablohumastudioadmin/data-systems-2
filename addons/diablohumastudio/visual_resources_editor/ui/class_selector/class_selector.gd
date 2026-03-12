@@ -8,20 +8,22 @@ var _all_classes: Array[Dictionary] = []
 
 func _ready() -> void:
 	%ClassDropdown.item_selected.connect(_on_item_selected)
-	_gather_classes()
+	set_classes_in_dropdown()
 
 
-func _gather_classes() -> void:
+func set_classes_in_dropdown() -> void:
 	_all_classes.clear()
 	%ClassDropdown.clear()
 	%ClassDropdown.add_item("-- Select a class --", 0)
 
+	var parent_map: Dictionary = ProjectClassScanner.build_project_classes_parent_map()
+
 	for entry: Dictionary in ProjectSettings.get_global_class_list():
 		var cls_name: String = entry.get("class", "")
 		var cls_path: String = entry.get("path", "")
-		if cls_name.is_empty() or cls_path.is_empty():
+		if cls_name.is_empty() or cls_path.is_empty() or cls_path.contains("addons/"):
 			continue
-		if _is_resource_descendant(entry):
+		if ProjectClassScanner.class_is_resource_descendant(cls_name, parent_map):
 			_all_classes.append({"name": cls_name, "path": cls_path})
 
 	_all_classes.sort_custom(func(a, b): return a.name.nocasecmp_to(b.name) < 0)
@@ -30,28 +32,8 @@ func _gather_classes() -> void:
 		%ClassDropdown.add_item(_all_classes[i].name, i + 1)
 
 
-func _is_resource_descendant(entry: Dictionary) -> bool:
-	var base: String = entry.get("base", "")
-	var visited: Dictionary = {}
-	while not base.is_empty() and base not in visited:
-		visited[base] = true
-		if base == "Resource":
-			return true
-		if ClassDB.class_exists(base):
-			return ClassDB.is_parent_class(base, "Resource")
-		var found: bool = false
-		for other: Dictionary in ProjectSettings.get_global_class_list():
-			if other.get("class", "") == base:
-				base = other.get("base", "")
-				found = true
-				break
-		if not found:
-			break
-	return false
-
-
 func refresh() -> void:
-	_gather_classes()
+	set_classes_in_dropdown()
 
 
 func _on_item_selected(index: int) -> void:

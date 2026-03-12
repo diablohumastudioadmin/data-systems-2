@@ -11,6 +11,21 @@ static func build_project_classes_parent_map() -> Dictionary:
 	return map
 
 
+static func class_is_resource_descendant(cls_name: String, classes_parent_map: Dictionary = {}) -> bool:
+	if classes_parent_map.is_empty():
+		classes_parent_map = build_project_classes_parent_map()
+
+	var base: String = classes_parent_map.get(cls_name, "")
+	if base.is_empty():
+		return false
+	elif base == "Resource":
+		return true
+	elif ClassDB.class_exists(base): # if base hits a native class checks directly (not recursive) tiwh is_parent_class
+		return ClassDB.is_parent_class(base, "Resource")
+	else:
+		return class_is_resource_descendant(base, classes_parent_map)
+
+
 static func get_descendant_classes(
 	base_class: String, classes_parent_map: Dictionary = {}
 ) -> Array[String]:
@@ -26,8 +41,8 @@ static func get_descendant_classes(
 
 
 static func scan_folder_for_classed_tres(
-	dir: EditorFileSystemDirectory, classes: Array
-) -> Array[String]:
+	dir: EditorFileSystemDirectory, classes: Array) -> Array[String]:
+
 	var results: Array[String]
 	if dir == null:
 		return []
