@@ -6,8 +6,9 @@ static func build_project_classes_parent_map() -> Dictionary:
 	var map: Dictionary = {}
 	for entry: Dictionary in ProjectSettings.get_global_class_list():
 		var cls: String = entry.get("class", "")
-		if not cls.is_empty():
-			map[cls] = entry.get("base", "")
+		if cls.is_empty(): continue
+		var base: String = entry.get("base", "")
+		map[cls] = base
 	return map
 
 
@@ -20,7 +21,7 @@ static func class_is_resource_descendant(cls_name: String, classes_parent_map: D
 		return false
 	elif base == "Resource":
 		return true
-	elif ClassDB.class_exists(base): # if base hits a native class checks directly (not recursive) tiwh is_parent_class
+	elif ClassDB.class_exists(base): # if base hits a native class checks directly (not recursive) what is_parent_class
 		return ClassDB.is_parent_class(base, "Resource")
 	else:
 		return class_is_resource_descendant(base, classes_parent_map)
@@ -65,33 +66,11 @@ static func scan_folder_for_classed_tres(
 
 
 static func get_class_from_tres_file(tres_file_path: String) -> String:
-	var header: String
-	var tres_script_class: String
-	var tres_type: String
-
-	var f: FileAccess = FileAccess.open(tres_file_path, FileAccess.READ)
-	if f == null:
-		return ""
-	header = f.get_buffer(500).get_string_from_utf8()
-	f.close()
-
-	var sc_idx: int = header.find('script_class="')
-	if sc_idx >= 0:
-		var start: int = sc_idx + 14
-		var end: int = header.find('"', start)
-		if end > start:
-			tres_script_class = header.substr(start, end - start)
-
-	var t_idx: int = header.find('type="')
-	if t_idx >= 0:
-		var start: int = t_idx + 6
-		var end: int = header.find('"', start)
-		if end > start:
-			tres_type = header.substr(start, end - start)
-
-	if tres_script_class: return tres_script_class
-	if tres_type: return tres_type
-	return ""
+	var loaded_resource: Resource = load(tres_file_path)
+	if loaded_resource == null: return ""
+	var resource_script: Script = loaded_resource.get_script()
+	if resource_script == null: return ""
+	return resource_script.get_global_name()
 
 
 static func get_properties_from_script_path(script_path: String) -> Array[Dictionary]:

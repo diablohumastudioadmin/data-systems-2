@@ -28,22 +28,6 @@ else:
 	_end_bulk_edit()  # unconditional — always end when fewer than 2 selected
 ```
 
-### `get_class_from_tres_file` reads only 500 bytes (item 9)
-Hard-coded 500-byte buffer in `project_class_scanner.gd`. Resources with many `[ext_resource]`
-lines in the header can have `script_class="..."` past byte 500 — the resource silently disappears
-from the list.
-
-**Fix:** Read line-by-line until `[resource]` or `[node` section marker, with a safety cap:
-```gdscript
-while not f.eof_reached():
-	var line: String = f.get_line()
-	if line.begins_with("[resource]") or line.begins_with("[node"):
-		break
-	header_lines.append(line)
-	if header_lines.size() > 100:
-		break
-```
-
 ## Architecture / Design
 
 ### Auto-save bypasses undo/redo (item 6)
@@ -75,11 +59,3 @@ there's no indication.
 **Fix:** Before initializing the proxy, check if all selected resources agree on each field.
 If not, leave that field at its default (empty/zero). Optionally add a tooltip or label.
 
-### "String path extend" limitation not fixed (item 18)
-The warning label in `resource_list.tscn` admits the tool doesn't work when classes use
-`extends "res://path/to/script.gd"` instead of `class_name`. `get_class_from_tres_file`
-returns the built-in `type=` (e.g. `"Resource"`) in this case, not the script class.
-
-**Fix:** When `script_class` is absent but `type` is a base class like `Resource`, additionally
-check the `script=` attribute in the header, load that script path, and compare its `class_name`.
-Remove the hardcoded warning label once fixed.
