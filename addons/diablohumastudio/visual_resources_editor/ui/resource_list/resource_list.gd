@@ -79,7 +79,7 @@ func _build_rows(paths: Array[String]) -> void:
 	_inspected_path = ""
 
 	for path: String in paths:
-		var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+		var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
 		if res == null:
 			continue
 
@@ -229,7 +229,7 @@ func _on_create_pressed() -> void:
 
 	var dialog: EditorFileDialog = EditorFileDialog.new()
 	dialog.file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
-	dialog.add_filter("*.tres", "Resource File")
+	dialog.add_filter("*.tres")
 	dialog.title = "Save New %s" % _current_class_name
 
 	dialog.file_selected.connect(func(path: String):
