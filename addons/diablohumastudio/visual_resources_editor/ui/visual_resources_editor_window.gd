@@ -38,6 +38,7 @@ func _on_class_selected(class_name_str: String) -> void:
 
 func _on_include_subclasses_toggled(pressed: bool) -> void:
 	%VREStateManager.set_include_subclasses(pressed)
+	%SubclassWarningLabel.visible = pressed
 
 
 # ── State → UI ─────────────────────────────────────────────────────────────────
