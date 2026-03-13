@@ -10,6 +10,7 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 
 ## UI Convention
 - **Visual things must be defined in `.tscn` scenes**, not in `.gd` code — even when dynamically instantiated. Instantiate the scene in code, then configure it (pass arguments, connect signals). Only build UI in code when a scene is truly impossible (e.g. fully procedural runtime generation with no fixed structure).
+- **Non-visual nodes (helpers, managers) also belong in `.tscn` scenes** — add them as child nodes in the relevant scene with `unique_name_in_owner = true`, assign their script in the `.tscn`, and reference them via `%NodeName`. Do NOT instantiate non-visual nodes in code (`Node.new()` / `add_child()`) when they have a fixed role in a scene.
 
 ## Node References Convention
 - **Use `%UniqueNode` directly in code** — do NOT wrap in `@onready var`. Mark the node as "Unique Name in Owner" in the scene (right-click node → "Unique Name in Owner").

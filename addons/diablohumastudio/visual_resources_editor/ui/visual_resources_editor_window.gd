@@ -1,11 +1,6 @@
 @tool
 extends Window
 
-const StateManagerScript = preload(
-	"res://addons/diablohumastudio/visual_resources_editor/core/state_manager.gd"
-)
-
-var _state_manager: Node
 var _inspector_connected: bool = false
 var _selected_resources: Array[Resource] = []
 var _inspected_resource: Resource = null
@@ -14,9 +9,7 @@ var _current_class_name: String = ""
 
 
 func _ready() -> void:
-	_state_manager = StateManagerScript.new()
-	add_child(_state_manager)
-	_state_manager.data_changed.connect(_on_state_data_changed)
+	%VREStateManager.data_changed.connect(_on_state_data_changed)
 
 	_refresh_class_selector()
 	%ClassSelector.class_selected.connect(_on_class_selected)
@@ -53,11 +46,11 @@ func _refresh_class_selector() -> void:
 
 func _on_class_selected(class_name_str: String) -> void:
 	_current_class_name = class_name_str
-	_state_manager.set_class(class_name_str)
+	%VREStateManager.set_class(class_name_str)
 
 
 func _on_include_subclasses_toggled(pressed: bool) -> void:
-	_state_manager.set_include_subclasses(pressed)
+	%VREStateManager.set_include_subclasses(pressed)
 
 
 func _on_filesystem_changed() -> void:
@@ -180,7 +173,7 @@ func _on_delete_requested(paths: Array[String]) -> void:
 
 
 func _on_refresh_requested() -> void:
-	_state_manager.rescan()
+	%VREStateManager.rescan()
 
 
 func _on_close_requested() -> void:
