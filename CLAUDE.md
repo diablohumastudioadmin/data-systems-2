@@ -17,9 +17,12 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 - `%NodeName` only works if the node has `unique_name_in_owner = true` set in the `.tscn`. No node reference without this flag. Two nodes in the same scene cannot share the same unique name.
 - **Exception**: Only use `@onready var` when the node is accessed in a tight loop (e.g. nested `for` inside `for`), to avoid repeated lookup cost.
 - Example: `%MyButton.pressed.connect(...)` instead of `@onready var my_button = $Path/To/MyButton` then `my_button.pressed.connect(...)`
+- **Do NOT wrap a child node's method in an inline lambda just to connect it** — methods are already Callables. Write `signal.connect(%Node.method)` directly instead of `signal.connect(func(): %Node.method())`. Example: `%ResourceList.create_requested.connect(%ResourceCRUD.create)` not `%ResourceList.create_requested.connect(func(): %ResourceCRUD.create())`.
+- **Exception**: a lambda IS needed when the signal passes arguments that must be forwarded: `%ResourceList.delete_requested.connect(func(paths: Array[String]): %ResourceCRUD.delete(paths))`.
 
 ## Resource Loading Convention
 - **Always use UIDs in `load()` and `preload()`**, not string paths. UIDs survive file renames and moves without breaking references. Use `uid://xxxxxxxxxxxx` format: `preload("uid://xxxxxxxxxxxx")`. Find a file's UID in the `.uid` sidecar (for `.gd` scripts) or in the file header (`uid="uid://..."` on the first line of `.tscn` / `.tres` files).
+- **After creating a new `.gd` file that will be referenced in a `.tscn`**, run Godot headless so it imports the file and generates the `.uid` sidecar before adding the reference. Without this, the `.tscn` can only reference by path (fragile). Command: `/Volumes/Fer/RespaldoFER/Documentos/GODOT/Editor/Executables/Godot_v4.6.1-stable_macos.universal.app/Contents/MacOS/Godot --headless --path . --quit`
 
 ## Type Inference Convention
 - **Never use `:=` for type inference** — always use explicit types with `=`. GDScript's `:=` fails when the right-hand side doesn't have a clear type (e.g. properties from `%UniqueNode`). Write `var pos: Vector2 = %Node.position` instead of `var pos := %Node.position`.

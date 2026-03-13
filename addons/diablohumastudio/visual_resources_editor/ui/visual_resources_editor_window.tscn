@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://c113p8acip31a" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/resource_list.tscn" id="3_list"]
 [ext_resource type="Script" uid="uid://bdtxy85iwrdmh" path="res://addons/diablohumastudio/visual_resources_editor/core/state_manager.gd" id="4_c7qm3"]
 [ext_resource type="Script" uid="uid://dmco8u3b2nshv" path="res://addons/diablohumastudio/visual_resources_editor/core/bulk_editor.gd" id="5_mtwm8"]
+[ext_resource type="Script" uid="uid://dk8v4xpqjswse" path="res://addons/diablohumastudio/visual_resources_editor/core/resource_crud.gd" id="6_crud"]
 
 [node name="VisualResourcesEditorWindow" type="Window" unique_id=382482314]
 oversampling_override = 1.0
@@ -71,5 +72,9 @@ script = ExtResource("4_c7qm3")
 unique_name_in_owner = true
 script = ExtResource("5_mtwm8")
 metadata/_custom_type_script = "uid://dmco8u3b2nshv"
+
+[node name="ResourceCRUD" type="Node" parent="." unique_id=634819205]
+unique_name_in_owner = true
+script = ExtResource("6_crud")
 
 [connection signal="close_requested" from="." to="." method="_on_close_requested"]
