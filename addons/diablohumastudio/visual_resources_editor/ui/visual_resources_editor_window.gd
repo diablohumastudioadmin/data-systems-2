@@ -3,7 +3,6 @@ extends Window
 
 var _inspector_connected: bool = false
 var _selected_resources: Array[Resource] = []
-var _inspected_resource: Resource = null
 var _bulk_proxy: Resource = null
 var _current_class_name: String = ""
 var inspector: EditorInspector = EditorInterface.get_inspector()
@@ -99,10 +98,6 @@ func _on_inspector_property_edited(property: String) -> void:
 			ResourceSaver.save(res, res.resource_path)
 			%ResourceList.refresh_row(res.resource_path)
 		return
-
-	if _inspected_resource and edited_obj == _inspected_resource:
-		ResourceSaver.save(_inspected_resource, _inspected_resource.resource_path)
-		%ResourceList.refresh_row(_inspected_resource.resource_path)
 
 
 # ── CRUD ───────────────────────────────────────────────────────────────────────
