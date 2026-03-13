@@ -1,7 +1,6 @@
 @tool
 extends Window
 
-var _inspector_connected: bool = false
 var _selected_resources: Array[Resource] = []
 var _bulk_proxy: Resource = null
 var _current_class_name: String = ""
