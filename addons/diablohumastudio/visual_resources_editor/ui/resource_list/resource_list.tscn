@@ -1,7 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://c113p8acip31a"]
+[gd_scene format=3 uid="uid://c113p8acip31a"]
 
 [ext_resource type="Script" uid="uid://bdgqiegljl3yg" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/resource_list.gd" id="1_list"]
-[ext_resource type="PackedScene" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/header_row.tscn" id="2_hdr"]
+[ext_resource type="PackedScene" uid="uid://b7xqwt52kxrun" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/header_row.tscn" id="2_hdr"]
 
 [node name="ResourceList" type="VBoxContainer" unique_id=1598452339]
 anchors_preset = 15

@@ -18,7 +18,7 @@ func _ready() -> void:
 	_color_style.corner_radius_bottom_left = 2
 	_color_style.corner_radius_bottom_right = 2
 
-	%DeleteBtn.pressed.connect(func(): delete_requested.emit(resource.resource_path))
+	%DeleteBtn.pressed.connect(delete_requested.emit.bind(resource.resource_path))
 
 	%FileNameLabel.text = resource.resource_path.get_file()
 	%FileNameLabel.tooltip_text = resource.resource_path

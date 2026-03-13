@@ -15,9 +15,9 @@ var _resource_to_row: Dictionary = {}  # Resource → ResourceRow
 
 
 func _ready() -> void:
-	%CreateBtn.pressed.connect(func(): create_requested.emit())
+	%CreateBtn.pressed.connect(create_requested.emit)
 	%DeleteSelectedBtn.pressed.connect(_on_delete_selected_pressed)
-	%RefreshBtn.pressed.connect(func(): refresh_requested.emit())
+	%RefreshBtn.pressed.connect(refresh_requested.emit)
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────

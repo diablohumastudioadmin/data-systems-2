@@ -12,13 +12,13 @@ func _ready() -> void:
 
 	%ResourceList.rows_selected.connect(_on_rows_selected)
 	%ResourceList.create_requested.connect(%ResourceCRUD.create)
-	%ResourceList.delete_requested.connect(func(paths: Array[String]): %ResourceCRUD.delete(paths))
+	%ResourceList.delete_requested.connect(%ResourceCRUD.delete)
 	%ResourceList.refresh_requested.connect(%VREStateManager.rescan)
 
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
-		queue_free()
+		close_requested.emit()
 
 
 # ── Class selector ─────────────────────────────────────────────────────────────
