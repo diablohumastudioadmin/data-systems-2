@@ -7,3 +7,4 @@ script = ExtResource("1_88laf")
 
 [node name="RescanDebounceTimer" type="Timer" parent="." unique_id=2093258233]
 unique_name_in_owner = true
+wait_time = 0.1
