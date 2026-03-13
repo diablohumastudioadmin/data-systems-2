@@ -1,10 +1,7 @@
 @tool
 extends Window
 
-var _selected_resources: Array[Resource] = []
-var _bulk_proxy: Resource = null
 var _current_class_name: String = ""
-var inspector: EditorInspector = EditorInterface.get_inspector()
 
 
 func _ready() -> void:
@@ -19,14 +16,6 @@ func _ready() -> void:
 	%ResourceList.create_requested.connect(_on_create_requested)
 	%ResourceList.delete_requested.connect(_on_delete_requested)
 	%ResourceList.refresh_requested.connect(_on_refresh_requested)
-
-	if not inspector.property_edited.is_connected(_on_inspector_property_edited):
-		inspector.property_edited.connect(_on_inspector_property_edited)
-
-
-func _exit_tree() -> void:
-	if inspector.property_edited.is_connected(_on_inspector_property_edited):
-		inspector.property_edited.disconnect(_on_inspector_property_edited)
 
 
 func _input(event: InputEvent) -> void:
@@ -44,6 +33,7 @@ func _refresh_class_selector() -> void:
 func _on_class_selected(class_name_str: String) -> void:
 	_current_class_name = class_name_str
 	%VREStateManager.set_class(class_name_str)
+	%BulkEditor.current_class_name = class_name_str
 
 
 func _on_include_subclasses_toggled(pressed: bool) -> void:
@@ -61,42 +51,7 @@ func _on_state_data_changed(
 # ── Selection & inspection ─────────────────────────────────────────────────────
 
 func _on_rows_selected(resources: Array[Resource]) -> void:
-	_selected_resources = resources
-	if resources.is_empty():
-		return
-	var script: GDScript = resources[0].get_script() \
-		if resources.size() == 1 else _get_current_class_script()
-	if script == null:
-		return
-	_bulk_proxy = script.new()
-	for prop: Dictionary in script.get_script_property_list():
-		_bulk_proxy.set(prop.name, resources[0].get(prop.name))
-	EditorInterface.inspect_object(_bulk_proxy)
-
-
-func _get_current_class_script() -> GDScript:
-	for entry: Dictionary in ProjectSettings.get_global_class_list():
-		if entry.get("class", "") == _current_class_name:
-			return load(entry.get("path", ""))
-	return null
-
-
-# ── Inspector ──────────────────────────────────────────────────────────────────
-
-
-func _on_inspector_property_edited(property: String) -> void:
-	var inspector: EditorInspector = EditorInterface.get_inspector()
-	if inspector == null:
-		return
-	var edited_obj: Object = inspector.get_edited_object()
-
-	if _bulk_proxy and edited_obj == _bulk_proxy:
-		var new_value: Variant = _bulk_proxy.get(property)
-		for res: Resource in _selected_resources:
-			res.set(property, new_value)
-			ResourceSaver.save(res, res.resource_path)
-			%ResourceList.refresh_row(res.resource_path)
-		return
+	%BulkEditor.edited_resources = resources
 
 
 # ── CRUD ───────────────────────────────────────────────────────────────────────
