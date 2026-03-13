@@ -7,10 +7,14 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 - **Before implementing changes**: write a proposal in `data_system_redesign_claude.md` with problem/fix/files for each item. Wait for user approval.
 - **When implementing**: make one git commit per change item. Use clear commit messages.
 - **After implementing**: update `data_system_redesign_claude.md` summary section — keep it concise, delete verbose proposals that are now completed.
+- Deleting resource files does not require undo/redo; use version control for recovery.
+- Bulk edit undo/redo is optional; do not block work on adding it unless explicitly requested.
 
 ## UI Convention
 - **Visual things must be defined in `.tscn` scenes**, not in `.gd` code — even when dynamically instantiated. Instantiate the scene in code, then configure it (pass arguments, connect signals). Only build UI in code when a scene is truly impossible (e.g. fully procedural runtime generation with no fixed structure).
 - **Non-visual nodes (helpers, managers) also belong in `.tscn` scenes** — add them as child nodes in the relevant scene with `unique_name_in_owner = true`, assign their script in the `.tscn`, and reference them via `%NodeName`. Do NOT instantiate non-visual nodes in code (`Node.new()` / `add_child()`) when they have a fixed role in a scene.
+- **Dialog UI** should be `.tscn` scenes, instantiated when needed.
+- **Lambdas** are allowed when they are small, self-contained, and capture local variables (especially dialog instances). Prefer direct callables for simple signal forwarding when no local state is captured.
 
 ## Node References Convention
 - **Use `%UniqueNode` directly in code** — do NOT wrap in `@onready var`. Mark the node as "Unique Name in Owner" in the scene (right-click node → "Unique Name in Owner").
@@ -20,16 +24,35 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 - **Do NOT wrap a child node's method in an inline lambda just to connect it** — methods are already Callables. Write `signal.connect(%Node.method)` directly instead of `signal.connect(func(): %Node.method())`. Example: `%ResourceList.create_requested.connect(%ResourceCRUD.create)` not `%ResourceList.create_requested.connect(func(): %ResourceCRUD.create())`.
 - **Exception**: a lambda IS needed when the signal passes arguments that must be forwarded: `%ResourceList.delete_requested.connect(func(paths: Array[String]): %ResourceCRUD.delete(paths))`.
 
+## Scene Structure
+- If a parent node has a script but is **not** an instantiated scene, do not add child nodes in the editor expecting `%UniqueName` access. Either:
+  - Create those child nodes in code, or
+  - Make the parent a scene, add the children there, set `unique_name_in_owner = true`, and reference with `%`.
+
 ## Resource Loading Convention
 - **Always use UIDs in `load()` and `preload()`**, not string paths. UIDs survive file renames and moves without breaking references. Use `uid://xxxxxxxxxxxx` format: `preload("uid://xxxxxxxxxxxx")`. Find a file's UID in the `.uid` sidecar (for `.gd` scripts) or in the file header (`uid="uid://..."` on the first line of `.tscn` / `.tres` files).
+- **UID-only rule applies to hardcoded paths.** Dynamic runtime paths (computed at runtime) may use string paths.
+- `ResourceLoader.CACHE_MODE_REPLACE` is acceptable to force reloading when class/subclass filters change.
 - **After creating a new `.gd` file that will be referenced in a `.tscn`**, run Godot headless so it imports the file and generates the `.uid` sidecar before adding the reference. Without this, the `.tscn` can only reference by path (fragile). Command: `/Volumes/Fer/RespaldoFER/Documentos/GODOT/Editor/Executables/Godot_v4.6.1-stable_macos.universal.app/Contents/MacOS/Godot --headless --path . --quit`
 
 ## Type Inference Convention
 - **Never use `:=` for type inference** — always use explicit types with `=`. GDScript's `:=` fails when the right-hand side doesn't have a clear type (e.g. properties from `%UniqueNode`). Write `var pos: Vector2 = %Node.position` instead of `var pos := %Node.position`.
 - **Always type `for` loop variables** — write `for row: ResourceRow in _rows:` not `for row in _rows:`.
+- Type loop variables and arrays we create, or arrays from built-in APIs that return typed arrays.
+- Leave arrays untyped when they come from built-in APIs that return untyped arrays.
+- `Array.map` returns an untyped array; do not force a typed array on the result.
+
+## GDScript Setters
+- Setters must assign the incoming value to the property; do not remove the assignment.
 
 ## GDScript Inheritance Gotcha
 - **GDScript disallows redeclaring `const` or `var` (properties) in child classes** if the same name exists in a parent class. This applies to all consts and exported properties — the child will fail to compile with "already exists in parent class". The correct pattern: declare the variable in the base class, then override its **value** in `_init()` of each subclass.
+
+## Naming & Constants
+- Constants should be uppercase with explicit types (e.g., `const RESOURCE_ROW_SCENE: PackedScene = ...`).
+
+## Cleanup
+- If a script is unused and not wired anywhere, delete it and its `.uid` sidecar.
 
 ## ButtonGroup as Shared Resource (Single-Select Rows)
 - To make a group of Buttons mutually exclusive, create a `ButtonGroup` as a `.tres` file (e.g. `row_button_group.tres`), assign it in the `.tscn` on the Button node, and ensure `resource_local_to_scene = false` (the default for external resources). All instances that share this resource file will be part of the same exclusive group.
