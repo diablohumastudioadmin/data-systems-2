@@ -2,12 +2,12 @@
 class_name ResourceRow
 extends Button
 
-signal row_clicked(row: ResourceRow, shift_held: bool)
+signal resource_row_selected(resource: Resource, shift_held: bool)
 signal delete_requested(resource_path: String)
 
 var resource: Resource
 var columns: Array[Dictionary]
-var _field_labels: Array[Label] = []
+var _prop_labels: Dictionary = {}  # property_name → Label (only for properties this resource owns)
 var _color_style: StyleBoxFlat
 
 
@@ -29,9 +29,15 @@ func _ready() -> void:
 func _build_field_labels() -> void:
 	for child in %FieldsContainer.get_children():
 		child.queue_free()
-	_field_labels.clear()
+	_prop_labels.clear()
 
-	for i in range(columns.size()):
+	# Map which properties this resource's script actually declares
+	var owned: Dictionary = {}
+	if resource and resource.get_script():
+		for p: Dictionary in resource.get_script().get_script_property_list():
+			owned[p.name] = true
+
+	for i: int in range(columns.size()):
 		if i > 0:
 			var sep: VSeparator = VSeparator.new()
 			sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -42,17 +48,22 @@ func _build_field_labels() -> void:
 		label.clip_text = true
 		label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_set_label_value(label, columns[i])
+
+		var col_name: String = columns[i].name
+		if owned.has(col_name):
+			_prop_labels[col_name] = label
+			_set_label_value(label, columns[i])
+		# else: label stays blank — belongs to a sibling subclass
+
 		%FieldsContainer.add_child(label)
-		_field_labels.append(label)
 
 
 func update_display() -> void:
 	if not resource:
 		return
-	for i in range(columns.size()):
-		if i < _field_labels.size():
-			_set_label_value(_field_labels[i], columns[i])
+	for col: Dictionary in columns:
+		if _prop_labels.has(col.name):
+			_set_label_value(_prop_labels[col.name], col)
 
 
 func is_selected() -> bool:
@@ -106,4 +117,4 @@ func _format_value(value: Variant, type: int) -> String:
 
 
 func _on_pressed() -> void:
-	row_clicked.emit(self, Input.is_key_pressed(KEY_SHIFT))
+	resource_row_selected.emit(resource, Input.is_key_pressed(KEY_SHIFT))

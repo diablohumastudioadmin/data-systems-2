@@ -27,9 +27,31 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="ClassSelector" parent="MarginContainer/VBox" unique_id=2133691582 instance=ExtResource("2_cls")]
+[node name="TopBar" type="HBoxContainer" parent="MarginContainer/VBox" unique_id=748293610]
+layout_mode = 2
+
+[node name="ClassSelector" parent="MarginContainer/VBox/TopBar" unique_id=2133691582 instance=ExtResource("2_cls")]
 unique_name_in_owner = true
 layout_mode = 2
+
+[node name="TopBarSep" type="VSeparator" parent="MarginContainer/VBox/TopBar" unique_id=891045237]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBox/TopBar" unique_id=471075149]
+layout_mode = 2
+
+[node name="IncludeSubclassesCheck" type="CheckBox" parent="MarginContainer/VBox/TopBar/VBoxContainer" unique_id=456712893]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Include subclasses"
+
+[node name="SubclassWarningLabel" type="Label" parent="MarginContainer/VBox/TopBar/VBoxContainer" unique_id=123894567]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.28235295, 0.27058825, 1)
+theme_override_font_sizes/font_size = 10
+text = "Warn: Don't work with string path extend"
 
 [node name="HSeparator" type="HSeparator" parent="MarginContainer/VBox" unique_id=1020269689]
 layout_mode = 2

@@ -32,26 +32,6 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Refresh"
 
-[node name="Sep3" type="VSeparator" parent="Toolbar" unique_id=62506189]
-layout_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="Toolbar" unique_id=559344752]
-layout_mode = 2
-theme_override_constants/separation = -4
-
-[node name="IncludeSubclassesCheck" type="CheckBox" parent="Toolbar/VBoxContainer" unique_id=620498068]
-unique_name_in_owner = true
-layout_mode = 2
-button_pressed = true
-text = "Include subclasses
-"
-
-[node name="Label" type="Label" parent="Toolbar/VBoxContainer" unique_id=176336212]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.28235295, 0.27058825, 1)
-theme_override_font_sizes/font_size = 10
-text = "Warn: Don't work with string path extend"
-
 [node name="HSeparator" type="HSeparator" parent="." unique_id=1867903496]
 layout_mode = 2
 
