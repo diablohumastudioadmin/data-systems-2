@@ -1,30 +1,30 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://b7xqwt52kxrun"]
 
-[ext_resource type="Script" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/header_row.gd" id="1_hdr"]
+[ext_resource type="Script" uid="uid://cy8av2sb1s45j" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/header_row.gd" id="1_hdr"]
 
-[node name="HeaderRow" type="HBoxContainer"]
+[node name="HeaderRow" type="HBoxContainer" unique_id=1501631782]
 custom_minimum_size = Vector2(0, 24)
 script = ExtResource("1_hdr")
 
-[node name="FileLabel" type="Label" parent="."]
+[node name="FileLabel" type="Label" parent="." unique_id=839752079]
+custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(150, 0)
 theme_override_font_sizes/font_size = 12
 text = "File"
 
-[node name="ColSep" type="VSeparator" parent="."]
+[node name="ColSep" type="VSeparator" parent="." unique_id=1885714394]
 layout_mode = 2
 
-[node name="FieldsContainer" type="HBoxContainer" parent="."]
+[node name="FieldsContainer" type="HBoxContainer" parent="." unique_id=2079411122]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 3.0
 
-[node name="DelSep" type="VSeparator" parent="."]
+[node name="DelSep" type="VSeparator" parent="." unique_id=1709057572]
 layout_mode = 2
 
-[node name="DelSpacer" type="Control" parent="."]
+[node name="DelSpacer" type="Control" parent="." unique_id=548712155]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2

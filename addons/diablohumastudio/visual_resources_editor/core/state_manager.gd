@@ -53,11 +53,17 @@ func _get_included_classes() -> Array:
 
 
 func _compute_union_columns(classes: Array) -> Array[Dictionary]:
-	var parent_map: Dictionary = ProjectClassScanner.build_project_classes_parent_map()
+	var class_to_path: Dictionary = {}
+	for entry: Dictionary in ProjectSettings.get_global_class_list():
+		var cls: String = entry.get("class", "")
+		var path: String = entry.get("path", "")
+		if not cls.is_empty() and not path.is_empty():
+			class_to_path[cls] = path
+
 	var seen: Dictionary = {}
 	var columns: Array[Dictionary] = []
 	for cls_name: String in classes:
-		var script_path: String = parent_map.get(cls_name, "")
+		var script_path: String = class_to_path.get(cls_name, "")
 		if script_path.is_empty():
 			continue
 		for prop: Dictionary in ProjectClassScanner.get_properties_from_script_path(script_path):

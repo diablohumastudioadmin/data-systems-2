@@ -9,9 +9,10 @@ var _current_class_name: String = ""
 
 
 func _ready() -> void:
+	_refresh_class_selector()
+
 	%VREStateManager.data_changed.connect(_on_state_data_changed)
 
-	_refresh_class_selector()
 	%ClassSelector.class_selected.connect(_on_class_selected)
 	%IncludeSubclassesCheck.toggled.connect(_on_include_subclasses_toggled)
 
@@ -20,21 +21,16 @@ func _ready() -> void:
 	%ResourceList.delete_requested.connect(_on_delete_requested)
 	%ResourceList.refresh_requested.connect(_on_refresh_requested)
 
-	if Engine.is_editor_hint():
-		var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
-		if efs and not efs.filesystem_changed.is_connected(_on_filesystem_changed):
-			efs.filesystem_changed.connect(_on_filesystem_changed)
-
 	_connect_inspector()
 
 
 func _exit_tree() -> void:
 	_disconnect_inspector()
-	if Engine.is_editor_hint():
-		var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
-		if efs and efs.filesystem_changed.is_connected(_on_filesystem_changed):
-			efs.filesystem_changed.disconnect(_on_filesystem_changed)
 
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		queue_free()
 
 # ── Class selector ─────────────────────────────────────────────────────────────
 
@@ -53,16 +49,12 @@ func _on_include_subclasses_toggled(pressed: bool) -> void:
 	%VREStateManager.set_include_subclasses(pressed)
 
 
-func _on_filesystem_changed() -> void:
-	_refresh_class_selector()
-	# StateManager handles resource list refresh independently via its own connection
-
-
 # ── State → UI ─────────────────────────────────────────────────────────────────
 
 func _on_state_data_changed(
 		resources: Array[Resource], columns: Array[Dictionary]) -> void:
 	%ResourceList.set_data(resources, columns)
+	_refresh_class_selector()
 
 
 # ── Selection & inspection ─────────────────────────────────────────────────────

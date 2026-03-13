@@ -1,4 +1,5 @@
 @tool
+class_name ResourceList
 extends VBoxContainer
 
 signal rows_selected(resources: Array[Resource])
@@ -6,12 +7,10 @@ signal create_requested
 signal delete_requested(paths: Array[String])
 signal refresh_requested
 
-const ResourceRowScene = preload(
-	"res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/resource_row.tscn"
-)
+const ResourceRowScene = preload("uid://dukcnu4xa4lbd")
 
 var selected_rows: Array[Resource] = []
-var _rows: Array = []              # ResourceRow nodes
+var _rows: Array[ResourceRow] = []             # ResourceRow nodes
 var _resource_to_row: Dictionary = {}  # Resource → ResourceRow
 
 
@@ -30,7 +29,7 @@ func set_data(resources: Array[Resource], columns: Array[Dictionary]) -> void:
 
 
 func refresh_row(resource_path: String) -> void:
-	for row in _rows:
+	for row: ResourceRow in _rows:
 		if is_instance_valid(row) and row.get_resource_path() == resource_path:
 			row.update_display()
 			break

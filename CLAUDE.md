@@ -18,8 +18,12 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 - **Exception**: Only use `@onready var` when the node is accessed in a tight loop (e.g. nested `for` inside `for`), to avoid repeated lookup cost.
 - Example: `%MyButton.pressed.connect(...)` instead of `@onready var my_button = $Path/To/MyButton` then `my_button.pressed.connect(...)`
 
+## Resource Loading Convention
+- **Always use UIDs in `load()` and `preload()`**, not string paths. UIDs survive file renames and moves without breaking references. Use `uid://xxxxxxxxxxxx` format: `preload("uid://xxxxxxxxxxxx")`. Find a file's UID in the `.uid` sidecar (for `.gd` scripts) or in the file header (`uid="uid://..."` on the first line of `.tscn` / `.tres` files).
+
 ## Type Inference Convention
 - **Never use `:=` for type inference** — always use explicit types with `=`. GDScript's `:=` fails when the right-hand side doesn't have a clear type (e.g. properties from `%UniqueNode`). Write `var pos: Vector2 = %Node.position` instead of `var pos := %Node.position`.
+- **Always type `for` loop variables** — write `for row: ResourceRow in _rows:` not `for row in _rows:`.
 
 ## GDScript Inheritance Gotcha
 - **GDScript disallows redeclaring `const` or `var` (properties) in child classes** if the same name exists in a parent class. This applies to all consts and exported properties — the child will fail to compile with "already exists in parent class". The correct pattern: declare the variable in the base class, then override its **value** in `_init()` of each subclass.
