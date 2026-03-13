@@ -101,7 +101,6 @@ static func get_properties_from_script_path(script_path: String) -> Array[Dictio
 		if not (prop.usage & PROPERTY_USAGE_EDITOR):
 			continue
 		var prop_name: String = prop.name
-		print(prop_name)
 		if prop_name.begins_with("resource_") or prop_name.begins_with("metadata/"):
 			continue
 		if prop_name in ["script", "resource_local_to_scene"]:

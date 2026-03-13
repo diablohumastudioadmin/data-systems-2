@@ -6,6 +6,7 @@ var _selected_resources: Array[Resource] = []
 var _inspected_resource: Resource = null
 var _bulk_proxy: Resource = null
 var _current_class_name: String = ""
+var inspector: EditorInspector = EditorInterface.get_inspector()
 
 
 func _ready() -> void:
@@ -21,11 +22,13 @@ func _ready() -> void:
 	%ResourceList.delete_requested.connect(_on_delete_requested)
 	%ResourceList.refresh_requested.connect(_on_refresh_requested)
 
-	_connect_inspector()
+	if not inspector.property_edited.is_connected(_on_inspector_property_edited):
+		inspector.property_edited.connect(_on_inspector_property_edited)
 
 
 func _exit_tree() -> void:
-	_disconnect_inspector()
+	if inspector.property_edited.is_connected(_on_inspector_property_edited):
+		inspector.property_edited.disconnect(_on_inspector_property_edited)
 
 
 func _input(event: InputEvent) -> void:
@@ -63,17 +66,8 @@ func _on_rows_selected(resources: Array[Resource]) -> void:
 	_selected_resources = resources
 	if resources.is_empty():
 		return
-	if resources.size() == 1:
-		_bulk_proxy = null
-		_inspected_resource = resources[0]
-		EditorInterface.inspect_object(_inspected_resource)
-	else:
-		_inspected_resource = null
-		_start_bulk_edit(resources)
-
-
-func _start_bulk_edit(resources: Array[Resource]) -> void:
-	var script: GDScript = resources[0].get_script()
+	var script: GDScript = resources[0].get_script() \
+		if resources.size() == 1 else _get_current_class_script()
 	if script == null:
 		return
 	_bulk_proxy = script.new()
@@ -82,24 +76,14 @@ func _start_bulk_edit(resources: Array[Resource]) -> void:
 	EditorInterface.inspect_object(_bulk_proxy)
 
 
+func _get_current_class_script() -> GDScript:
+	for entry: Dictionary in ProjectSettings.get_global_class_list():
+		if entry.get("class", "") == _current_class_name:
+			return load(entry.get("path", ""))
+	return null
+
+
 # ── Inspector ──────────────────────────────────────────────────────────────────
-
-func _connect_inspector() -> void:
-	if _inspector_connected or not Engine.is_editor_hint():
-		return
-	var inspector: EditorInspector = EditorInterface.get_inspector()
-	if inspector:
-		inspector.property_edited.connect(_on_inspector_property_edited)
-		_inspector_connected = true
-
-
-func _disconnect_inspector() -> void:
-	if not _inspector_connected:
-		return
-	var inspector: EditorInspector = EditorInterface.get_inspector()
-	if inspector and inspector.property_edited.is_connected(_on_inspector_property_edited):
-		inspector.property_edited.disconnect(_on_inspector_property_edited)
-	_inspector_connected = false
 
 
 func _on_inspector_property_edited(property: String) -> void:
