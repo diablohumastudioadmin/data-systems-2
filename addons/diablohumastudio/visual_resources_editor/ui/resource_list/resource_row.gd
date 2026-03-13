@@ -5,8 +5,11 @@ extends Button
 signal resource_row_selected(resource: Resource, shift_held: bool)
 signal delete_requested(resource_path: String)
 
-var resource: Resource
-var columns: Array[Dictionary]
+const RESOURCE_FIELD_LABEL_SCENE: PackedScene = preload("uid://uru49vi0kvgxy")
+const FIELD_SEPARATOR_SCENE: PackedScene = preload("uid://y2kj6h91hm8r6")
+
+var resource: Resource = null
+var columns: Array[Dictionary] = []
 var _prop_labels: Dictionary = {}  # property_name → Label (only for properties this resource owns)
 var _color_style: StyleBoxFlat
 
@@ -18,8 +21,9 @@ func _ready() -> void:
 	_color_style.corner_radius_bottom_left = 2
 	_color_style.corner_radius_bottom_right = 2
 
-	%DeleteBtn.pressed.connect(delete_requested.emit.bind(resource.resource_path))
-
+	if not resource: return
+	
+	%DeleteBtn.pressed.connect(_on_delete_pressed)
 	%FileNameLabel.text = resource.resource_path.get_file()
 	%FileNameLabel.tooltip_text = resource.resource_path
 
@@ -27,7 +31,7 @@ func _ready() -> void:
 
 
 func _build_field_labels() -> void:
-	for child in %FieldsContainer.get_children():
+	for child: Node in %FieldsContainer.get_children():
 		child.queue_free()
 	_prop_labels.clear()
 
@@ -39,15 +43,10 @@ func _build_field_labels() -> void:
 
 	for i: int in range(columns.size()):
 		if i > 0:
-			var sep: VSeparator = VSeparator.new()
-			sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var sep: VSeparator = FIELD_SEPARATOR_SCENE.instantiate()
 			%FieldsContainer.add_child(sep)
 
-		var label: Label = Label.new()
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		label.clip_text = true
-		label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var label: Label = RESOURCE_FIELD_LABEL_SCENE.instantiate()
 
 		var col_name: String = columns[i].name
 		if owned.has(col_name):
@@ -118,3 +117,9 @@ func _format_value(value: Variant, type: int) -> String:
 
 func _on_pressed() -> void:
 	resource_row_selected.emit(resource, Input.is_key_pressed(KEY_SHIFT))
+
+
+func _on_delete_pressed() -> void:
+	if resource == null:
+		return
+	delete_requested.emit(resource.resource_path)

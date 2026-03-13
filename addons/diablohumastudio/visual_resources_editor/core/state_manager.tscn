@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://qpp7tk62euog"]
+
+[ext_resource type="Script" uid="uid://bdtxy85iwrdmh" path="res://addons/diablohumastudio/visual_resources_editor/core/state_manager.gd" id="1_88laf"]
+
+[node name="VREStateManager" type="Node" unique_id=114041271]
+script = ExtResource("1_88laf")
+
+[node name="RescanDebounceTimer" type="Timer" parent="." unique_id=2093258233]
+unique_name_in_owner = true

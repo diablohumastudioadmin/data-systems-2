@@ -3,7 +3,7 @@ extends HBoxContainer
 
 signal class_selected(class_name_str: String)
 
-var _classes_names: Array = [] : 
+var _classes_names: Array[String] = [] : 
 	set(new_value):
 		_classes_names = new_value
 		if is_node_ready(): 
@@ -20,7 +20,7 @@ func set_classes_in_dropdown() -> void:
 
 	_classes_names.sort_custom(func(a: String, b: String): return a.nocasecmp_to(b) < 0)
 
-	for i in range(_classes_names.size()):
+	for i: int in range(_classes_names.size()):
 		%ClassDropdown.add_item(_classes_names[i], i + 1)
 
 

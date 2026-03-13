@@ -7,7 +7,7 @@ signal create_requested
 signal delete_requested(paths: Array[String])
 signal refresh_requested
 
-const ResourceRowScene = preload("uid://dukcnu4xa4lbd")
+const RESOURCE_ROW_SCENE: PackedScene = preload("uid://dukcnu4xa4lbd")
 
 var selected_rows: Array[Resource] = []
 var _rows: Array[ResourceRow] = []             # ResourceRow nodes
@@ -42,7 +42,7 @@ func _build_rows(resources: Array[Resource], columns: Array[Dictionary]) -> void
 	%HeaderRow.columns = columns
 
 	for res: Resource in resources:
-		var row: ResourceRow = ResourceRowScene.instantiate()
+		var row: ResourceRow = RESOURCE_ROW_SCENE.instantiate()
 		row.resource = res
 		row.columns = columns
 		%RowsContainer.add_child(row)
@@ -55,7 +55,7 @@ func _build_rows(resources: Array[Resource], columns: Array[Dictionary]) -> void
 
 
 func _clear_rows() -> void:
-	for row in _rows:
+	for row: ResourceRow in _rows:
 		if is_instance_valid(row):
 			row.queue_free()
 	_rows.clear()

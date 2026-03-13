@@ -1,0 +1,3 @@
+[gd_scene format=3 uid="uid://87kt88zgjkg7p"]
+
+[node name="SaveResourceDialog" type="EditorFileDialog" unique_id=1537062489]

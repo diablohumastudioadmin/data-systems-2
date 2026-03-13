@@ -2,7 +2,9 @@
 class_name BulkEditor
 extends Node
 
-var current_class_name: String
+const ERROR_DIALOG_SCENE: PackedScene = preload("uid://9g7t37gm0qcdf")
+
+var current_class_name: String = ""
 var edited_resources : Array[Resource] = [] :
 	set(new_value):
 		edited_resources = new_value
@@ -45,8 +47,20 @@ func _on_inspector_property_edited(property: String) -> void:
 
 	if _bulk_proxy and edited_obj == _bulk_proxy:
 		var new_value: Variant = _bulk_proxy.get(property)
+		var failed_paths: Array[String] = []
 		for res: Resource in edited_resources:
 			res.set(property, new_value)
-			ResourceSaver.save(res, res.resource_path)
+			var err: Error = ResourceSaver.save(res, res.resource_path)
+			if err != OK:
+				failed_paths.append(res.resource_path)
 			%ResourceList.refresh_row(res.resource_path)
+		if not failed_paths.is_empty():
+			_show_error("Failed to save:\n%s" % "\n".join(failed_paths))
 		return
+
+
+func _show_error(message: String) -> void:
+	var dialog: AcceptDialog = ERROR_DIALOG_SCENE.instantiate()
+	dialog.dialog_text = message
+	get_parent().add_child(dialog)
+	dialog.popup_centered()

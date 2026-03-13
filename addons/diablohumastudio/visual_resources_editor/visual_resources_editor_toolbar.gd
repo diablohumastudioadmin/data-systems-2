@@ -2,7 +2,7 @@
 class_name VisualResourcesEditorToolbar
 extends DiablohumaStudioToolMenu
 
-const VisualResourcesEditorWindowPksc = preload("uid://b6ssn0jpljw4r")
+const VISUAL_RESOURCES_EDITOR_WINDOW_SCENE: PackedScene = preload("uid://b6ssn0jpljw4r")
 var visual_resources_editor_window: Window
 
 func _enter_tree() -> void:
@@ -23,7 +23,7 @@ func open_visual_editor_window():
 	if is_instance_valid(visual_resources_editor_window):
 		visual_resources_editor_window.grab_focus()
 		return
-	visual_resources_editor_window = VisualResourcesEditorWindowPksc.instantiate()
+	visual_resources_editor_window = VISUAL_RESOURCES_EDITOR_WINDOW_SCENE.instantiate()
 	EditorInterface.get_base_control().add_child(visual_resources_editor_window)
 	visual_resources_editor_window.close_requested.connect(func():
 		visual_resources_editor_window = null

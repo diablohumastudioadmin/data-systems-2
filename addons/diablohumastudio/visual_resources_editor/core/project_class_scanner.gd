@@ -66,7 +66,7 @@ static func scan_folder_for_classed_tres(
 	if dir.get_path() == "res://addons/":
 		return []
 
-	for i in range(dir.get_file_count()):
+	for i: int in range(dir.get_file_count()):
 		var path: String = dir.get_file_path(i)
 		if not path.ends_with(".tres"):
 			continue
@@ -74,7 +74,7 @@ static func scan_folder_for_classed_tres(
 		if classes.has(cls):
 			results.append(path)
 
-	for i in range(dir.get_subdir_count()):
+	for i: int in range(dir.get_subdir_count()):
 		results.append_array(scan_folder_for_classed_tres(dir.get_subdir(i), classes))
 
 	return results

@@ -1,0 +1,3 @@
+[gd_scene format=3 uid="uid://m55213yow13bd"]
+
+[node name="ConfirmDeleteDialog" type="ConfirmationDialog" unique_id=1955397338]
