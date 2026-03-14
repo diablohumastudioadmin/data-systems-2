@@ -12,18 +12,16 @@ var _include_subclasses: bool = true
 
 var project_resource_classes: Array[String] = ProjectClassScanner.get_resource_classes_in_folder()
 
-var current_class_names: Array[String] = _get_included_classes()
-var columns: Array[Dictionary] = ProjectClassScanner.unite_classes_properties(current_class_names, _global_clases_map)
-var resources: Array[Resource] = ProjectClassScanner.load_classed_resources_from_dir(current_class_names, file_system_root)
-
-var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
-var file_system_root: EditorFileSystemDirectory = efs.get_filesystem()
+var current_class_names: Array[String] = []
+var columns: Array[Dictionary] = []
+var resources: Array[Resource] = []
 
 func _ready() -> void:
-	if not Engine.is_editor_hint(): return 
+	if not Engine.is_editor_hint(): return
 
 	_set_maps()
 
+	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
 	if efs and not efs.filesystem_changed.is_connected(_on_filesystem_changed):
 		efs.filesystem_changed.connect(_on_filesystem_changed)
 
@@ -31,8 +29,9 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	if not Engine.is_editor_hint(): return 
+	if not Engine.is_editor_hint(): return
 
+	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
 	if efs and efs.filesystem_changed.is_connected(_on_filesystem_changed):
 		efs.filesystem_changed.disconnect(_on_filesystem_changed)
 
@@ -56,7 +55,8 @@ func rescan() -> void:
 	_set_maps()
 	current_class_names = _get_included_classes()
 	columns = ProjectClassScanner.unite_classes_properties(current_class_names, _global_clases_map)
-	resources = ProjectClassScanner.load_classed_resources_from_dir(current_class_names, file_system_root)
+	var root: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
+	resources = ProjectClassScanner.load_classed_resources_from_dir(current_class_names, root)
 	data_changed.emit(resources, columns)
 
 
