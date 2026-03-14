@@ -15,6 +15,11 @@ func _ready() -> void:
 	%ResourceList.delete_requested.connect(%ConfirmDeleteDialog.show_delete_dialog)
 	%ResourceList.refresh_requested.connect(%VREStateManager.rescan)
 
+	%SaveResourceDialog.error_occurred.connect(%ErrorDialog.show_error)
+	%ConfirmDeleteDialog.error_occurred.connect(%ErrorDialog.show_error)
+	%BulkEditor.error_occurred.connect(%ErrorDialog.show_error)
+	%BulkEditor.resources_edited.connect(_on_resources_edited)
+
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
@@ -50,6 +55,11 @@ func _on_state_data_changed(
 
 func _on_rows_selected(resources: Array[Resource]) -> void:
 	%BulkEditor.edited_resources = resources
+
+
+func _on_resources_edited(resources: Array[Resource]) -> void:
+	for res: Resource in resources:
+		%ResourceList.refresh_row(res.resource_path)
 
 
 func _on_close_requested() -> void:

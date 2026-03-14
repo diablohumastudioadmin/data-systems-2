@@ -1,6 +1,8 @@
 @tool
 extends EditorFileDialog
 
+signal error_occurred(message: String)
+
 var current_class_name: String = ""
 
 
@@ -24,16 +26,16 @@ func _on_file_selected(path: String) -> void:
 	var script_path: String = _get_class_script_path(current_class_name)
 	var script: GDScript = load(script_path)
 	if script == null:
-		%ErrorDialog.show_error("Failed to load script for %s." % current_class_name)
+		error_occurred.emit("Failed to load script for %s." % current_class_name)
 		return
 	if not script.can_instantiate():
-		%ErrorDialog.show_error(
+		error_occurred.emit(
 			"Can't instantiate %s.\nCheck its constructor." % current_class_name)
 		return
 	var instance: Resource = script.new()
 	var err: Error = ResourceSaver.save(instance, target_path)
 	if err != OK:
-		%ErrorDialog.show_error("Failed to save resource:\n%s" % target_path)
+		error_occurred.emit("Failed to save resource:\n%s" % target_path)
 		return
 	EditorInterface.get_resource_filesystem().scan()
 

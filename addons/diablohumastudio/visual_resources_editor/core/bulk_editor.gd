@@ -2,7 +2,8 @@
 class_name BulkEditor
 extends Node
 
-var error_dialog_scene: ErrorDialog 
+signal error_occurred(message: String)
+signal resources_edited(resources: Array[Resource])
 
 var current_class_name: String = ""
 var edited_resources : Array[Resource] = [] :
@@ -53,14 +54,7 @@ func _on_inspector_property_edited(property: String) -> void:
 			var err: Error = ResourceSaver.save(res, res.resource_path)
 			if err != OK:
 				failed_paths.append(res.resource_path)
-			%ResourceList.refresh_row(res.resource_path)
 		if not failed_paths.is_empty():
-			_show_error("Failed to save:\n%s" % "\n".join(failed_paths))
+			error_occurred.emit("Failed to save:\n%s" % "\n".join(failed_paths))
+		resources_edited.emit(edited_resources.duplicate())
 		return
-
-
-func _show_error(message: String) -> void:
-	error_dialog_scene = ErrorDialog.new()
-	error_dialog_scene.dialog_text = message
-	get_parent().add_child(error_dialog_scene)
-	error_dialog_scene.popup_centered()

@@ -1,6 +1,8 @@
 @tool
 extends ConfirmationDialog
 
+signal error_occurred(message: String)
+
 var _pending_paths: Array[String] = []
 
 
@@ -25,5 +27,5 @@ func _on_confirmed() -> void:
 			failed_paths.append(path)
 	EditorInterface.get_resource_filesystem().scan()
 	if not failed_paths.is_empty():
-		%ErrorDialog.show_error("Failed to delete:\n%s" % "\n".join(failed_paths))
+		error_occurred.emit("Failed to delete:\n%s" % "\n".join(failed_paths))
 	_pending_paths.clear()
