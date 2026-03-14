@@ -1,9 +1,10 @@
 @tool
 class_name ProjectClassScanner
 
-static func get_resource_classes_in_folder(included_folder_paths: Array[String], excluded_folder_paths: Array[String]) -> Array[Dictionary]:
-	var resource_classes: Array[Dictionary]
-	var parent_map: Dictionary = build_project_classes_parent_map()
+static func get_resource_classes_in_folder(classes_parent_map: Dictionary[String,String] = {}) -> Array[String]:
+	var resource_classes: Array[String]
+	if classes_parent_map.is_empty():
+		classes_parent_map = build_project_classes_parent_map()
 
 	for entry: Dictionary in ProjectSettings.get_global_class_list():
 		var cls_name: String = entry.get("class", "")
@@ -12,22 +13,26 @@ static func get_resource_classes_in_folder(included_folder_paths: Array[String],
 		if cls_name.is_empty() or cls_path.is_empty() or cls_path.contains("addons/"):
 			continue
 
-		if class_is_resource_descendant(cls_name, parent_map):
-			resource_classes.append({"name": cls_name, "path": cls_path})
+		if class_is_resource_descendant(cls_name, classes_parent_map):
+			resource_classes.append(cls_name)
 	return resource_classes
 
+static func build_global_classes_map() -> Array[Dictionary]:
+	return ProjectSettings.get_global_class_list()
 
-static func build_project_classes_parent_map() -> Dictionary:
-	var map: Dictionary = {}
-	for entry: Dictionary in ProjectSettings.get_global_class_list():
+static func build_project_classes_parent_map(global_clases_map: Array[Dictionary] = []) -> Dictionary[String, String]:
+	if global_clases_map.is_empty(): global_clases_map = build_global_classes_map()
+ 
+	var classes_parent_map: Dictionary[String,String]  = {}
+	for entry: Dictionary in global_clases_map:
 		var cls: String = entry.get("class", "")
 		if cls.is_empty(): continue
 		var base: String = entry.get("base", "")
-		map[cls] = base
-	return map
+		classes_parent_map[cls] = base
+	return classes_parent_map
 
 
-static func class_is_resource_descendant(cls_name: String, classes_parent_map: Dictionary = {}) -> bool:
+static func class_is_resource_descendant(cls_name: String, classes_parent_map: Dictionary[String,String]  = {}) -> bool:
 	if classes_parent_map.is_empty():
 		classes_parent_map = build_project_classes_parent_map()
 
@@ -43,12 +48,13 @@ static func class_is_resource_descendant(cls_name: String, classes_parent_map: D
 
 
 static func get_descendant_classes(
-	base_class: String, classes_parent_map: Dictionary = {}
+	base_class: String, classes_parent_map: Dictionary = {}, include_base: bool = true
 ) -> Array[String]:
+
 	if classes_parent_map.is_empty():
 		classes_parent_map = build_project_classes_parent_map()
 
-	var descendants: Array[String] = []
+	var descendants: Array[String] = [base_class] as Array[String] if include_base else Array([], TYPE_STRING, "", null)
 	for cls: String in classes_parent_map:
 		if classes_parent_map[cls] == base_class:
 			descendants.append(cls)
@@ -56,8 +62,8 @@ static func get_descendant_classes(
 	return descendants
 
 
-static func scan_folder_for_classed_tres(
-	dir: EditorFileSystemDirectory, classes: Array) -> Array[String]:
+static func scan_folder_for_classed_tres_paths(
+	dir: EditorFileSystemDirectory, classes: Array[String]) -> Array[String]:
 
 	var results: Array[String]
 	if dir == null:
@@ -75,7 +81,7 @@ static func scan_folder_for_classed_tres(
 			results.append(path)
 
 	for i: int in range(dir.get_subdir_count()):
-		results.append_array(scan_folder_for_classed_tres(dir.get_subdir(i), classes))
+		results.append_array(scan_folder_for_classed_tres_paths(dir.get_subdir(i), classes))
 
 	return results
 
@@ -113,3 +119,37 @@ static func get_properties_from_script_path(script_path: String) -> Array[Dictio
 		})
 
 	return properties
+
+
+static func unite_classes_properties(class_names: Array[String], global_clases_map: Array[Dictionary] = []) -> Array[Dictionary]:
+	if global_clases_map.is_empty(): global_clases_map = build_global_classes_map()
+	
+	var class_to_path: Dictionary = {}
+	for entry: Dictionary in global_clases_map:
+		var cls: String = entry.get("class", "")
+		var path: String = entry.get("path", "")
+		if not cls.is_empty() and not path.is_empty():
+			class_to_path[cls] = path
+
+	var properties: Array[Dictionary] = []
+	for cls_name: String in class_names:
+		var script_path: String = class_to_path.get(cls_name, "")
+		if script_path.is_empty():
+			continue
+		for prop: Dictionary in ProjectClassScanner.get_properties_from_script_path(script_path):
+			if not properties.has(prop):
+				properties.append(prop)
+	return properties
+
+
+static func load_classed_resources_from_dir(
+	classes: Array[String], folder: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
+	) -> Array[Resource]:
+	var paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(folder, classes)
+	paths.sort()
+	var resources: Array[Resource] = []
+	for path: String in paths:
+		var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
+		if res:
+			resources.append(res)
+	return resources

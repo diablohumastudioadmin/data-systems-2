@@ -24,10 +24,7 @@ func _input(event: InputEvent) -> void:
 # ── Class selector ─────────────────────────────────────────────────────────────
 
 func _refresh_class_selector() -> void:
-	var classes: Array[Dictionary] = ProjectClassScanner.get_resource_classes_in_folder([], [])
-	var names: Array[String] = []
-	names.assign(classes.map(func(c: Dictionary) -> String: return c.name as String)) #assign is use to cast to typed Array
-	%ClassSelector._classes_names = names
+	%ClassSelector._classes_names = %VREStateManager.project_resource_classes
 
 
 func _on_class_selected(class_name_str: String) -> void:

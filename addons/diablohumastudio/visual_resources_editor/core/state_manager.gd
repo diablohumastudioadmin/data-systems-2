@@ -4,23 +4,38 @@ extends Node
 
 signal data_changed(resources: Array[Resource], columns: Array[Dictionary])
 
+var _global_clases_map: Array[Dictionary]
+var _classes_parent_map: Dictionary[String, String]
+
 var _current_class_name: String = ""
 var _include_subclasses: bool = true
 
+var project_resource_classes: Array[String] = ProjectClassScanner.get_resource_classes_in_folder()
+
+var current_class_names: Array[String] = _get_included_classes()
+var columns: Array[Dictionary] = ProjectClassScanner.unite_classes_properties(current_class_names, _global_clases_map)
+var resources: Array[Resource] = ProjectClassScanner.load_classed_resources_from_dir(current_class_names, file_system_root)
+
+var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
+var file_system_root: EditorFileSystemDirectory = efs.get_filesystem()
 
 func _ready() -> void:
-	if Engine.is_editor_hint():
-		var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
-		if efs:
-			efs.filesystem_changed.connect(_on_filesystem_changed)
+	if not Engine.is_editor_hint(): return 
+
+	_set_maps()
+
+	if efs and not efs.filesystem_changed.is_connected(_on_filesystem_changed):
+		efs.filesystem_changed.connect(_on_filesystem_changed)
+
 	%RescanDebounceTimer.timeout.connect(_on_rescan_debounce_timeout)
 
 
 func _exit_tree() -> void:
-	if Engine.is_editor_hint():
-		var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
-		if efs and efs.filesystem_changed.is_connected(_on_filesystem_changed):
-			efs.filesystem_changed.disconnect(_on_filesystem_changed)
+	if not Engine.is_editor_hint(): return 
+
+	if efs and efs.filesystem_changed.is_connected(_on_filesystem_changed):
+		efs.filesystem_changed.disconnect(_on_filesystem_changed)
+
 	if  %RescanDebounceTimer.timeout.is_connected(_on_rescan_debounce_timeout):
 		%RescanDebounceTimer.timeout.disconnect(_on_rescan_debounce_timeout)
 
@@ -38,55 +53,31 @@ func set_include_subclasses(value: bool) -> void:
 func rescan() -> void:
 	if _current_class_name.is_empty():
 		return
-	var classes: Array[String] = _get_included_classes()
-	var columns: Array[Dictionary] = _compute_union_columns(classes)
-	var resources: Array[Resource] = _load_resources(classes)
+	_set_maps()
+	current_class_names = _get_included_classes()
+	columns = ProjectClassScanner.unite_classes_properties(current_class_names, _global_clases_map)
+	resources = ProjectClassScanner.load_classed_resources_from_dir(current_class_names, file_system_root)
 	data_changed.emit(resources, columns)
 
 
-# ── Private ────────────────────────────────────────────────────────────────────
+func get_class_names():
+	return current_class_names
 
-func _get_included_classes() -> Array[String]:
-	var classes: Array[String] = [_current_class_name]
-	if _include_subclasses:
-		classes.append_array(
-			ProjectClassScanner.get_descendant_classes(_current_class_name)
-		)
-	return classes
-
-
-func _compute_union_columns(classes: Array[String]) -> Array[Dictionary]:
-	var class_to_path: Dictionary = {}
-	for entry: Dictionary in ProjectSettings.get_global_class_list():
-		var cls: String = entry.get("class", "")
-		var path: String = entry.get("path", "")
-		if not cls.is_empty() and not path.is_empty():
-			class_to_path[cls] = path
-
-	var seen: Dictionary = {}
-	var columns: Array[Dictionary] = []
-	for cls_name: String in classes:
-		var script_path: String = class_to_path.get(cls_name, "")
-		if script_path.is_empty():
-			continue
-		for prop: Dictionary in ProjectClassScanner.get_properties_from_script_path(script_path):
-			if not seen.has(prop.name):
-				seen[prop.name] = true
-				columns.append(prop)
+func get_columns():
 	return columns
 
-
-func _load_resources(classes: Array[String]) -> Array[Resource]:
-	var root: EditorFileSystemDirectory = EditorInterface \
-		.get_resource_filesystem().get_filesystem()
-	var paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres(root, classes)
-	paths.sort()
-	var resources: Array[Resource] = []
-	for path: String in paths:
-		var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
-		if res:
-			resources.append(res)
+func get_resources():
 	return resources
+
+# ── Private ────────────────────────────────────────────────────────────────────
+func _set_maps() -> void:
+	_global_clases_map = ProjectClassScanner.build_global_classes_map()
+	_classes_parent_map = ProjectClassScanner.build_project_classes_parent_map(_global_clases_map)
+
+
+func _get_included_classes() -> Array[String]:
+	if not _include_subclasses: return [_current_class_name]
+	else: return ProjectClassScanner.get_descendant_classes(_current_class_name, _classes_parent_map)
 
 
 func _on_filesystem_changed() -> void:
