@@ -77,6 +77,7 @@ metadata/_custom_type_script = "uid://dmco8u3b2nshv"
 
 [node name="SaveResourceDialog" type="EditorFileDialog" parent="." unique_id=900000001]
 unique_name_in_owner = true
+filters = PackedStringArray("*.tres")
 script = ExtResource("6_savedialog")
 
 [node name="ConfirmDeleteDialog" type="ConfirmationDialog" parent="." unique_id=900000002]

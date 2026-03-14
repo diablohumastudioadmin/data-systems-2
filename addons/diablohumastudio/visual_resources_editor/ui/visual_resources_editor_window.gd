@@ -3,9 +3,10 @@ extends Window
 
 
 func _ready() -> void:
-	_refresh_class_selector()
+	%ClassSelector.set_classes(%VREStateManager.project_resource_classes)
 
 	%VREStateManager.data_changed.connect(_on_state_data_changed)
+	%VREStateManager.project_classes_changed.connect(_on_project_classes_changed)
 
 	%ClassSelector.class_selected.connect(_on_class_selected)
 	%IncludeSubclassesCheck.toggled.connect(_on_include_subclasses_toggled)
@@ -28,10 +29,6 @@ func _input(event: InputEvent) -> void:
 
 # ── Class selector ─────────────────────────────────────────────────────────────
 
-func _refresh_class_selector() -> void:
-	%ClassSelector._classes_names = %VREStateManager.project_resource_classes
-
-
 func _on_class_selected(class_name_str: String) -> void:
 	%VREStateManager.set_class(class_name_str)
 	%BulkEditor.current_class_name = class_name_str
@@ -43,12 +40,18 @@ func _on_include_subclasses_toggled(pressed: bool) -> void:
 	%SubclassWarningLabel.visible = pressed
 
 
+func _on_project_classes_changed(added: Array[String], removed: Array[String]) -> void:
+	for cls: String in added:
+		%ClassSelector.add_class(cls)
+	for cls: String in removed:
+		%ClassSelector.remove_class(cls)
+
+
 # ── State → UI ─────────────────────────────────────────────────────────────────
 
 func _on_state_data_changed(
 		resources: Array[Resource], columns: Array[Dictionary]) -> void:
 	%ResourceList.set_data(resources, columns)
-	_refresh_class_selector()
 
 
 # ── Selection & inspection ─────────────────────────────────────────────────────
