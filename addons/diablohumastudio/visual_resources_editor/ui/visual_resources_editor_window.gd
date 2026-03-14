@@ -11,8 +11,8 @@ func _ready() -> void:
 	%IncludeSubclassesCheck.toggled.connect(_on_include_subclasses_toggled)
 
 	%ResourceList.rows_selected.connect(_on_rows_selected)
-	%ResourceList.create_requested.connect(%ResourceCRUD.create)
-	%ResourceList.delete_requested.connect(%ResourceCRUD.delete)
+	%ResourceList.create_requested.connect(%SaveResourceDialog.show_create_dialog)
+	%ResourceList.delete_requested.connect(%ConfirmDeleteDialog.show_delete_dialog)
 	%ResourceList.refresh_requested.connect(%VREStateManager.rescan)
 
 
@@ -30,7 +30,7 @@ func _refresh_class_selector() -> void:
 func _on_class_selected(class_name_str: String) -> void:
 	%VREStateManager.set_class(class_name_str)
 	%BulkEditor.current_class_name = class_name_str
-	%ResourceCRUD.current_class_name = class_name_str
+	%SaveResourceDialog.current_class_name = class_name_str
 
 
 func _on_include_subclasses_toggled(pressed: bool) -> void:

@@ -1,0 +1,51 @@
+@tool
+extends EditorFileDialog
+
+var current_class_name: String = ""
+
+
+func _ready() -> void:
+	file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
+	add_filter("*.tres")
+	file_selected.connect(_on_file_selected)
+
+
+func show_create_dialog() -> void:
+	if current_class_name.is_empty():
+		return
+	if _get_class_script_path(current_class_name).is_empty():
+		return
+	title = "Save New %s" % current_class_name
+	popup_centered(Vector2i(800, 500))
+
+
+func _on_file_selected(path: String) -> void:
+	var target_path: String = _normalize_tres_path(path)
+	var script_path: String = _get_class_script_path(current_class_name)
+	var script: GDScript = load(script_path)
+	if script == null:
+		%ErrorDialog.show_error("Failed to load script for %s." % current_class_name)
+		return
+	if not script.can_instantiate():
+		%ErrorDialog.show_error(
+			"Can't instantiate %s.\nCheck its constructor." % current_class_name)
+		return
+	var instance: Resource = script.new()
+	var err: Error = ResourceSaver.save(instance, target_path)
+	if err != OK:
+		%ErrorDialog.show_error("Failed to save resource:\n%s" % target_path)
+		return
+	EditorInterface.get_resource_filesystem().scan()
+
+
+func _get_class_script_path(class_name_str: String) -> String:
+	for entry: Dictionary in ProjectSettings.get_global_class_list():
+		if entry.get("class", "") == class_name_str:
+			return entry.get("path", "")
+	return ""
+
+
+func _normalize_tres_path(path: String) -> String:
+	if path.ends_with(".tres"):
+		return path
+	return "%s.tres" % path

@@ -2,7 +2,7 @@
 class_name BulkEditor
 extends Node
 
-const ERROR_DIALOG_SCENE: PackedScene = preload("uid://9g7t37gm0qcdf")
+var error_dialog_scene: ErrorDialog 
 
 var current_class_name: String = ""
 var edited_resources : Array[Resource] = [] :
@@ -60,7 +60,7 @@ func _on_inspector_property_edited(property: String) -> void:
 
 
 func _show_error(message: String) -> void:
-	var dialog: AcceptDialog = ERROR_DIALOG_SCENE.instantiate()
-	dialog.dialog_text = message
-	get_parent().add_child(dialog)
-	dialog.popup_centered()
+	error_dialog_scene = ErrorDialog.new()
+	error_dialog_scene.dialog_text = message
+	get_parent().add_child(error_dialog_scene)
+	error_dialog_scene.popup_centered()

@@ -13,7 +13,8 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 ## UI Convention
 - **Visual things must be defined in `.tscn` scenes**, not in `.gd` code — even when dynamically instantiated. Instantiate the scene in code, then configure it (pass arguments, connect signals). Only build UI in code when a scene is truly impossible (e.g. fully procedural runtime generation with no fixed structure).
 - **Non-visual nodes (helpers, managers) also belong in `.tscn` scenes** — add them as child nodes in the relevant scene with `unique_name_in_owner = true`, assign their script in the `.tscn`, and reference them via `%NodeName`. Do NOT instantiate non-visual nodes in code (`Node.new()` / `add_child()`) when they have a fixed role in a scene.
-- **Dialog UI** should be `.tscn` scenes, instantiated when needed.
+- **Script-only nodes (no `.tscn`)**: When a node has no child nodes and no significant static/editor-configured properties, use a standalone `.gd` script extending the base type (e.g. `extends ConfirmationDialog`). Add the node in the parent `.tscn` with its base type and assign the script there. This avoids near-empty `.tscn` files. All self-wiring (signal connections, runtime configuration) goes in the script's `_ready()`.
+- **Dialog UI** with children or complex editor-configured layout should be `.tscn` scenes. Simple dialogs (no children, fully configured at runtime) should be script-only nodes in the parent scene.
 - **Lambdas** are allowed when they are small, self-contained, and capture local variables (especially dialog instances). Prefer direct callables for simple signal forwarding when no local state is captured.
 
 ## Node References Convention
@@ -32,6 +33,7 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 ## Resource Loading Convention
 - **Always use UIDs in `load()` and `preload()`**, not string paths. UIDs survive file renames and moves without breaking references. Use `uid://xxxxxxxxxxxx` format: `preload("uid://xxxxxxxxxxxx")`. Find a file's UID in the `.uid` sidecar (for `.gd` scripts) or in the file header (`uid="uid://..."` on the first line of `.tscn` / `.tres` files).
 - **UID-only rule applies to hardcoded paths.** Dynamic runtime paths (computed at runtime) may use string paths.
+- **`load()` on a `.gd` file returns a GDScript Resource, not an instance.** Calling `.new()` on a loaded script that extends Node creates a detached node — it is NOT added to the scene tree automatically. To instantiate a Node-derived script: use `class_name` and call `MyClassName.new()`, or `load("res://path.gd").new()`. Do NOT confuse `load("script.gd")` (returns the script resource) with instantiating it (`.new()` on the result).
 - `ResourceLoader.CACHE_MODE_REPLACE` is acceptable to force reloading when class/subclass filters change.
 - **After creating a new `.gd` file that will be referenced in a `.tscn`**, run Godot headless so it imports the file and generates the `.uid` sidecar before adding the reference. Without this, the `.tscn` can only reference by path (fragile). Command: `/Volumes/Fer/RespaldoFER/Documentos/GODOT/Editor/Executables/Godot_v4.6.1-stable_macos.universal.app/Contents/MacOS/Godot --headless --path . --quit`
 
