@@ -26,19 +26,12 @@ func _ready() -> void:
 	if efs and not efs.filesystem_changed.is_connected(_on_filesystem_changed):
 		efs.filesystem_changed.connect(_on_filesystem_changed)
 
-	%RescanDebounceTimer.timeout.connect(_on_rescan_debounce_timeout)
-
-
 func _exit_tree() -> void:
 	if not Engine.is_editor_hint(): return
 
 	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
 	if efs and efs.filesystem_changed.is_connected(_on_filesystem_changed):
 		efs.filesystem_changed.disconnect(_on_filesystem_changed)
-
-	if  %RescanDebounceTimer.timeout.is_connected(_on_rescan_debounce_timeout):
-		%RescanDebounceTimer.timeout.disconnect(_on_rescan_debounce_timeout)
-
 
 func set_class(class_name_str: String) -> void:
 	_current_class_name = class_name_str
@@ -105,8 +98,4 @@ func _get_included_classes() -> Array[String]:
 
 
 func _on_filesystem_changed() -> void:
-	%RescanDebounceTimer.start()
-
-
-func _on_rescan_debounce_timeout() -> void:
-	rescan()
+	%RescanDebounceTimer.start_debouncing(rescan)
