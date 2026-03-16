@@ -4,9 +4,9 @@
 Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for managing game data tables. Uses generated GDScript Resource classes as both schema and typed instances.
 
 ## Workflow
-- **Before implementing changes**: write a proposal in `data_system_redesign_claude.md` with problem/fix/files for each item. Wait for user approval.
+- **Before implementing changes**: write a proposal with problem/fix/files for each item. Wait for user approval.
 - **When implementing**: make one git commit per change item. Use clear commit messages.
-- **After implementing**: update `data_system_redesign_claude.md` summary section — keep it concise, delete verbose proposals that are now completed.
+- **Do NOT write to `data_system_redesign_claude.md`** unless the user explicitly asks for it.
 - Deleting resource files does not require undo/redo; use version control for recovery.
 - Bulk edit undo/redo is optional; do not block work on adding it unless explicitly requested.
 
@@ -37,6 +37,9 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 - **Never cache `EditorFileSystemDirectory` references** in member variables. Godot frees and recreates the directory tree on every filesystem rescan (`EditorFileSystem.scan()`). A cached reference becomes a freed object, causing "previously freed" errors on next use. Always call `EditorInterface.get_resource_filesystem().get_filesystem()` fresh when needed.
 - `ResourceLoader.CACHE_MODE_REPLACE` is acceptable to force reloading when class/subclass filters change.
 - **After creating a new `.gd` file that will be referenced in a `.tscn`**, run Godot headless so it imports the file and generates the `.uid` sidecar before adding the reference. Without this, the `.tscn` can only reference by path (fragile). Command: `/Volumes/Fer/RespaldoFER/Documentos/GODOT/Editor/Executables/Godot_v4.6.1-stable_macos.universal.app/Contents/MacOS/Godot --headless --path . --quit`
+
+## For Loops
+- **Never use `range()` in `for` loops** — GDScript supports `for i: int in count:` directly. Write `for i: int in array.size():` instead of `for i: int in range(array.size()):`.
 
 ## Type Inference Convention
 - **Never use `:=` for type inference** — always use explicit types with `=`. GDScript's `:=` fails when the right-hand side doesn't have a clear type (e.g. properties from `%UniqueNode`). Write `var pos: Vector2 = %Node.position` instead of `var pos := %Node.position`.

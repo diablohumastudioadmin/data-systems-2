@@ -15,49 +15,27 @@ func _ready() -> void:
 
 
 func set_classes_in_dropdown() -> void:
+	var selected_index: int = %ClassDropdown.selected
+	var selected_text: String = %ClassDropdown.get_item_text(selected_index) if selected_index > 0 else ""
+
 	%ClassDropdown.clear()
 	%ClassDropdown.add_item("-- Select a class --", 0)
 
 	_classes_names.sort_custom(func(a: String, b: String): return a.nocasecmp_to(b) < 0)
 
-	for i: int in range(_classes_names.size()):
+	for i: int in _classes_names.size():
 		%ClassDropdown.add_item(_classes_names[i], i + 1)
+
+	if not selected_text.is_empty():
+		var new_index: int = _classes_names.find(selected_text)
+		if new_index != -1:
+			%ClassDropdown.select(new_index + 1)
 
 
 func set_classes(classes: Array[String]) -> void:
 	_classes_names = classes
 	if is_node_ready():
 		set_classes_in_dropdown()
-
-
-func add_class(class_name_str: String) -> void:
-	if _classes_names.has(class_name_str):
-		return
-	_classes_names.append(class_name_str)
-	_classes_names.sort_custom(func(a: String, b: String): return a.nocasecmp_to(b) < 0)
-	_rebuild_dropdown_preserving_selection()
-
-
-func _rebuild_dropdown_preserving_selection() -> void:
-	var selected_index: int = %ClassDropdown.selected
-	var selected_text: String = %ClassDropdown.get_item_text(selected_index) if selected_index > 0 else ""
-	%ClassDropdown.clear()
-	%ClassDropdown.add_item("-- Select a class --", 0)
-	for i: int in range(_classes_names.size()):
-		%ClassDropdown.add_item(_classes_names[i], i + 1)
-	if not selected_text.is_empty():
-		var new_index: int = _classes_names.find(selected_text)
-		if new_index != -1:
-			%ClassDropdown.select(new_index + 1)
-		else:
-			%ClassDropdown.select(0)
-
-
-func remove_class(class_name_str: String) -> void:
-	if not _classes_names.has(class_name_str):
-		return
-	_classes_names.erase(class_name_str)
-	_rebuild_dropdown_preserving_selection()
 
 
 func _on_class_dropdown_item_selected(index: int) -> void:

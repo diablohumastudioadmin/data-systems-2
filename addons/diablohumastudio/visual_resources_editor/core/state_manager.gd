@@ -3,7 +3,7 @@ class_name VREStateManager
 extends Node
 
 signal data_changed(resources: Array[Resource], columns: Array[Dictionary])
-signal project_classes_changed(added: Array[String], removed: Array[String])
+signal project_classes_changed(classes: Array[String])
 
 var _global_clases_map: Array[Dictionary]
 var _classes_parent_map: Dictionary[String, String]
@@ -23,15 +23,21 @@ func _ready() -> void:
 	_set_maps()
 
 	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
-	if efs and not efs.filesystem_changed.is_connected(_on_filesystem_changed):
-		efs.filesystem_changed.connect(_on_filesystem_changed)
+	if efs:
+		if not efs.filesystem_changed.is_connected(_on_filesystem_changed):
+			efs.filesystem_changed.connect(_on_filesystem_changed)
+		if not efs.script_classes_updated.is_connected(_on_script_classes_updated):
+			efs.script_classes_updated.connect(_on_script_classes_updated)
 
 func _exit_tree() -> void:
 	if not Engine.is_editor_hint(): return
 
 	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
-	if efs and efs.filesystem_changed.is_connected(_on_filesystem_changed):
-		efs.filesystem_changed.disconnect(_on_filesystem_changed)
+	if efs:
+		if efs.filesystem_changed.is_connected(_on_filesystem_changed):
+			efs.filesystem_changed.disconnect(_on_filesystem_changed)
+		if efs.script_classes_updated.is_connected(_on_script_classes_updated):
+			efs.script_classes_updated.disconnect(_on_script_classes_updated)
 
 func set_class(class_name_str: String) -> void:
 	_current_class_name = class_name_str
@@ -46,9 +52,6 @@ func set_include_subclasses(value: bool) -> void:
 func rescan() -> void:
 	if _current_class_name.is_empty():
 		return
-
-	_set_maps()
-	_check_project_classes_changed()
 
 	_current_class_names = _get_included_classes()
 
@@ -75,26 +78,16 @@ func _set_maps() -> void:
 	_classes_parent_map = ProjectClassScanner.build_project_classes_parent_map(_global_clases_map)
 
 
-func _check_project_classes_changed() -> void:
-	var new_classes: Array[String] = ProjectClassScanner.get_resource_classes_in_folder(
-		_classes_parent_map)
-	if new_classes == project_resource_classes:
-		return
-	var added: Array[String] = []
-	for cls: String in new_classes:
-		if not project_resource_classes.has(cls):
-			added.append(cls)
-	var removed: Array[String] = []
-	for cls: String in project_resource_classes:
-		if not new_classes.has(cls):
-			removed.append(cls)
-	project_resource_classes = new_classes
-	project_classes_changed.emit(added, removed)
+func _on_script_classes_updated() -> void:
+	_set_maps()
+	project_resource_classes = ProjectClassScanner.get_resource_classes_in_folder(_classes_parent_map)
+	project_classes_changed.emit(project_resource_classes)
+	rescan()
 
 
 func _get_included_classes() -> Array[String]:
 	if not _include_subclasses: return [_current_class_name]
-	else: return ProjectClassScanner.get_descendant_classes(_current_class_name, _classes_parent_map)
+	return ProjectClassScanner.get_descendant_classes(_current_class_name, _classes_parent_map)
 
 
 func _on_filesystem_changed() -> void:

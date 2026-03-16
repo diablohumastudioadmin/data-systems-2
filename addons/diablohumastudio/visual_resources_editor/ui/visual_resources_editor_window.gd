@@ -40,11 +40,8 @@ func _on_include_subclasses_toggled(pressed: bool) -> void:
 	%SubclassWarningLabel.visible = pressed
 
 
-func _on_project_classes_changed(added: Array[String], removed: Array[String]) -> void:
-	for cls: String in added:
-		%ClassSelector.add_class(cls)
-	for cls: String in removed:
-		%ClassSelector.remove_class(cls)
+func _on_project_classes_changed(classes: Array[String]) -> void:
+	%ClassSelector.set_classes(classes)
 
 
 # ── State → UI ─────────────────────────────────────────────────────────────────
