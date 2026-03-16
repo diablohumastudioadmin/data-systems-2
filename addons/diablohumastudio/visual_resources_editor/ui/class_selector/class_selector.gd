@@ -3,11 +3,7 @@ extends HBoxContainer
 
 signal class_selected(class_name_str: String)
 
-var _classes_names: Array[String] = [] :
-	set(new_value):
-		_classes_names = new_value
-		if is_node_ready():
-			set_classes_in_dropdown()
+var _classes_names: Array[String] = [] 
 
 
 func _ready() -> void:
