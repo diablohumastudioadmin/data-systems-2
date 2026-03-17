@@ -7,6 +7,8 @@ signal resources_edited(resources: Array[Resource])
 
 var current_class_name: String = ""
 var current_class_script: GDScript = null
+var current_class_property_list: Array[Dictionary] = []
+var subclasses_property_lists: Dictionary = {}
 var edited_resources : Array[Resource] = [] :
 	set(new_value):
 		edited_resources = new_value
@@ -35,15 +37,24 @@ func _create_bulk_proxy() -> void:
 	_clear_bulk_proxy()
 	if edited_resources.is_empty():
 		return
-	var script: GDScript = edited_resources[0].get_script() \
-		if edited_resources.size() == 1 else current_class_script
+	var script: GDScript = _get_common_script()
 	if script == null:
 		return
 	_bulk_proxy = script.new()
 	if edited_resources.size() == 1:
-		for prop: Dictionary in script.get_script_property_list():
+		var res_class: String = script.get_global_name()
+		var props: Array = subclasses_property_lists.get(res_class, current_class_property_list)
+		for prop: Dictionary in props:
 			_bulk_proxy.set(prop.name, edited_resources[0].get(prop.name))
 	EditorInterface.inspect_object(_bulk_proxy)
+
+
+func _get_common_script() -> GDScript:
+	var first_script: GDScript = edited_resources[0].get_script()
+	for i: int in edited_resources.size():
+		if edited_resources[i].get_script() != first_script:
+			return current_class_script
+	return first_script
 
 
 func _on_inspector_property_edited(property: String) -> void:
