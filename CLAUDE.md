@@ -38,6 +38,9 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 - `ResourceLoader.CACHE_MODE_REPLACE` is acceptable to force reloading when class/subclass filters change.
 - **After creating a new `.gd` file that will be referenced in a `.tscn`**, run Godot headless so it imports the file and generates the `.uid` sidecar before adding the reference. Without this, the `.tscn` can only reference by path (fragile). Command: `/Volumes/Fer/RespaldoFER/Documentos/GODOT/Editor/Executables/Godot_v4.6.1-stable_macos.universal.app/Contents/MacOS/Godot --headless --path . --quit`
 
+## Property Initialization
+- **Do not call functions (especially I/O) in property declarations** — initialize with literals (`[]`, `""`, `0`, `null`), then populate in `_ready()`. Property declarations run during `_init()`, before the node is in the scene tree, so I/O calls or calls that depend on editor state will fail or produce stale results.
+
 ## For Loops
 - **Never use `range()` in `for` loops** — GDScript supports `for i: int in count:` directly. Write `for i: int in array.size():` instead of `for i: int in range(array.size()):`.
 

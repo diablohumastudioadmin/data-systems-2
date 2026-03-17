@@ -9,10 +9,10 @@ var global_clases_map: Array[Dictionary]
 var _classes_parent_map: Dictionary[String, String]
 
 var _current_class_name: String = ""
-var _current_class_names: Array[String] = []
+var current_class_names: Array[String] = []
 var _include_subclasses: bool = true
 
-var project_resource_classes: Array[String] = ProjectClassScanner.get_resource_classes_in_folder()
+var project_resource_classes: Array[String] = []
 
 var current_class_script: GDScript = null
 var current_class_property_list: Array[Dictionary] = []
@@ -24,6 +24,7 @@ func _ready() -> void:
 	if not Engine.is_editor_hint(): return
 
 	_set_maps()
+	project_resource_classes = ProjectClassScanner.get_resource_classes_in_folder(_classes_parent_map)
 
 	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
 	if efs:
@@ -42,6 +43,7 @@ func _exit_tree() -> void:
 		if efs.script_classes_updated.is_connected(_on_script_classes_updated):
 			efs.script_classes_updated.disconnect(_on_script_classes_updated)
 
+
 func set_class(class_name_str: String) -> void:
 	_current_class_name = class_name_str
 	rescan()
@@ -56,7 +58,10 @@ func rescan() -> void:
 	if _current_class_name.is_empty():
 		return
 
-	_current_class_names = _get_included_classes()
+	current_class_names = _get_included_classes()
+	if current_class_names.is_empty():
+		push_warning("VREStateManager: class '%s' resolved to no classes. Was it deleted?" % _current_class_name)
+		return
 	current_class_script = _get_class_script(_current_class_name)
 
 	var class_to_path: Dictionary = {}
@@ -67,29 +72,20 @@ func rescan() -> void:
 			class_to_path[cls] = path
 
 	subclasses_property_lists = {}
-	for cls_name: String in _current_class_names:
+	for cls_name: String in current_class_names:
 		var script_path: String = class_to_path.get(cls_name, "")
 		if not script_path.is_empty():
 			subclasses_property_lists[cls_name] = ProjectClassScanner.get_properties_from_script_path(script_path)
 
 	current_class_property_list = subclasses_property_lists.get(_current_class_name, [])
 
-	columns = ProjectClassScanner.unite_classes_properties(_current_class_names, global_clases_map)
+	columns = ProjectClassScanner.unite_classes_properties(current_class_names, global_clases_map)
 
 	var root: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
-	resources = ProjectClassScanner.load_classed_resources_from_dir(_current_class_names, root)
+	resources = ProjectClassScanner.load_classed_resources_from_dir(current_class_names, root)
 
 	data_changed.emit(resources, columns)
 
-
-func get_class_names():
-	return _current_class_names
-
-func get_columns():
-	return columns
-
-func get_resources():
-	return resources
 
 # ── Private ────────────────────────────────────────────────────────────────────
 func _set_maps() -> void:
@@ -117,4 +113,5 @@ func _get_class_script(class_name_str: String) -> GDScript:
 
 
 func _on_filesystem_changed() -> void:
+	print("fs changed")
 	%RescanDebounceTimer.start_debouncing(rescan)

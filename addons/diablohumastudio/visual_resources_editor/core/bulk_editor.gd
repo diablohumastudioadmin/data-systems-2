@@ -80,4 +80,5 @@ func _on_inspector_property_edited(property: String) -> void:
 			error_occurred.emit(msg)
 		if not saved.is_empty():
 			resources_edited.emit(saved)
+		EditorInterface.get_resource_filesystem().scan_sources()
 		return

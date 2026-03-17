@@ -9,7 +9,6 @@ var global_classes_map: Array[Dictionary] = []
 
 func _ready() -> void:
 	file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
-	add_filter("*.tres")
 	file_selected.connect(_on_file_selected)
 
 
@@ -23,7 +22,6 @@ func show_create_dialog() -> void:
 
 
 func _on_file_selected(path: String) -> void:
-	var target_path: String = _normalize_tres_path(path)
 	var script_path: String = _get_class_script_path(current_class_name)
 	var script: GDScript = load(script_path)
 	if script == null:
@@ -34,9 +32,9 @@ func _on_file_selected(path: String) -> void:
 			"Can't instantiate %s.\nCheck its constructor." % current_class_name)
 		return
 	var instance: Resource = script.new()
-	var err: Error = ResourceSaver.save(instance, target_path)
+	var err: Error = ResourceSaver.save(instance, path)
 	if err != OK:
-		error_occurred.emit("Failed to save resource:\n%s" % target_path)
+		error_occurred.emit("Failed to save resource:\n%s" % path)
 		return
 	EditorInterface.get_resource_filesystem().scan()
 
@@ -46,9 +44,3 @@ func _get_class_script_path(class_name_str: String) -> String:
 		if entry.get("class", "") == class_name_str:
 			return entry.get("path", "")
 	return ""
-
-
-func _normalize_tres_path(path: String) -> String:
-	if path.ends_with(".tres"):
-		return path
-	return "%s.tres" % path

@@ -179,7 +179,7 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 
 ~~**Conflicting**: Item #4 (same root cause — uncached class list).~~
 
-**Fix applied**: `current_class_script` cached in StateManager on rescan, passed to BulkEditor from window. `_get_current_class_script()` removed from BulkEditor.
+**Fix applied**: `current_class_script`, `current_class_property_list`, and `subclasses_property_lists` cached in StateManager on rescan, passed to BulkEditor from window. BulkEditor uses cached property lists instead of `get_script_property_list()`. `_get_current_class_script()` removed from BulkEditor. Multi-select of same subclass uses that subclass's script via `_get_common_script()`.
 
 ---
 
@@ -203,13 +203,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Codex
 **Severity**: HIGH
 **File**: `core/bulk_editor.gd`
-**Solved**: not solved
+**Solved**: unwanted
 
-**Problem**: Every single property edit triggers immediate save of all selected resources with no UndoRedo support. Destructive UX.
+~~**Problem**: Every single property edit triggers immediate save of all selected resources with no UndoRedo support. Destructive UX.~~
 
-**Fix (Codex)**: Use `EditorUndoRedoManager` to register changes. Debounce/batch saves.
+~~**Fix (Codex)**: Use `EditorUndoRedoManager` to register changes. Debounce/batch saves.~~
 
-**problem_claude_correction**: Problem is real. However, CLAUDE.md explicitly states: "Bulk edit undo/redo is optional; do not block work on adding it unless explicitly requested." This is a known accepted trade-off, not a forgotten bug. Debouncing saves IS worth doing though.
+~~**problem_claude_correction**: Problem is real. However, CLAUDE.md explicitly states: "Bulk edit undo/redo is optional; do not block work on adding it unless explicitly requested." This is a known accepted trade-off, not a forgotten bug. Debouncing saves IS worth doing though.~~
 
 ---
 
@@ -218,11 +218,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Gemini
 **Severity**: MEDIUM
 **File**: `core/state_manager.gd` — line 15
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `var project_resource_classes: Array[String] = ProjectClassScanner.get_resource_classes_in_folder()` executes heavy I/O at object instantiation (during `_init`), before `_ready()`.
+~~**Problem**: `var project_resource_classes: Array[String] = ProjectClassScanner.get_resource_classes_in_folder()` executes heavy I/O at object instantiation (during `_init`), before `_ready()`.~~
 
-**Fix**: Initialize as empty array, populate in `_ready()`.
+~~**Fix**: Initialize as empty array, populate in `_ready()`.~~
+
+**Fix applied**: Initialized as empty array, populated in `_ready()` after `_set_maps()`.
 
 ---
 
@@ -231,13 +233,15 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `core/state_manager.gd` — line 39
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `if  %RescanDebounceTimer` has double space.
+~~**Problem**: `if  %RescanDebounceTimer` has double space.~~
 
-**Fix**: Remove extra space.
+~~**Fix**: Remove extra space.~~
 
-**problem_claude_correction**: The double space is cosmetic and doesn't affect behavior. Valid but trivial.
+~~**problem_claude_correction**: The double space is cosmetic and doesn't affect behavior. Valid but trivial.~~
+
+**Fix applied**: Debouncer is now its own node with internal signal connections; the old disconnect code no longer exists.
 
 ---
 
@@ -246,13 +250,15 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `core/state_manager.gd` — lines 70-77
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `get_class_names()`, `get_columns()`, `get_resources()` have no return types and just return public vars.
+~~**Problem**: `get_class_names()`, `get_columns()`, `get_resources()` have no return types and just return public vars.~~
 
-**Fix**: Either add return types or remove the getters entirely (vars are already public).
+~~**Fix**: Either add return types or remove the getters entirely (vars are already public).~~
 
-**problem_claude_correction**: Partially valid. The vars `columns` and `resources` are public, so getters are redundant. But `_current_class_names` is private, so `get_class_names()` provides access — that getter is useful. Fix should be: add return types to all, keep `get_class_names()`, consider removing the others.
+~~**problem_claude_correction**: Partially valid. The vars `columns` and `resources` are public, so getters are redundant. But `_current_class_names` is private, so `get_class_names()` provides access — that getter is useful. Fix should be: add return types to all, keep `get_class_names()`, consider removing the others.~~
+
+**Fix applied**: Deleted all three getters. Renamed `_current_class_names` to `current_class_names` (public).
 
 ---
 
@@ -261,11 +267,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Claude
 **Severity**: HIGH
 **File**: `core/state_manager.gd` — `rescan()` lines 60-62
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: If `_get_included_classes()` returns empty (deleted class, corrupt parent map), columns and resources are silently empty. UI shows "0 resources" with no explanation.
+~~**Problem**: If `_get_included_classes()` returns empty (deleted class, corrupt parent map), columns and resources are silently empty. UI shows "0 resources" with no explanation.~~
 
-**Fix**: Check and `push_warning()` when class name is set but resolution returns empty.
+~~**Fix**: Check and `push_warning()` when class name is set but resolution returns empty.~~
+
+**Fix applied**: Added early return with `push_warning()` when `current_class_names` is empty after `_get_included_classes()`.
 
 ---
 
@@ -289,13 +297,15 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Codex
 **Severity**: MEDIUM
 **File**: `core/state_manager.gd` — `_check_project_classes_changed()` line 88
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `new_classes == project_resource_classes` compares arrays directly. If order changes but set is identical, it triggers unnecessary UI refresh.
+~~**Problem**: `new_classes == project_resource_classes` compares arrays directly. If order changes but set is identical, it triggers unnecessary UI refresh.~~
 
-**Fix**: Sort both arrays before comparing, or compare as sets.
+~~**Fix**: Sort both arrays before comparing, or compare as sets.~~
 
-**problem_claude_correction**: Looking at the code, `get_resource_classes_in_folder()` returns classes from `get_global_class_list()` which has a stable order. And `set_classes_in_dropdown()` sorts alphabetically anyway. So the order instability is unlikely in practice. Low-risk fix but not urgent.
+~~**problem_claude_correction**: Looking at the code, `get_resource_classes_in_folder()` returns classes from `get_global_class_list()` which has a stable order. And `set_classes_in_dropdown()` sorts alphabetically anyway. So the order instability is unlikely in practice. Low-risk fix but not urgent.~~
+
+**Fix applied**: `_check_project_classes_changed()` no longer exists. Class list updates now trigger directly from `script_classes_updated` signal — no comparison needed.
 
 ---
 

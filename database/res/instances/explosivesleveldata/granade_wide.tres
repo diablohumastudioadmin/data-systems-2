@@ -5,7 +5,7 @@
 
 [resource]
 script = ExtResource("1_2u1kp")
-range = 6
+range = 5
 price = 350
 ally = ExtResource("1_8sano")
 name = "granade_wide"

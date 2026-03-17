@@ -5,8 +5,8 @@
 
 [resource]
 script = ExtResource("1_0qtxv")
-range = 4
-price = 250
+range = 5
+price = 251
 ally = ExtResource("1_mpyga")
 name = "granade_base"
 id = 4091504643509826648
