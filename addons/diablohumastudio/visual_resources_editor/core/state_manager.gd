@@ -14,6 +14,7 @@ var _include_subclasses: bool = true
 
 var project_resource_classes: Array[String] = ProjectClassScanner.get_resource_classes_in_folder()
 
+var current_class_script: GDScript = null
 var columns: Array[Dictionary] = []
 var resources: Array[Resource] = []
 
@@ -54,6 +55,7 @@ func rescan() -> void:
 		return
 
 	_current_class_names = _get_included_classes()
+	current_class_script = _get_class_script(_current_class_name)
 
 	columns = ProjectClassScanner.unite_classes_properties(_current_class_names, global_clases_map)
 
@@ -88,6 +90,13 @@ func _on_script_classes_updated() -> void:
 func _get_included_classes() -> Array[String]:
 	if not _include_subclasses: return [_current_class_name]
 	return ProjectClassScanner.get_descendant_classes(_current_class_name, _classes_parent_map)
+
+
+func _get_class_script(class_name_str: String) -> GDScript:
+	for entry: Dictionary in global_clases_map:
+		if entry.get("class", "") == class_name_str:
+			return load(entry.get("path", ""))
+	return null
 
 
 func _on_filesystem_changed() -> void:

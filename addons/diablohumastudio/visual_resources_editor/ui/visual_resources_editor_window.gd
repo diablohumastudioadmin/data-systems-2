@@ -32,7 +32,7 @@ func _input(event: InputEvent) -> void:
 func _on_class_selected(class_name_str: String) -> void:
 	%VREStateManager.set_class(class_name_str)
 	%BulkEditor.current_class_name = class_name_str
-	%BulkEditor.global_classes_map = %VREStateManager.global_clases_map
+	%BulkEditor.current_class_script = %VREStateManager.current_class_script
 	%SaveResourceDialog.current_class_name = class_name_str
 	%SaveResourceDialog.global_classes_map = %VREStateManager.global_clases_map
 

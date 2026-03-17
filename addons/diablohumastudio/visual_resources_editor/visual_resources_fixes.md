@@ -129,23 +129,25 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Codex
 **Severity**: HIGH
 **File**: `core/bulk_editor.gd` — `_on_inspector_property_edited()` line 53
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `res.set(property, new_value)` is called blindly on all selected resources. In subclass mode, a property from `Sword` gets set on a `Bow` resource, polluting it with unintended values.
+~~**Problem**: `res.set(property, new_value)` is called blindly on all selected resources. In subclass mode, a property from `Sword` gets set on a `Bow` resource, polluting it with unintended values.~~
 
-**Fix**: Check property exists before setting:
-```gdscript
-var res_props: Array = res.get_property_list()
-var has_prop: bool = false
-for p: Dictionary in res_props:
-    if p.name == property:
-        has_prop = true
-        break
-if has_prop:
-    res.set(property, new_value)
-```
+~~**Fix**: Check property exists before setting:~~
+~~```gdscript~~
+~~var res_props: Array = res.get_property_list()~~
+~~var has_prop: bool = false~~
+~~for p: Dictionary in res_props:~~
+~~    if p.name == property:~~
+~~        has_prop = true~~
+~~        break~~
+~~if has_prop:~~
+~~    res.set(property, new_value)~~
+~~```~~
 
-**fix_claude_correction**: The fix works but is O(N*M). Better: build a `Dictionary` of property names once per resource script and check with `.has()`. Or even simpler — cache the owned properties set per class_name since it doesn't change between edits.
+~~**fix_claude_correction**: The fix works but is O(N*M). Better: build a `Dictionary` of property names once per resource script and check with `.has()`. Or even simpler — cache the owned properties set per class_name since it doesn't change between edits.~~
+
+**Fix applied**: `if property not in res: continue` — skips resources that don't have the property.
 
 ---
 
@@ -154,11 +156,13 @@ if has_prop:
 **Creator**: Claude
 **Severity**: HIGH
 **File**: `core/bulk_editor.gd` — `_on_inspector_property_edited()` lines 51-59
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: If `ResourceSaver.save()` fails for some resources, `resources_edited` signal is emitted with ALL resources (including failed ones). UI refreshes as if everything succeeded.
+~~**Problem**: If `ResourceSaver.save()` fails for some resources, `resources_edited` signal is emitted with ALL resources (including failed ones). UI refreshes as if everything succeeded.~~
 
-**Fix**: Only emit successfully saved resources in the signal.
+~~**Fix**: Only emit successfully saved resources in the signal.~~
+
+**Fix applied**: `resources_edited` now only emits successfully saved resources. Error shows failed paths (max 3).
 
 ---
 
@@ -167,13 +171,15 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `core/bulk_editor.gd` — `_get_current_class_script()` lines 39-43
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: Iterates `get_global_class_list()` every time a property is edited to find the current class script.
+~~**Problem**: Iterates `get_global_class_list()` every time a property is edited to find the current class script.~~
 
-**Fix**: Cache the script reference when `current_class_name` is set.
+~~**Fix**: Cache the script reference when `current_class_name` is set.~~
 
-**Conflicting**: Item #4 (same root cause — uncached class list).
+~~**Conflicting**: Item #4 (same root cause — uncached class list).~~
+
+**Fix applied**: `current_class_script` cached in StateManager on rescan, passed to BulkEditor from window. `_get_current_class_script()` removed from BulkEditor.
 
 ---
 
@@ -182,11 +188,13 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `core/bulk_editor.gd` — line 58
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: If 50 resources fail to save, the error string overflows the popup.
+~~**Problem**: If 50 resources fail to save, the error string overflows the popup.~~
 
-**Fix**: Limit error output to first 5-10 paths and append "... and X more".
+~~**Fix**: Limit error output to first 5-10 paths and append "... and X more".~~
+
+**Fix applied**: Error shows first 3 failed paths + "... and N more" if there are more.
 
 ---
 

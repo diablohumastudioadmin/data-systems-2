@@ -6,7 +6,7 @@ signal error_occurred(message: String)
 signal resources_edited(resources: Array[Resource])
 
 var current_class_name: String = ""
-var global_classes_map: Array[Dictionary] = []
+var current_class_script: GDScript = null
 var edited_resources : Array[Resource] = [] :
 	set(new_value):
 		edited_resources = new_value
@@ -36,7 +36,7 @@ func _create_bulk_proxy() -> void:
 	if edited_resources.is_empty():
 		return
 	var script: GDScript = edited_resources[0].get_script() \
-		if edited_resources.size() == 1 else _get_current_class_script()
+		if edited_resources.size() == 1 else current_class_script
 	if script == null:
 		return
 	_bulk_proxy = script.new()
@@ -46,25 +46,27 @@ func _create_bulk_proxy() -> void:
 	EditorInterface.inspect_object(_bulk_proxy)
 
 
-func _get_current_class_script() -> GDScript:
-	for entry: Dictionary in global_classes_map:
-		if entry.get("class", "") == current_class_name:
-			return load(entry.get("path", ""))
-	return null
-
-
 func _on_inspector_property_edited(property: String) -> void:
 	var edited_obj: Object = _inspector.get_edited_object()
 
 	if _bulk_proxy and edited_obj == _bulk_proxy:
 		var new_value: Variant = _bulk_proxy.get(property)
+		var saved: Array[Resource] = []
 		var failed_paths: Array[String] = []
 		for res: Resource in edited_resources:
+			if property not in res: continue
 			res.set(property, new_value)
 			var err: Error = ResourceSaver.save(res, res.resource_path)
 			if err != OK:
 				failed_paths.append(res.resource_path)
+			else:
+				saved.append(res)
 		if not failed_paths.is_empty():
-			error_occurred.emit("Failed to save:\n%s" % "\n".join(failed_paths))
-		resources_edited.emit(edited_resources.duplicate())
+			var shown: Array[String] = failed_paths.slice(0, 3)
+			var msg: String = "Failed to save:\n%s" % "\n".join(shown)
+			if failed_paths.size() > 3:
+				msg += "\n... and %d more" % (failed_paths.size() - 3)
+			error_occurred.emit(msg)
+		if not saved.is_empty():
+			resources_edited.emit(saved)
 		return
