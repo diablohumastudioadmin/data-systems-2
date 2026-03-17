@@ -5,7 +5,7 @@ extends Node
 signal data_changed(resources: Array[Resource], columns: Array[Dictionary])
 signal project_classes_changed(classes: Array[String])
 
-var _global_clases_map: Array[Dictionary]
+var global_clases_map: Array[Dictionary]
 var _classes_parent_map: Dictionary[String, String]
 
 var _current_class_name: String = ""
@@ -55,7 +55,7 @@ func rescan() -> void:
 
 	_current_class_names = _get_included_classes()
 
-	columns = ProjectClassScanner.unite_classes_properties(_current_class_names, _global_clases_map)
+	columns = ProjectClassScanner.unite_classes_properties(_current_class_names, global_clases_map)
 
 	var root: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
 	resources = ProjectClassScanner.load_classed_resources_from_dir(_current_class_names, root)
@@ -74,8 +74,8 @@ func get_resources():
 
 # ── Private ────────────────────────────────────────────────────────────────────
 func _set_maps() -> void:
-	_global_clases_map = ProjectClassScanner.build_global_classes_map()
-	_classes_parent_map = ProjectClassScanner.build_project_classes_parent_map(_global_clases_map)
+	global_clases_map = ProjectClassScanner.build_global_classes_map()
+	_classes_parent_map = ProjectClassScanner.build_project_classes_parent_map(global_clases_map)
 
 
 func _on_script_classes_updated() -> void:

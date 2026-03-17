@@ -11,14 +11,17 @@ All items from the three reviews (Claude, Gemini, Codex) merged. Duplicates unif
 **Creator**: Gemini + Codex (Claude noted only the silent failure aspect)
 **Severity**: CRITICAL
 **File**: `core/project_class_scanner.gd`
+**Solved**: yes
 
-**Problem**: Uses `ResourceLoader.load(path, "", CACHE_MODE_IGNORE)` for every `.tres` file during scans. Loads full resources with all dependencies (textures, audio, etc.) just to read the script class name. Freezes editor on medium+ projects.
+~~**Problem**: Uses `ResourceLoader.load(path, "", CACHE_MODE_IGNORE)` for every `.tres` file during scans. Loads full resources with all dependencies (textures, audio, etc.) just to read the script class name. Freezes editor on medium+ projects.~~
 
-**Fix (Gemini)**: Read `.tres` as plain text with `FileAccess`, parse header with RegEx to find `script_class` or `ExtResource` script reference.
-**Fix (Codex)**: Parse `.tres` text for `script = ExtResource` and map to class without fully loading; or cache results and only load on demand.
+~~**Fix (Gemini)**: Read `.tres` as plain text with `FileAccess`, parse header with RegEx to find `script_class` or `ExtResource` script reference.~~
+~~**Fix (Codex)**: Parse `.tres` text for `script = ExtResource` and map to class without fully loading; or cache results and only load on demand.~~
 
-**problem_claude_correction**: Problem is real and severe. Both Gemini and Codex correctly identified it.
-**fix_claude_correction**: Both fixes are directionally correct. Prefer Codex's approach: parse the `.tres` header text for the `[ext_resource ... type="Script"]` and `script = ExtResource(...)` lines, then map the script path to a class name via the already-cached `_global_classes_map`. This avoids RegEx fragility while still avoiding full loads. Must handle binary `.tres` files gracefully (skip them or fall back to load).
+~~**problem_claude_correction**: Problem is real and severe. Both Gemini and Codex correctly identified it.~~
+~~**fix_claude_correction**: Both fixes are directionally correct. Prefer Codex's approach: parse the `.tres` header text for the `[ext_resource ... type="Script"]` and `script = ExtResource(...)` lines, then map the script path to a class name via the already-cached `_global_classes_map`. This avoids RegEx fragility while still avoiding full loads. Must handle binary `.tres` files gracefully (skip them or fall back to load).~~
+
+**Fix applied**: Read first line of `.tres` with `FileAccess`, search for `script_class="` to extract class name without loading the resource.
 
 ---
 
@@ -27,10 +30,11 @@ All items from the three reviews (Claude, Gemini, Codex) merged. Duplicates unif
 **Creator**: Claude
 **Severity**: HIGH
 **File**: `core/project_class_scanner.gd` — `get_class_from_tres_file()` lines 89-94
+**Solved**: yes (item 1 fix eliminates the load call entirely)
 
-**Problem**: When `ResourceLoader.load()` returns null (corrupt file, missing script), the function silently returns `""`. Resource vanishes from list with no warning.
+~~**Problem**: When `ResourceLoader.load()` returns null (corrupt file, missing script), the function silently returns `""`. Resource vanishes from list with no warning.~~
 
-**Fix**: Add `push_warning("VRE: Failed to load resource at '%s'" % tres_file_path)` before returning empty.
+~~**Fix**: Add `push_warning("VRE: Failed to load resource at '%s'" % tres_file_path)` before returning empty.~~
 
 ---
 
@@ -39,12 +43,15 @@ All items from the three reviews (Claude, Gemini, Codex) merged. Duplicates unif
 **Creator**: Gemini + Claude
 **Severity**: LOW
 **File**: `core/project_class_scanner.gd` — `get_descendant_classes()`
+**Solved**: not an error
 
-**Problem (Gemini)**: `Array([], TYPE_STRING, "", null)` is "invalid Godot 4 syntax".
-**Problem (Claude)**: Same line — fragile and hard to read.
+~~**Problem (Gemini)**: `Array([], TYPE_STRING, "", null)` is "invalid Godot 4 syntax".~~
+~~**Problem (Claude)**: Same line — fragile and hard to read.~~
 
-**problem_claude_correction**: Gemini is wrong that it's "invalid syntax" — `Array([], TYPE_STRING, "", null)` IS valid Godot 4 typed array constructor. It compiles and runs. But it IS fragile and unreadable.
-**Fix**: Replace with simple `var descendants: Array[String] = []` then conditionally `append(base_class)`.
+~~**problem_claude_correction**: Gemini is wrong that it's "invalid syntax" — `Array([], TYPE_STRING, "", null)` IS valid Godot 4 typed array constructor. It compiles and runs. But it IS fragile and unreadable.~~
+~~**Fix**: Replace with simple `var descendants: Array[String] = []` then conditionally `append(base_class)`.~~
+
+This is the only way to create an empty typed dict in one line. Using `as` only works for individual elements.
 
 ---
 
@@ -53,12 +60,15 @@ All items from the three reviews (Claude, Gemini, Codex) merged. Duplicates unif
 **Creator**: Gemini
 **Severity**: MEDIUM
 **File**: `core/project_class_scanner.gd`
+**Solved**: yes
 
-**Problem**: Multiple functions iterate over `ProjectSettings.get_global_class_list()` independently instead of sharing a single cached result.
+~~**Problem**: Multiple functions iterate over `ProjectSettings.get_global_class_list()` independently instead of sharing a single cached result.~~
 
-**Fix**: Call `get_global_class_list()` once per filesystem change, cache the parsed maps. StateManager already calls `_set_maps()` in `rescan()`, so ensure all downstream code uses the cached maps, not fresh API calls.
+~~**Fix**: Call `get_global_class_list()` once per filesystem change, cache the parsed maps. StateManager already calls `_set_maps()` in `rescan()`, so ensure all downstream code uses the cached maps, not fresh API calls.~~
 
-**Conflicting**: Item #22 (BulkEditor also calls `get_global_class_list()` independently).
+~~**Conflicting**: Item #22 (BulkEditor also calls `get_global_class_list()` independently).~~
+
+**Fix applied**: `_global_clases_map` only changes in `_on_script_classes_updated()`. Window passes it down to `SaveResourceDialog` and `BulkEditor` so they don't call `get_global_class_list()` independently.
 
 ---
 
@@ -67,16 +77,19 @@ All items from the three reviews (Claude, Gemini, Codex) merged. Duplicates unif
 **Creator**: Gemini
 **Severity**: HIGH
 **File**: `core/bulk_editor.gd` — `_create_bulk_proxy()` line 35
+**Solved**: yes
 
-**Problem**: `_bulk_proxy.set(prop.name, edited_resources[0].get(prop.name))` copies references for Array/Dictionary types. Editing an Array in the bulk proxy mutates the first resource's Array directly, bypassing save logic.
+~~**Problem**: `_bulk_proxy.set(prop.name, edited_resources[0].get(prop.name))` copies references for Array/Dictionary types. Editing an Array in the bulk proxy mutates the first resource's Array directly, bypassing save logic.~~
 
-**Fix**: Deep-duplicate reference types:
-```gdscript
-var value: Variant = edited_resources[0].get(prop.name)
-if value is Array or value is Dictionary:
-    value = value.duplicate(true)
-_bulk_proxy.set(prop.name, value)
-```
+~~**Fix**: Deep-duplicate reference types:~~
+~~```gdscript~~
+~~var value: Variant = edited_resources[0].get(prop.name)~~
+~~if value is Array or value is Dictionary:~~
+~~    value = value.duplicate(true)~~
+~~_bulk_proxy.set(prop.name, value)~~
+~~```~~
+
+**Fix applied**: Single selection copies values from the resource into the proxy. Multi-selection uses default values (0, "", [], etc.) so editing applies a clean value to all.
 
 ---
 
@@ -85,10 +98,13 @@ _bulk_proxy.set(prop.name, value)
 **Creator**: Claude
 **Severity**: CRITICAL
 **File**: `core/bulk_editor.gd` — line 13
+**Solved**: yes
 
-**Problem**: `var _inspector: EditorInspector = EditorInterface.get_inspector()` cached at member level. If editor layout changes, reference becomes stale, signal connections silently stop.
+~~**Problem**: `var _inspector: EditorInspector = EditorInterface.get_inspector()` cached at member level. If editor layout changes, reference becomes stale, signal connections silently stop.~~
 
-**Fix**: Fetch fresh inspector in `_ready()` and re-fetch when needed. Don't cache at declaration time.
+~~**Fix**: Fetch fresh inspector in `_ready()` and re-fetch when needed. Don't cache at declaration time.~~
+
+**Fix applied**: Fetch fresh inspector in `_ready()` instead of caching at declaration.
 
 ---
 
@@ -97,11 +113,14 @@ _bulk_proxy.set(prop.name, value)
 **Creator**: Claude + Codex
 **Severity**: CRITICAL
 **File**: `core/bulk_editor.gd`
+**Solved**: yes
 
-**Problem (Claude)**: `_bulk_proxy` is never freed. Old proxies accumulate in memory.
-**Problem (Codex)**: When user deselects all rows, inspector still shows stale proxy.
+~~**Problem (Claude)**: `_bulk_proxy` is never freed. Old proxies accumulate in memory.~~
+~~**Problem (Codex)**: When user deselects all rows, inspector still shows stale proxy.~~
 
-**Fix**: Add `_clear_bulk_proxy()` that sets `_bulk_proxy = null` and calls `EditorInterface.inspect_object(null)`. Call it at start of `_create_bulk_proxy()` and when `edited_resources` becomes empty.
+~~**Fix**: Add `_clear_bulk_proxy()` that sets `_bulk_proxy = null` and calls `EditorInterface.inspect_object(null)`. Call it at start of `_create_bulk_proxy()` and when `edited_resources` becomes empty.~~
+
+**Fix applied**: Added `_clear_bulk_proxy()`. Called at start of `_create_bulk_proxy()` and when `edited_resources` is empty.
 
 ---
 
@@ -110,6 +129,7 @@ _bulk_proxy.set(prop.name, value)
 **Creator**: Codex
 **Severity**: HIGH
 **File**: `core/bulk_editor.gd` — `_on_inspector_property_edited()` line 53
+**Solved**: not solved
 
 **Problem**: `res.set(property, new_value)` is called blindly on all selected resources. In subclass mode, a property from `Sword` gets set on a `Bow` resource, polluting it with unintended values.
 
@@ -134,6 +154,7 @@ if has_prop:
 **Creator**: Claude
 **Severity**: HIGH
 **File**: `core/bulk_editor.gd` — `_on_inspector_property_edited()` lines 51-59
+**Solved**: not solved
 
 **Problem**: If `ResourceSaver.save()` fails for some resources, `resources_edited` signal is emitted with ALL resources (including failed ones). UI refreshes as if everything succeeded.
 
@@ -146,6 +167,7 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `core/bulk_editor.gd` — `_get_current_class_script()` lines 39-43
+**Solved**: not solved
 
 **Problem**: Iterates `get_global_class_list()` every time a property is edited to find the current class script.
 
@@ -160,6 +182,7 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `core/bulk_editor.gd` — line 58
+**Solved**: not solved
 
 **Problem**: If 50 resources fail to save, the error string overflows the popup.
 
@@ -172,6 +195,7 @@ if has_prop:
 **Creator**: Codex
 **Severity**: HIGH
 **File**: `core/bulk_editor.gd`
+**Solved**: not solved
 
 **Problem**: Every single property edit triggers immediate save of all selected resources with no UndoRedo support. Destructive UX.
 
@@ -186,6 +210,7 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: MEDIUM
 **File**: `core/state_manager.gd` — line 15
+**Solved**: not solved
 
 **Problem**: `var project_resource_classes: Array[String] = ProjectClassScanner.get_resource_classes_in_folder()` executes heavy I/O at object instantiation (during `_init`), before `_ready()`.
 
@@ -198,6 +223,7 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `core/state_manager.gd` — line 39
+**Solved**: not solved
 
 **Problem**: `if  %RescanDebounceTimer` has double space.
 
@@ -212,6 +238,7 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `core/state_manager.gd` — lines 70-77
+**Solved**: not solved
 
 **Problem**: `get_class_names()`, `get_columns()`, `get_resources()` have no return types and just return public vars.
 
@@ -226,6 +253,7 @@ if has_prop:
 **Creator**: Claude
 **Severity**: HIGH
 **File**: `core/state_manager.gd` — `rescan()` lines 60-62
+**Solved**: not solved
 
 **Problem**: If `_get_included_classes()` returns empty (deleted class, corrupt parent map), columns and resources are silently empty. UI shows "0 resources" with no explanation.
 
@@ -238,6 +266,7 @@ if has_prop:
 **Creator**: Codex
 **Severity**: CRITICAL
 **File**: `core/state_manager.gd`, `core/project_class_scanner.gd`
+**Solved**: not solved
 
 **Problem**: Every `filesystem_changed` triggers debounce then full recursive scan + load of all `.tres` files. Falls over on medium/large projects.
 
@@ -252,6 +281,7 @@ if has_prop:
 **Creator**: Codex
 **Severity**: MEDIUM
 **File**: `core/state_manager.gd` — `_check_project_classes_changed()` line 88
+**Solved**: not solved
 
 **Problem**: `new_classes == project_resource_classes` compares arrays directly. If order changes but set is identical, it triggers unnecessary UI refresh.
 
@@ -266,6 +296,7 @@ if has_prop:
 **Creator**: Claude
 **Severity**: CRITICAL
 **File**: `core/state_manager.gd` — `rescan()` line 64
+**Solved**: not solved
 
 **Problem**: `get_filesystem()` returns a reference Godot frees on every `scan()`. If rescan triggers mid-traversal, reference becomes freed → crash.
 
@@ -278,6 +309,7 @@ if has_prop:
 **Creator**: Claude
 **Severity**: HIGH
 **File**: `core/project_class_scanner.gd` — `unite_classes_properties()`
+**Solved**: not solved
 
 **Problem**: `properties.has(prop)` compares Dictionary references, not content. Duplicate columns accumulate.
 
@@ -290,6 +322,7 @@ if has_prop:
 **Creator**: Codex
 **Severity**: HIGH
 **File**: `core/project_class_scanner.gd`, `ui/resource_list/resource_row.gd`
+**Solved**: not solved
 
 **Problem**: `unite_classes_properties()` filters properties by `PROPERTY_USAGE_EDITOR`, but `ResourceRow._build_field_labels()` uses `get_script_property_list()` to build `owned` dict WITHOUT the same filter. A property excluded from columns could still appear as "owned", or vice versa.
 
@@ -302,6 +335,7 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `ui/dialogs/save_resource_dialog.gd`
+**Solved**: not solved
 
 **Problem**: `_get_class_script_path()` does its own full pass over `ProjectSettings.get_global_class_list()` instead of using the centralized cache.
 
@@ -316,6 +350,7 @@ if has_prop:
 **Creator**: Claude
 **Severity**: MEDIUM
 **File**: `ui/dialogs/save_resource_dialog.gd` — line 40
+**Solved**: not solved
 
 **Problem**: Calls `EditorInterface.get_resource_filesystem().scan()` directly. Multiple rapid saves trigger independent scans, uncoordinated with StateManager's debounce timer.
 
@@ -328,6 +363,7 @@ if has_prop:
 **Creator**: Codex
 **Severity**: MEDIUM
 **File**: `ui/dialogs/save_resource_dialog.gd`
+**Solved**: not solved
 
 **Problem**: Saving a new resource can overwrite an existing file with no warning.
 
@@ -340,6 +376,7 @@ if has_prop:
 **Creator**: Claude
 **Severity**: CRITICAL
 **File**: `ui/resource_list/resource_list.gd` — `_clear_rows()` lines 57-62
+**Solved**: not solved
 
 **Problem**: Rows freed via `queue_free()` but signal connections (`resource_row_selected`, `delete_requested`) never disconnected. Signal could fire between `queue_free()` and actual deletion.
 
@@ -352,6 +389,7 @@ if has_prop:
 **Creator**: Claude
 **Severity**: CRITICAL
 **File**: `ui/resource_list/resource_list.gd` — lines 71, 74, 81
+**Solved**: not solved
 
 **Problem**: `_resource_to_row[resource].set_selected()` called without checking key exists or row is valid. Crashes if resource deleted while selected.
 
@@ -364,6 +402,7 @@ if has_prop:
 **Creator**: Gemini + Codex
 **Severity**: MEDIUM
 **File**: `ui/resource_list/resource_list.gd`, `ui/resource_list/resource_row.gd`
+**Solved**: not solved
 
 **Problem (both)**: Shift toggles individual items. Standard UX: Shift = range select, Ctrl/Cmd = toggle.
 
@@ -376,6 +415,7 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: MEDIUM
 **File**: `ui/resource_list/resource_row.gd` — line 119
+**Solved**: not solved
 
 **Problem**: Checks global keyboard state at signal fire time. If Shift released slightly before mouse button, detection fails.
 
@@ -390,6 +430,7 @@ if has_prop:
 **Creator**: Codex
 **Severity**: MEDIUM
 **File**: `ui/resource_list/resource_list.gd`
+**Solved**: not solved
 
 **Problem**: `selected_rows` stores `Resource` instances. After rescan, resources may be reloaded as new objects, breaking selection state.
 
@@ -402,6 +443,7 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `ui/resource_list/resource_list.gd` — line 89
+**Solved**: not solved
 
 **Problem**: `"Delete Selected (%d)"` changes string length, causing horizontal layout shift on every selection change.
 
@@ -414,6 +456,7 @@ if has_prop:
 **Creator**: Codex (Claude noted as "full table rebuild")
 **Severity**: MEDIUM
 **File**: `ui/resource_list/resource_list.gd`, `ui/resource_list/resource_row.gd`
+**Solved**: not solved
 
 **Problem**: Full control row instantiated for every resource. UI freezes on large lists.
 
@@ -428,6 +471,7 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: MEDIUM
 **File**: `ui/resource_list/resource_row.gd` — line 91
+**Solved**: not solved
 
 **Problem**: `_color_style.duplicate()` called for every color cell in every row. Thousands of orphaned StyleBox resources over time.
 
@@ -442,6 +486,7 @@ if has_prop:
 **Creator**: Claude
 **Severity**: MEDIUM
 **File**: `ui/resource_list/resource_row.gd` — line 51
+**Solved**: not solved
 
 **Problem**: `columns[i].name` accessed without null check. Malformed column Dictionary crashes.
 
@@ -454,6 +499,7 @@ if has_prop:
 **Creator**: Codex
 **Severity**: LOW
 **File**: `ui/resource_list/resource_row.gd`
+**Solved**: not solved
 
 **Problem**: `button_pressed` only works if `toggle_mode = true`. If scene changes, selection breaks silently.
 
@@ -468,6 +514,7 @@ if has_prop:
 **Creator**: Claude
 **Severity**: MEDIUM
 **File**: `ui/class_selector/class_selector.gd` — `set_classes_in_dropdown()` and `_rebuild_dropdown_preserving_selection()`
+**Solved**: not solved
 
 **Problem**: Nearly identical dropdown rebuild logic in two methods.
 
@@ -480,6 +527,7 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `ui/class_selector/class_selector.gd` — setter on line 7 + `set_classes()` on line 27
+**Solved**: not solved
 
 **Problem**: Both the `_classes_names` setter and `set_classes()` do the same thing.
 
@@ -496,10 +544,13 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `ui/class_selector/class_selector.gd`
+**Solved**: yes
 
-**Problem**: `for i: int in range(_classes_names.size())` instead of `for i: int in _classes_names.size()`.
+~~**Problem**: `for i: int in range(_classes_names.size())` instead of `for i: int in _classes_names.size()`.~~
 
-**problem_claude_correction**: This is a non-issue. Both forms are equivalent in GDScript 4. `range()` is NOT slower — GDScript optimizes it identically. The `in size` form is marginally more concise but not measurably faster. Remove from fix list.
+~~**problem_claude_correction**: This is a non-issue. Both forms are equivalent in GDScript 4. `range()` is NOT slower — GDScript optimizes it identically. The `in size` form is marginally more concise but not measurably faster. Remove from fix list.~~
+
+**Fix applied**: Replaced `range()` calls with direct `in size` form across all files. Added no-range rule to CLAUDE.md.
 
 ---
 
@@ -508,6 +559,7 @@ if has_prop:
 **Creator**: Codex
 **Severity**: MEDIUM
 **File**: `ui/class_selector/class_selector.gd`
+**Solved**: not solved
 
 **Problem**: If the selected class is removed from the project, dropdown falls back to placeholder silently. No warning to user.
 
@@ -520,6 +572,7 @@ if has_prop:
 **Creator**: Claude
 **Severity**: MEDIUM
 **File**: `ui/visual_resources_editor_window.gd` — `_ready()` lines 5-22
+**Solved**: not solved
 
 **Problem**: `%ClassSelector.set_classes()` called before connecting to `%VREStateManager.data_changed`. If `set_classes()` triggers internal class selection, state won't sync.
 
@@ -532,6 +585,7 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `ui/visual_resources_editor_window.gd` — line 25-26
+**Solved**: not solved
 
 **Problem**: `_input()` catches `ui_cancel` globally when window is focused, potentially intercepting other editor popups.
 
@@ -544,6 +598,7 @@ if has_prop:
 **Creator**: Claude
 **Severity**: MEDIUM
 **File**: `ui/dialogs/confirm_delete_dialog.gd`
+**Solved**: not solved
 
 **Problem**: `DirAccess.remove_absolute()` doesn't validate path is within project. Malformed path could delete arbitrary files.
 
@@ -556,12 +611,13 @@ if has_prop:
 **Creator**: Codex
 **Severity**: HIGH
 **File**: `ui/dialogs/confirm_delete_dialog.gd`
+**Solved**: unwanted
 
-**Problem**: Deletion cannot be undone. Unacceptable for editor tooling.
+~~**Problem**: Deletion cannot be undone. Unacceptable for editor tooling.~~
 
-**Fix (Codex)**: Use UndoRedo APIs or implement a recycle bin.
+~~**Fix (Codex)**: Use UndoRedo APIs or implement a recycle bin.~~
 
-**problem_claude_correction**: CLAUDE.md explicitly states: "Deleting resource files does not require undo/redo; use version control for recovery." This is a deliberate design decision, not a forgotten feature. A "move to trash" approach could be nice-to-have but is not required.
+~~**problem_claude_correction**: CLAUDE.md explicitly states: "Deleting resource files does not require undo/redo; use version control for recovery." This is a deliberate design decision, not a forgotten feature. A "move to trash" approach could be nice-to-have but is not required.~~
 
 ---
 
@@ -570,10 +626,11 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `ui/dialogs/confirm_delete_dialog.gd`
+**Solved**: not an error
 
-**Problem**: Deleting `.tres` files leaves behind `.uid` metadata files.
+~~**Problem**: Deleting `.tres` files leaves behind `.uid` metadata files.~~
 
-**problem_claude_correction**: This is WRONG. Per CLAUDE.md: ".tres and .tscn files do NOT create .uid sidecars — their UID is embedded in the file header." Only `.gd` scripts generate `.uid` sidecar files. Deleting a `.tres` does NOT leave orphaned `.uid` files. Remove from fix list.
+~~**problem_claude_correction**: This is WRONG. Per CLAUDE.md: ".tres and .tscn files do NOT create .uid sidecars — their UID is embedded in the file header." Only `.gd` scripts generate `.uid` sidecar files. Deleting a `.tres` does NOT leave orphaned `.uid` files. Remove from fix list.~~
 
 ---
 
@@ -582,6 +639,7 @@ if has_prop:
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `visual_resources_editor_plugin.gd` — line 11
+**Solved**: not solved
 
 **Problem**: `MainToolbarPlugin.add_toolbar_shubmenu(...)`. Typo confirmed in code. Interestingly, line 14 uses the correct `remove_toolbar_submenu`.
 
@@ -594,6 +652,7 @@ if has_prop:
 **Creator**: Claude
 **Severity**: LOW
 **File**: `core/project_class_scanner.gd` — multiple functions
+**Solved**: not solved
 
 **Problem**: `classes_parent_map: Dictionary` should be `Dictionary[String, String]` for type safety.
 
@@ -608,6 +667,7 @@ if has_prop:
 **Creator**: Claude + Codex
 **Severity**: LOW
 **File**: `core/state_manager.gd` — line 8
+**Solved**: not solved
 
 **Problem**: `clases` (Spanish) instead of `classes`.
 
@@ -619,10 +679,11 @@ if has_prop:
 
 **Creator**: Codex
 **Severity**: LOW
+**Solved**: not an error
 
-**Problem**: Important signal wiring split between code and `.tscn` files.
+~~**Problem**: Important signal wiring split between code and `.tscn` files.~~
 
-**problem_claude_correction**: This is NOT a problem. Per CLAUDE.md convention, signal connections in `.tscn` scenes are standard Godot practice. The convention explicitly says to wire signals in the scene where appropriate. Remove from fix list.
+~~**problem_claude_correction**: This is NOT a problem. Per CLAUDE.md convention, signal connections in `.tscn` scenes are standard Godot practice. The convention explicitly says to wire signals in the scene where appropriate. Remove from fix list.~~
 
 ---
 
@@ -630,6 +691,7 @@ if has_prop:
 
 **Creator**: Codex
 **Severity**: MEDIUM
+**Solved**: not solved
 
 **Problem**: Entire plugin is untested.
 
@@ -641,6 +703,7 @@ if has_prop:
 
 **Creator**: Codex
 **Severity**: LOW
+**Solved**: not solved
 
 **Problem**: Labels and sizes are hard-coded.
 
@@ -650,60 +713,3 @@ if has_prop:
 
 ---
 
----
-
-## Summary Table
-
-Items marked for removal have `problem_claude_correction` explaining why. Use checkboxes to tell me what to do.
-
-| # | Creator | Title | Fix (short) | Conflicted | Problem corrected | Fix corrected | For later | Implement | Remove | Comment |
-|---|---------|-------|-------------|------------|-------------------|---------------|-----------|-----------|--------|---------|
-| 1 | Gemini+Codex | tres file full-load perf | Parse header text instead of ResourceLoader.load | — | — | Prefer text parse + class map lookup, handle binary tres | [ ] | [ ] | [ ] | |
-| 2 | Claude | Silent failure on null load | Add push_warning before returning empty | — | — | — | [ ] | [ ] | [ ] | |
-| 3 | Gemini+Claude | Fragile Array syntax | Use `Array[String] = []` + conditional append | — | Gemini wrong: syntax IS valid, just fragile | — | [ ] | [ ] | [ ] | |
-| 4 | Gemini | Uncached get_global_class_list | Call once per fs change, cache maps | #10, #22 | — | — | [ ] | [ ] | [ ] | |
-| 5 | Gemini | Bulk proxy ref-type mutation | `.duplicate(true)` for Array/Dict before set | — | — | — | [ ] | [ ] | [ ] | |
-| 6 | Claude | Stale EditorInspector cache | Fetch fresh inspector, don't cache at declaration | — | — | — | [ ] | [ ] | [ ] | |
-| 7 | Claude+Codex | Bulk proxy not cleaned up / stale inspector | Add _clear_bulk_proxy(), call on empty selection | — | — | — | [ ] | [ ] | [ ] | |
-| 8 | Codex | Bulk edit sets props on wrong subclass | Check property exists before set | — | — | Build prop name set per class, O(1) lookup | [ ] | [ ] | [ ] | |
-| 9 | Claude | Partial save emits full success | Only emit successfully saved resources | — | — | — | [ ] | [ ] | [ ] | |
-| 10 | Gemini | O(N) script lookup in BulkEditor | Cache script ref when class_name set | #4, #22 | — | — | [ ] | [ ] | [ ] | |
-| 11 | Gemini | Error output overflows UI | Limit to 5-10 paths + "and X more" | — | — | — | [ ] | [ ] | [ ] | |
-| 12 | Codex | Bulk edit no undo/redo | Use EditorUndoRedoManager | — | CLAUDE.md says optional, not forgotten | Debounce saves yes; full undo/redo optional | [ ] | [ ] | [ ] | |
-| 13 | Gemini | Premature init in StateManager | Init empty, populate in _ready() | — | — | — | [ ] | [ ] | [ ] | |
-| 14 | Gemini | Double space typo in timer disconnect | Remove extra space | — | Cosmetic only, no behavior impact | — | [ ] | [ ] | [ ] | |
-| 15 | Gemini | Unnecessary getters no return types | Add return types or remove redundant ones | — | get_class_names() IS useful (private var) | Keep get_class_names(), remove others or add types | [ ] | [ ] | [ ] | |
-| 16 | Claude | Empty class list no warning | push_warning when class set but resolution empty | — | — | — | [ ] | [ ] | [ ] | |
-| 17 | Codex | Full rescan on any fs change | Cached index + incremental updates | — | — | Real but big refactor; plan as phase, not quick fix | [ ] | [ ] | [ ] | |
-| 18 | Codex | Order-sensitive class list compare | Sort before compare or use sets | — | Unlikely in practice, stable order from API | — | [ ] | [ ] | [ ] | |
-| 19 | Claude | EditorFileSystemDir freed mid-traversal | Guard with is_instance_valid() | — | — | — | [ ] | [ ] | [ ] | |
-| 20 | Claude | Dict .has() ref equality, not content | Track by prop name in separate Dict | — | — | — | [ ] | [ ] | [ ] | |
-| 21 | Codex | Property usage filter mismatch | Apply same PROPERTY_USAGE_EDITOR filter in row | — | — | — | [ ] | [ ] | [ ] | |
-| 22 | Gemini | SaveDialog independent class list lookup | Use centralized cache | #4, #10 | — | — | [ ] | [ ] | [ ] | |
-| 23 | Claude | SaveDialog doesn't debounce scan | Remove scan() call, let fs_changed propagate | — | — | — | [ ] | [ ] | [ ] | |
-| 24 | Codex | No overwrite warning on save | Check file_exists, show confirmation | — | — | — | [ ] | [ ] | [ ] | |
-| 25 | Claude | Signal connection leak in ResourceList | Disconnect signals before queue_free | — | — | — | [ ] | [ ] | [ ] | |
-| 26 | Claude | Null pointer crash in selection | Guard _resource_to_row access | — | — | — | [ ] | [ ] | [ ] | |
-| 27 | Gemini+Codex | Shift = toggle, not range select | Track last_selected_index, Shift=range, Ctrl=toggle | — | — | — | [ ] | [ ] | [ ] | |
-| 28 | Gemini | Input.is_key_pressed unreliable | Use _gui_input + event.shift_pressed | — | Theoretical; works fine in practice | Fix still good (enables Ctrl detection for #27) | [ ] | [ ] | [ ] | |
-| 29 | Codex | Stale resource refs after rescan | Track selection by resource_path | — | — | — | [ ] | [ ] | [ ] | |
-| 30 | Gemini | Layout jitter from button text | Fixed min_size or separate count label | — | — | — | [ ] | [ ] | [ ] | |
-| 31 | Codex+Claude | No row virtualization / full rebuild | Tree or row pooling; incremental update first | — | — | Incremental update first, defer virtualization | [ ] | [ ] | [ ] | |
-| 32 | Gemini | StyleBox memory bloat in rows | Use ColorRect or cache StyleBoxes per color | — | StyleBoxes ARE ref-counted, freed with Label | Allocation pressure is real; ColorRect is cleaner | [ ] | [ ] | [ ] | |
-| 33 | Claude | Missing bounds check on column access | Validate col.has("name") | — | — | — | [ ] | [ ] | [ ] | |
-| 34 | Codex | toggle_mode assumed from scene | Set toggle_mode = true in _ready() | — | Already set in .tscn, redundant but harmless | — | [ ] | [ ] | [ ] | |
-| 35 | Claude | Duplicate dropdown code | Extract _populate_dropdown(preserve) | #36 | — | — | [ ] | [ ] | [ ] | |
-| 36 | Gemini | Redundant setter + set_classes() | Remove one, keep public API | #35 | Both exist but aren't harmful | Keep set_classes(), simplify setter | [ ] | [ ] | [ ] | |
-| 37 | Gemini | Inefficient range() iteration | Use `in size` instead of `in range(size)` | — | NON-ISSUE: both identical in GDScript | — | [ ] | [ ] | [x] | |
-| 38 | Codex | Class selector silent reset | Emit signal or show warning | — | — | — | [ ] | [ ] | [ ] | |
-| 39 | Claude | Init order risk in Window | Connect signals before setting state | — | — | — | [ ] | [ ] | [ ] | |
-| 40 | Gemini | Global _input for ESC | Use _unhandled_input or remove | — | — | — | [ ] | [ ] | [ ] | |
-| 41 | Claude | No path validation before delete | Check path.begins_with("res://") | — | — | — | [ ] | [ ] | [ ] | |
-| 42 | Codex | Delete is irreversible, no undo | UndoRedo or recycle bin | — | CLAUDE.md: undo for delete not required | Nice-to-have, not required | [ ] | [ ] | [ ] | |
-| 43 | Gemini | Orphaned .uid after tres delete | Delete .uid sidecar too | — | WRONG: .tres has NO .uid sidecar | — | [ ] | [ ] | [x] | |
-| 44 | Gemini | Plugin typo "shubmenu" | Rename to add_toolbar_submenu | — | — | — | [ ] | [ ] | [ ] | |
-| 45 | Claude | Untyped Dictionary params | Add Dictionary[String, String] types | — | Some already typed, verify each | — | [ ] | [ ] | [ ] | |
-| 46 | Claude+Codex | Typo _global_clases_map | Rename to _global_classes_map | — | — | — | [ ] | [ ] | [ ] | |
-| 47 | Codex | Signal connections in scenes | Document or move to code | — | NOT a problem per CLAUDE.md convention | — | [ ] | [ ] | [x] | |
-| 48 | Codex | No tests | Add editor tests for scan + CRUD | — | — | — | [ ] | [ ] | [ ] | |
-| 49 | Codex | Hard-coded strings | Move to constants or localization | — | Acceptable for internal editor tool | Overkill unless distributing plugin | [ ] | [ ] | [ ] | |

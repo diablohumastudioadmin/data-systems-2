@@ -6,24 +6,33 @@ signal error_occurred(message: String)
 signal resources_edited(resources: Array[Resource])
 
 var current_class_name: String = ""
+var global_classes_map: Array[Dictionary] = []
 var edited_resources : Array[Resource] = [] :
 	set(new_value):
 		edited_resources = new_value
 		_create_bulk_proxy()
-var _inspector: EditorInspector = EditorInterface.get_inspector()
+var _inspector: EditorInspector
 var _bulk_proxy: Resource = null
 
 func _ready() -> void:
+	_inspector = EditorInterface.get_inspector()
 	if not _inspector.property_edited.is_connected(_on_inspector_property_edited):
 		_inspector.property_edited.connect(_on_inspector_property_edited)
 
 
 func _exit_tree() -> void:
-	if _inspector.property_edited.is_connected(_on_inspector_property_edited):
+	_clear_bulk_proxy()
+	if _inspector and _inspector.property_edited.is_connected(_on_inspector_property_edited):
 		_inspector.property_edited.disconnect(_on_inspector_property_edited)
 
 
-func _create_bulk_proxy():
+func _clear_bulk_proxy() -> void:
+	_bulk_proxy = null
+	EditorInterface.inspect_object(null)
+
+
+func _create_bulk_proxy() -> void:
+	_clear_bulk_proxy()
 	if edited_resources.is_empty():
 		return
 	var script: GDScript = edited_resources[0].get_script() \
@@ -31,13 +40,14 @@ func _create_bulk_proxy():
 	if script == null:
 		return
 	_bulk_proxy = script.new()
-	for prop: Dictionary in script.get_script_property_list():
-		_bulk_proxy.set(prop.name, edited_resources[0].get(prop.name))
+	if edited_resources.size() == 1:
+		for prop: Dictionary in script.get_script_property_list():
+			_bulk_proxy.set(prop.name, edited_resources[0].get(prop.name))
 	EditorInterface.inspect_object(_bulk_proxy)
 
 
 func _get_current_class_script() -> GDScript:
-	for entry: Dictionary in ProjectSettings.get_global_class_list():
+	for entry: Dictionary in global_classes_map:
 		if entry.get("class", "") == current_class_name:
 			return load(entry.get("path", ""))
 	return null

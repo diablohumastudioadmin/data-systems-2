@@ -72,7 +72,7 @@ static func scan_folder_for_classed_tres_paths(
 	if dir.get_path() == "res://addons/":
 		return []
 
-	for i: int in range(dir.get_file_count()):
+	for i: int in dir.get_file_count():
 		var path: String = dir.get_file_path(i)
 		if not path.ends_with(".tres"):
 			continue
@@ -80,18 +80,23 @@ static func scan_folder_for_classed_tres_paths(
 		if classes.has(cls):
 			results.append(path)
 
-	for i: int in range(dir.get_subdir_count()):
+	for i: int in dir.get_subdir_count():
 		results.append_array(scan_folder_for_classed_tres_paths(dir.get_subdir(i), classes))
 
 	return results
 
 
 static func get_class_from_tres_file(tres_file_path: String) -> String:
-	var loaded_resource: Resource = ResourceLoader.load(tres_file_path, "", ResourceLoader.CACHE_MODE_IGNORE)
-	if loaded_resource == null: return ""
-	var resource_script: Script = loaded_resource.get_script()
-	if resource_script == null: return ""
-	return resource_script.get_global_name()
+	var file: FileAccess = FileAccess.open(tres_file_path, FileAccess.READ)
+	if file == null: return ""
+	var first_line: String = file.get_line()
+	var key: String = "script_class=\""
+	var start: int = first_line.find(key)
+	if start == -1: return ""
+	start += key.length()
+	var end: int = first_line.find("\"", start)
+	if end == -1: return ""
+	return first_line.substr(start, end - start)
 
 
 static func get_properties_from_script_path(script_path: String) -> Array[Dictionary]:

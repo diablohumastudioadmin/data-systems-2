@@ -4,6 +4,7 @@ extends EditorFileDialog
 signal error_occurred(message: String)
 
 var current_class_name: String = ""
+var global_classes_map: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -41,7 +42,7 @@ func _on_file_selected(path: String) -> void:
 
 
 func _get_class_script_path(class_name_str: String) -> String:
-	for entry: Dictionary in ProjectSettings.get_global_class_list():
+	for entry: Dictionary in global_classes_map:
 		if entry.get("class", "") == class_name_str:
 			return entry.get("path", "")
 	return ""
