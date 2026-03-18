@@ -66,7 +66,7 @@ static func scan_folder_for_classed_tres_paths(
 	dir: EditorFileSystemDirectory, classes: Array[String]) -> Array[String]:
 
 	var results: Array[String]
-	if dir == null:
+	if dir == null or not is_instance_valid(dir):
 		return []
 
 	if dir.get_path() == "res://addons/":

@@ -82,6 +82,9 @@ func rescan() -> void:
 	columns = ProjectClassScanner.unite_classes_properties(current_class_names, global_clases_map)
 
 	var root: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
+	if root == null or not is_instance_valid(root):
+		push_warning("VREStateManager: filesystem directory is not valid, skipping resource scan.")
+		return
 	resources = ProjectClassScanner.load_classed_resources_from_dir(current_class_names, root)
 
 	data_changed.emit(resources, columns)
