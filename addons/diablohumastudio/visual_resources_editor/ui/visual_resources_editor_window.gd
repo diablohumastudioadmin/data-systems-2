@@ -3,8 +3,6 @@ extends Window
 
 
 func _ready() -> void:
-	%ClassSelector.set_classes(%VREStateManager.project_resource_classes)
-
 	%VREStateManager.data_changed.connect(_on_state_data_changed)
 	%VREStateManager.project_classes_changed.connect(_on_project_classes_changed)
 
@@ -21,8 +19,10 @@ func _ready() -> void:
 	%BulkEditor.error_occurred.connect(%ErrorDialog.show_error)
 	%BulkEditor.resources_edited.connect(_on_resources_edited)
 
+	%ClassSelector.set_classes(%VREStateManager.project_resource_classes)
 
-func _input(event: InputEvent) -> void:
+
+func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		close_requested.emit()
 
