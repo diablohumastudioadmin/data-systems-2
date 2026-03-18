@@ -5,7 +5,7 @@ extends Node
 signal data_changed(resources: Array[Resource], columns: Array[Dictionary])
 signal project_classes_changed(classes: Array[String])
 
-var global_clases_map: Array[Dictionary]
+var global_classes_map: Array[Dictionary]
 var _classes_parent_map: Dictionary[String, String]
 
 var _current_class_name: String = ""
@@ -65,7 +65,7 @@ func rescan() -> void:
 	current_class_script = _get_class_script(_current_class_name)
 
 	var class_to_path: Dictionary = {}
-	for entry: Dictionary in global_clases_map:
+	for entry: Dictionary in global_classes_map:
 		var cls: String = entry.get("class", "")
 		var path: String = entry.get("path", "")
 		if not cls.is_empty() and not path.is_empty():
@@ -79,7 +79,7 @@ func rescan() -> void:
 
 	current_class_property_list = subclasses_property_lists.get(_current_class_name, [])
 
-	columns = ProjectClassScanner.unite_classes_properties(current_class_names, global_clases_map)
+	columns = ProjectClassScanner.unite_classes_properties(current_class_names, global_classes_map)
 
 	var root: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
 	if root == null or not is_instance_valid(root):
@@ -92,8 +92,8 @@ func rescan() -> void:
 
 # ── Private ────────────────────────────────────────────────────────────────────
 func _set_maps() -> void:
-	global_clases_map = ProjectClassScanner.build_global_classes_map()
-	_classes_parent_map = ProjectClassScanner.build_project_classes_parent_map(global_clases_map)
+	global_classes_map = ProjectClassScanner.build_global_classes_map()
+	_classes_parent_map = ProjectClassScanner.build_project_classes_parent_map(global_classes_map)
 
 
 func _on_script_classes_updated() -> void:
@@ -109,7 +109,7 @@ func _get_included_classes() -> Array[String]:
 
 
 func _get_class_script(class_name_str: String) -> GDScript:
-	for entry: Dictionary in global_clases_map:
+	for entry: Dictionary in global_classes_map:
 		if entry.get("class", "") == class_name_str:
 			return load(entry.get("path", ""))
 	return null

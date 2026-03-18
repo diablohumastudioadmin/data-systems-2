@@ -36,7 +36,7 @@ func _on_class_selected(class_name_str: String) -> void:
 	%BulkEditor.current_class_property_list = %VREStateManager.current_class_property_list
 	%BulkEditor.subclasses_property_lists = %VREStateManager.subclasses_property_lists
 	%SaveResourceDialog.current_class_name = class_name_str
-	%SaveResourceDialog.global_classes_map = %VREStateManager.global_clases_map
+	%SaveResourceDialog.global_classes_map = %VREStateManager.global_classes_map
 
 
 func _on_include_subclasses_toggled(pressed: bool) -> void:

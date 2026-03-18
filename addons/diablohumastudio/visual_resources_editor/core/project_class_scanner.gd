@@ -20,11 +20,11 @@ static func get_resource_classes_in_folder(classes_parent_map: Dictionary[String
 static func build_global_classes_map() -> Array[Dictionary]:
 	return ProjectSettings.get_global_class_list()
 
-static func build_project_classes_parent_map(global_clases_map: Array[Dictionary] = []) -> Dictionary[String, String]:
-	if global_clases_map.is_empty(): global_clases_map = build_global_classes_map()
- 
-	var classes_parent_map: Dictionary[String,String]  = {}
-	for entry: Dictionary in global_clases_map:
+static func build_project_classes_parent_map(global_classes_map: Array[Dictionary] = []) -> Dictionary[String, String]:
+	if global_classes_map.is_empty(): global_classes_map = build_global_classes_map()
+
+	var classes_parent_map: Dictionary[String, String] = {}
+	for entry: Dictionary in global_classes_map:
 		var cls: String = entry.get("class", "")
 		if cls.is_empty(): continue
 		var base: String = entry.get("base", "")
@@ -48,7 +48,7 @@ static func class_is_resource_descendant(cls_name: String, classes_parent_map: D
 
 
 static func get_descendant_classes(
-	base_class: String, classes_parent_map: Dictionary = {}, include_base: bool = true
+	base_class: String, classes_parent_map: Dictionary[String, String] = {}, include_base: bool = true
 ) -> Array[String]:
 
 	if classes_parent_map.is_empty():
@@ -126,11 +126,11 @@ static func get_properties_from_script_path(script_path: String) -> Array[Dictio
 	return properties
 
 
-static func unite_classes_properties(class_names: Array[String], global_clases_map: Array[Dictionary] = []) -> Array[Dictionary]:
-	if global_clases_map.is_empty(): global_clases_map = build_global_classes_map()
-	
-	var class_to_path: Dictionary = {}
-	for entry: Dictionary in global_clases_map:
+static func unite_classes_properties(class_names: Array[String], global_classes_map: Array[Dictionary] = []) -> Array[Dictionary]:
+	if global_classes_map.is_empty(): global_classes_map = build_global_classes_map()
+
+	var class_to_path: Dictionary[String, String] = {}
+	for entry: Dictionary in global_classes_map:
 		var cls: String = entry.get("class", "")
 		var path: String = entry.get("path", "")
 		if not cls.is_empty() and not path.is_empty():
