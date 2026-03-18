@@ -659,11 +659,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Claude
 **Severity**: MEDIUM
 **File**: `ui/dialogs/confirm_delete_dialog.gd`
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `DirAccess.remove_absolute()` doesn't validate path is within project. Malformed path could delete arbitrary files.
+~~**Problem**: `DirAccess.remove_absolute()` doesn't validate path is within project. Malformed path could delete arbitrary files.~~
 
-**Fix**: Check `path.begins_with("res://")` before deleting.
+~~**Fix**: Check `path.begins_with("res://")` before deleting.~~
+
+**Fix applied**: Each path is checked with `path.begins_with("res://")` before deletion. Paths outside the project are skipped with a `push_warning()` and added to `failed_paths`. A comment explains the security intent.
 
 ---
 
@@ -700,11 +702,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `visual_resources_editor_plugin.gd` — line 11
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `MainToolbarPlugin.add_toolbar_shubmenu(...)`. Typo confirmed in code. Interestingly, line 14 uses the correct `remove_toolbar_submenu`.
+~~**Problem**: `MainToolbarPlugin.add_toolbar_shubmenu(...)`. Typo confirmed in code. Interestingly, line 14 uses the correct `remove_toolbar_submenu`.~~
 
-**Fix**: Rename to `add_toolbar_submenu` (requires fixing `MainToolbarPlugin` too).
+~~**Fix**: Rename to `add_toolbar_submenu` (requires fixing `MainToolbarPlugin` too).~~
+
+**Fix applied**: Renamed `add_toolbar_shubmenu` → `add_toolbar_submenu` in `main_toolbar_plugin.gd` (definition) and in all four `*_plugin.gd` callers: `visual_resources_editor_plugin.gd`, `scenes_and_resources_resaver_plugin.gd`, `custom_scenes_runner_plugin.gd`, `database_manager_plugin.gd`.
 
 ---
 
@@ -713,13 +717,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Claude
 **Severity**: LOW
 **File**: `core/project_class_scanner.gd` — multiple functions
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `classes_parent_map: Dictionary` should be `Dictionary[String, String]` for type safety.
+~~**Problem**: `classes_parent_map: Dictionary` should be `Dictionary[String, String]` for type safety.~~
 
-**Fix**: Add explicit typed Dictionary signatures.
+~~**Fix**: Add explicit typed Dictionary signatures.~~
 
-**problem_claude_correction**: Looking at the actual code, `_classes_parent_map` on line 9 of `state_manager.gd` IS already typed as `Dictionary[String, String]`. The scanner function `get_resource_classes_in_folder` also uses `Dictionary[String,String]`. Some other functions may still lack typing — verify each.
+**Fix applied**: `get_descendant_classes()` parameter `classes_parent_map` typed as `Dictionary[String, String]`. `unite_classes_properties()` local `class_to_path` typed as `Dictionary[String, String]`. Other parameters were already typed.
 
 ---
 
@@ -728,11 +732,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Claude + Codex
 **Severity**: LOW
 **File**: `core/state_manager.gd` — line 8
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `clases` (Spanish) instead of `classes`.
+~~**Problem**: `clases` (Spanish) instead of `classes`.~~
 
-**Fix**: Rename to `_global_classes_map` everywhere.
+~~**Fix**: Rename to `_global_classes_map` everywhere.~~
+
+**Fix applied**: Renamed `global_clases_map` → `global_classes_map` in `state_manager.gd` (member var + all usages), `project_class_scanner.gd` (function parameters in `build_project_classes_parent_map` and `unite_classes_properties`), and `visual_resources_editor_window.gd`.
 
 ---
 
@@ -764,13 +770,26 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 
 **Creator**: Codex
 **Severity**: LOW
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: Labels and sizes are hard-coded.
+~~**Problem**: Labels and sizes are hard-coded.~~
 
-**Fix**: Move to constants or localization table.
+~~**Fix**: Move to constants or localization table.~~
 
-**problem_claude_correction**: For an internal editor tool, hard-coded strings are acceptable. Localization tables are overkill unless the plugin will be distributed. Magic numbers (if any) should be constants, but this is low priority.
+**Fix applied**: Extracted two constants:
+- `class_selector.gd`: `const PLACEHOLDER_TEXT: String = "-- Select a class --"`
+- `bulk_editor.gd`: `const MAX_SAVE_ERROR_PATHS: int = 3`
+
+Size constants (delete button width) are already in `.tscn` as `custom_minimum_size`, which is the correct place per project conventions. Error message format strings with parameters are left inline — extracting them to constants would add complexity without benefit for an internal tool.
 
 ---
 
+## Pending Items
+
+| # | Severity | Description |
+|---|----------|-------------|
+| 17 | CRITICAL | Full project re-scan on every filesystem change — no incremental updates. Architectural refactor needed. |
+| 27b | MEDIUM | Shift+click range select not implemented (Ctrl/Cmd toggle done; range select deferred). |
+| 31 | MEDIUM | No row virtualization in resource list — UI may freeze on large datasets. |
+| 32 | MEDIUM | StyleBox allocation pressure in ResourceRow color cells — consider ColorRect or cached StyleBoxes. |
+| 48 | MEDIUM | No automated tests for scan logic or CRUD paths. |
