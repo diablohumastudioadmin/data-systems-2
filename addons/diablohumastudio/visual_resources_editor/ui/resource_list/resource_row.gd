@@ -50,6 +50,8 @@ func _build_field_labels() -> void:
 			owned[pname] = true
 
 	for i: int in columns.size():
+		if not columns[i].has("name"):
+			continue
 		if i > 0:
 			var sep: VSeparator = FIELD_SEPARATOR_SCENE.instantiate()
 			%FieldsContainer.add_child(sep)
