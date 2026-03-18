@@ -5,6 +5,8 @@ extends Node
 signal error_occurred(message: String)
 signal resources_edited(resources: Array[Resource])
 
+const MAX_SAVE_ERROR_PATHS: int = 3
+
 var current_class_name: String = ""
 var current_class_script: GDScript = null
 var current_class_property_list: Array[Dictionary] = []
@@ -73,10 +75,10 @@ func _on_inspector_property_edited(property: String) -> void:
 			else:
 				saved.append(res)
 		if not failed_paths.is_empty():
-			var shown: Array[String] = failed_paths.slice(0, 3)
+			var shown: Array[String] = failed_paths.slice(0, MAX_SAVE_ERROR_PATHS)
 			var msg: String = "Failed to save:\n%s" % "\n".join(shown)
-			if failed_paths.size() > 3:
-				msg += "\n... and %d more" % (failed_paths.size() - 3)
+			if failed_paths.size() > MAX_SAVE_ERROR_PATHS:
+				msg += "\n... and %d more" % (failed_paths.size() - MAX_SAVE_ERROR_PATHS)
 			error_occurred.emit(msg)
 		if not saved.is_empty():
 			resources_edited.emit(saved)

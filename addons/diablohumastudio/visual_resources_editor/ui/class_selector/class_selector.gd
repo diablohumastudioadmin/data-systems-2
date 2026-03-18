@@ -3,7 +3,9 @@ extends HBoxContainer
 
 signal class_selected(class_name_str: String)
 
-var _classes_names: Array[String] = [] 
+const PLACEHOLDER_TEXT: String = "-- Select a class --"
+
+var _classes_names: Array[String] = []
 
 
 func _ready() -> void:
@@ -15,7 +17,7 @@ func set_classes_in_dropdown() -> void:
 	var selected_text: String = %ClassDropdown.get_item_text(selected_index) if selected_index > 0 else ""
 
 	%ClassDropdown.clear()
-	%ClassDropdown.add_item("-- Select a class --", 0)
+	%ClassDropdown.add_item(PLACEHOLDER_TEXT, 0)
 
 	_classes_names.sort_custom(func(a: String, b: String): return a.nocasecmp_to(b) < 0)
 
