@@ -2,7 +2,7 @@
 class_name ResourceRow
 extends Button
 
-signal resource_row_selected(resource: Resource, shift_held: bool)
+signal resource_row_selected(resource: Resource, ctrl_held: bool)
 signal delete_requested(resource_path: String)
 
 const RESOURCE_FIELD_LABEL_SCENE: PackedScene = preload("uid://uru49vi0kvgxy")
@@ -124,7 +124,8 @@ func _format_value(value: Variant, type: int) -> String:
 
 
 func _on_pressed() -> void:
-	resource_row_selected.emit(resource, Input.is_key_pressed(KEY_SHIFT))
+	var ctrl_held: bool = Input.is_key_pressed(KEY_CTRL) or Input.is_key_pressed(KEY_META)
+	resource_row_selected.emit(resource, ctrl_held)
 
 
 func _on_delete_pressed() -> void:
