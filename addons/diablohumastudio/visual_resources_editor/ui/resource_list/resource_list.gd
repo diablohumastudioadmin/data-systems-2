@@ -10,6 +10,7 @@ signal refresh_requested
 const RESOURCE_ROW_SCENE: PackedScene = preload("uid://dukcnu4xa4lbd")
 
 var selected_rows: Array[Resource] = []
+var _selected_paths: Array[String] = []        # persists across rescans
 var _rows: Array[ResourceRow] = []             # ResourceRow nodes
 var _resource_to_row: Dictionary = {}  # Resource → ResourceRow
 
@@ -23,9 +24,20 @@ func _ready() -> void:
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 func set_data(resources: Array[Resource], columns: Array[Dictionary]) -> void:
+	var prev_paths: Array[String] = _selected_paths.duplicate()
 	selected_rows.clear()
+	_selected_paths.clear()
 	_build_rows(resources, columns)
+	# Restore selection for resources that still exist after rescan
+	for res: Resource in resources:
+		if prev_paths.has(res.resource_path):
+			selected_rows.append(res)
+			_selected_paths.append(res.resource_path)
+			if _resource_to_row.has(res) and is_instance_valid(_resource_to_row[res]):
+				_resource_to_row[res].set_selected(true)
 	_update_selection_ui()
+	if not selected_rows.is_empty():
+		rows_selected.emit(selected_rows.duplicate())
 
 
 func refresh_row(resource_path: String) -> void:
@@ -57,6 +69,10 @@ func _build_rows(resources: Array[Resource], columns: Array[Dictionary]) -> void
 func _clear_rows() -> void:
 	for row: ResourceRow in _rows:
 		if is_instance_valid(row):
+			if row.resource_row_selected.is_connected(_on_resource_row_selected):
+				row.resource_row_selected.disconnect(_on_resource_row_selected)
+			if row.delete_requested.is_connected(_on_row_delete_requested):
+				row.delete_requested.disconnect(_on_row_delete_requested)
 			row.queue_free()
 	_rows.clear()
 	_resource_to_row.clear()
@@ -64,21 +80,28 @@ func _clear_rows() -> void:
 
 # ── Selection ──────────────────────────────────────────────────────────────────
 
-func _on_resource_row_selected(resource: Resource, shift_held: bool) -> void:
-	if shift_held:
+func _on_resource_row_selected(resource: Resource, ctrl_held: bool) -> void:
+	if ctrl_held:
 		if selected_rows.has(resource):
 			selected_rows.erase(resource)
-			_resource_to_row[resource].set_selected(false)
+			_selected_paths.erase(resource.resource_path)
+			if _resource_to_row.has(resource) and is_instance_valid(_resource_to_row[resource]):
+				_resource_to_row[resource].set_selected(false)
 		else:
 			selected_rows.append(resource)
-			_resource_to_row[resource].set_selected(true)
+			_selected_paths.append(resource.resource_path)
+			if _resource_to_row.has(resource) and is_instance_valid(_resource_to_row[resource]):
+				_resource_to_row[resource].set_selected(true)
 	else:
 		for res: Resource in selected_rows:
 			if _resource_to_row.has(res) and is_instance_valid(_resource_to_row[res]):
 				_resource_to_row[res].set_selected(false)
 		selected_rows.clear()
+		_selected_paths.clear()
 		selected_rows.append(resource)
-		_resource_to_row[resource].set_selected(true)
+		_selected_paths.append(resource.resource_path)
+		if _resource_to_row.has(resource) and is_instance_valid(_resource_to_row[resource]):
+			_resource_to_row[resource].set_selected(true)
 
 	_update_selection_ui()
 	rows_selected.emit(selected_rows.duplicate())
