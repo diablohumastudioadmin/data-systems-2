@@ -22,6 +22,12 @@ func show_delete_dialog(paths: Array[String]) -> void:
 func _on_confirmed() -> void:
 	var failed_paths: Array[String] = []
 	for path: String in _pending_paths:
+		# Guard: only delete files inside the project to prevent accidental
+		# deletion of arbitrary filesystem paths via a malformed resource_path.
+		if not path.begins_with("res://"):
+			push_warning("VRE: Skipping delete of path outside project: %s" % path)
+			failed_paths.append(path)
+			continue
 		var err: Error = DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 		if err != OK:
 			failed_paths.append(path)
