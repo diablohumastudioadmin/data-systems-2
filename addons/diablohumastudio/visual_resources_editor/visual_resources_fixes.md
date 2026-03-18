@@ -391,11 +391,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Codex
 **Severity**: MEDIUM
 **File**: `ui/dialogs/save_resource_dialog.gd`
-**Solved**: not solved
+**Solved**: not a problem
 
-**Problem**: Saving a new resource can overwrite an existing file with no warning.
+~~**Problem**: Saving a new resource can overwrite an existing file with no warning.~~
 
-**Fix**: Check `FileAccess.file_exists(target_path)` and show confirmation dialog before overwriting.
+~~**Fix**: Check `FileAccess.file_exists(target_path)` and show confirmation dialog before overwriting.~~
+
+**problem_claude_correction**: `EditorFileDialog` with `FILE_MODE_SAVE_FILE` already shows a built-in overwrite confirmation when the selected filename matches an existing file. No custom dialog needed.
 
 ---
 
@@ -404,11 +406,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Claude
 **Severity**: CRITICAL
 **File**: `ui/resource_list/resource_list.gd` — `_clear_rows()` lines 57-62
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: Rows freed via `queue_free()` but signal connections (`resource_row_selected`, `delete_requested`) never disconnected. Signal could fire between `queue_free()` and actual deletion.
+~~**Problem**: Rows freed via `queue_free()` but signal connections (`resource_row_selected`, `delete_requested`) never disconnected. Signal could fire between `queue_free()` and actual deletion.~~
 
-**Fix**: Disconnect signals before freeing each row.
+~~**Fix**: Disconnect signals before freeing each row.~~
+
+**Fix applied**: `_clear_rows()` now disconnects `resource_row_selected` and `delete_requested` from each valid row before calling `queue_free()`.
 
 ---
 
@@ -417,24 +421,41 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Claude
 **Severity**: CRITICAL
 **File**: `ui/resource_list/resource_list.gd` — lines 71, 74, 81
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `_resource_to_row[resource].set_selected()` called without checking key exists or row is valid. Crashes if resource deleted while selected.
+~~**Problem**: `_resource_to_row[resource].set_selected()` called without checking key exists or row is valid. Crashes if resource deleted while selected.~~
 
-**Fix**: Guard with `_resource_to_row.has(resource) and is_instance_valid(...)`.
+~~**Fix**: Guard with `_resource_to_row.has(resource) and is_instance_valid(...)`.~~
+
+**Fix applied**: All `_resource_to_row[resource]` accesses in `_on_resource_row_selected()` are now guarded with `_resource_to_row.has(resource) and is_instance_valid(_resource_to_row[resource])`. Parameter renamed from `shift_held` to `ctrl_held` (see item 27).
 
 ---
 
-### 27. Shift-click is toggle, not range select
+### 27. Ctrl/Cmd-click for toggle (was: Shift-click is toggle, not range select)
+
+**Creator**: Gemini + Codex
+**Severity**: MEDIUM
+**File**: `ui/resource_list/resource_list.gd`, `ui/resource_list/resource_row.gd`
+**Solved**: yes
+
+~~**Problem (both)**: Shift toggles individual items. Standard UX: Shift = range select, Ctrl/Cmd = toggle.~~
+
+~~**Fix**: Track `_last_selected_index`. Shift+click selects all rows between last and current. Use Ctrl/Cmd for toggle.~~
+
+**Fix applied**: Multi-select modifier changed from Shift to Ctrl/Cmd (KEY_CTRL or KEY_META). Signal `resource_row_selected` parameter renamed `shift_held` → `ctrl_held`. Range select (Shift) deferred to item 27b.
+
+---
+
+### 27b. Shift-click range select
 
 **Creator**: Gemini + Codex
 **Severity**: MEDIUM
 **File**: `ui/resource_list/resource_list.gd`, `ui/resource_list/resource_row.gd`
 **Solved**: not solved
 
-**Problem (both)**: Shift toggles individual items. Standard UX: Shift = range select, Ctrl/Cmd = toggle.
+**Problem**: Shift+click should range-select all rows between last selected and current. Not yet implemented.
 
-**Fix**: Track `_last_selected_index`. Shift+click selects all rows between last and current. Use Ctrl/Cmd for toggle.
+**Fix**: Track `_last_selected_index`. Shift+click selects all rows between last and current index.
 
 ---
 
@@ -443,13 +464,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Gemini
 **Severity**: MEDIUM
 **File**: `ui/resource_list/resource_row.gd` — line 119
-**Solved**: not solved
+**Solved**: not a problem
 
-**Problem**: Checks global keyboard state at signal fire time. If Shift released slightly before mouse button, detection fails.
+~~**Problem**: Checks global keyboard state at signal fire time. If Shift released slightly before mouse button, detection fails.~~
 
-**Fix**: Override `_gui_input(event)` and check `event.shift_pressed` on `InputEventMouseButton`.
+~~**Fix**: Override `_gui_input(event)` and check `event.shift_pressed` on `InputEventMouseButton`.~~
 
-**problem_claude_correction**: The timing issue is theoretical — `Input.is_key_pressed()` polls at signal emission time, which is the same frame as the click. In practice this works fine in editor tools. However, `_gui_input` with `event.shift_pressed` IS the proper Godot pattern and also enables Ctrl detection for item #27. So the fix is good, just the problem severity is overstated.
+**problem_claude_correction**: `Input.is_key_pressed()` polls at signal emission time, which is the same frame as the click. In practice this works reliably in editor tools. Using `Input.is_key_pressed` is the correct and idiomatic approach here. Not a problem.
 
 ---
 
@@ -458,11 +479,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Codex
 **Severity**: MEDIUM
 **File**: `ui/resource_list/resource_list.gd`
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `selected_rows` stores `Resource` instances. After rescan, resources may be reloaded as new objects, breaking selection state.
+~~**Problem**: `selected_rows` stores `Resource` instances. After rescan, resources may be reloaded as new objects, breaking selection state.~~
 
-**Fix**: Track selection by `resource_path` (String), resolve to current row after refresh.
+~~**Fix**: Track selection by `resource_path` (String), resolve to current row after refresh.~~
+
+**Fix applied**: Added `_selected_paths: Array[String]` that mirrors `selected_rows` by path. `set_data()` saves paths before rebuild, then restores selection for any resource whose path is still present. `_on_resource_row_selected()` maintains `_selected_paths` in sync with `selected_rows`.
 
 ---
 
@@ -471,11 +494,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `ui/resource_list/resource_list.gd` — line 89
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `"Delete Selected (%d)"` changes string length, causing horizontal layout shift on every selection change.
+~~**Problem**: `"Delete Selected (%d)"` changes string length, causing horizontal layout shift on every selection change.~~
 
-**Fix**: Set `custom_minimum_size.x` on the button, or use a separate fixed-width label for the count.
+~~**Fix**: Set `custom_minimum_size.x` on the button, or use a separate fixed-width label for the count.~~
+
+**Fix applied**: `custom_minimum_size = Vector2(170, 0)` set on `DeleteSelectedBtn` in `resource_list.tscn`. Wide enough for "Delete Selected (999)".
 
 ---
 
