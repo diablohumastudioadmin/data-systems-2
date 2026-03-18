@@ -8,7 +8,7 @@ func _enter_tree() -> void:
 
 func add_toolbar_menu():
 	var tool_bar_menu := ScenesAndResourcesResaverToolbar.new()
-	MainToolbarPlugin.add_toolbar_shubmenu(TOOLBAR_MENU_NAME, tool_bar_menu, self)
+	MainToolbarPlugin.add_toolbar_submenu(TOOLBAR_MENU_NAME, tool_bar_menu, self)
 
 func _exit_tree() -> void:
 	MainToolbarPlugin.remove_toolbar_submenu(TOOLBAR_MENU_NAME, self)

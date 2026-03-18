@@ -43,7 +43,7 @@ func _move_tool_bar_to_diablohuma(name: String, tool_bar: DiablohumaStudioToolMe
 	remove_tool_menu_item(name)
 	_diablo_huma_toolbar_menu.add_submenu_node_item(name, duplicated_tool_bar)
 
-static func add_toolbar_shubmenu(name: String, sub_menu: PopupMenu, plugin: EditorPlugin):
+static func add_toolbar_submenu(name: String, sub_menu: PopupMenu, plugin: EditorPlugin):
 	if instance: instance._diablo_huma_toolbar_menu.add_submenu_node_item(name, sub_menu)
 	else: plugin.add_tool_submenu_item(name, sub_menu) 
 
