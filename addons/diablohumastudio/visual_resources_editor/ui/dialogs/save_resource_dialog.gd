@@ -36,7 +36,6 @@ func _on_file_selected(path: String) -> void:
 	if err != OK:
 		error_occurred.emit("Failed to save resource:\n%s" % path)
 		return
-	EditorInterface.get_resource_filesystem().scan()
 
 
 func _get_class_script_path(class_name_str: String) -> String:

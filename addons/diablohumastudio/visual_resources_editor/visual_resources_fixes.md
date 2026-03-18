@@ -314,11 +314,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Claude
 **Severity**: CRITICAL
 **File**: `core/state_manager.gd` — `rescan()` line 64
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `get_filesystem()` returns a reference Godot frees on every `scan()`. If rescan triggers mid-traversal, reference becomes freed → crash.
+~~**Problem**: `get_filesystem()` returns a reference Godot frees on every `scan()`. If rescan triggers mid-traversal, reference becomes freed → crash.~~
 
-**Fix**: Guard with `is_instance_valid(root)` checks during traversal.
+~~**Fix**: Guard with `is_instance_valid(root)` checks during traversal.~~
+
+**Fix applied**: `scan_folder_for_classed_tres_paths()` now checks `is_instance_valid(dir)` alongside the null check (covers every recursive subdir call). `rescan()` validates `root` with `is_instance_valid()` before passing it to the traversal, with a `push_warning()` on failure.
 
 ---
 
@@ -327,11 +329,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Claude
 **Severity**: HIGH
 **File**: `core/project_class_scanner.gd` — `unite_classes_properties()`
-**Solved**: not solved
+**Solved**: not an error
 
-**Problem**: `properties.has(prop)` compares Dictionary references, not content. Duplicate columns accumulate.
+~~**Problem**: `properties.has(prop)` compares Dictionary references, not content. Duplicate columns accumulate.~~
 
-**Fix**: Track by property name in a separate `Dictionary[String, bool]` and check `.has(prop.name)`.
+~~**Fix**: Track by property name in a separate `Dictionary[String, bool]` and check `.has(prop.name)`.~~
+
+**problem_claude_correction**: In GDScript 4, `Dictionary` equality uses deep value comparison, not reference comparison. So `properties.has(prop)` correctly deduplicates identical property dictionaries. The stated problem is wrong. The only theoretical edge case — same property name but different type/hint across subclasses — is extremely unusual. Not an error.
 
 ---
 
@@ -340,11 +344,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Codex
 **Severity**: HIGH
 **File**: `core/project_class_scanner.gd`, `ui/resource_list/resource_row.gd`
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `unite_classes_properties()` filters properties by `PROPERTY_USAGE_EDITOR`, but `ResourceRow._build_field_labels()` uses `get_script_property_list()` to build `owned` dict WITHOUT the same filter. A property excluded from columns could still appear as "owned", or vice versa.
+~~**Problem**: `unite_classes_properties()` filters properties by `PROPERTY_USAGE_EDITOR`, but `ResourceRow._build_field_labels()` uses `get_script_property_list()` to build `owned` dict WITHOUT the same filter. A property excluded from columns could still appear as "owned", or vice versa.~~
 
-**Fix**: Apply the same `PROPERTY_USAGE_EDITOR` filter in `_build_field_labels()` when building the `owned` dictionary.
+~~**Fix**: Apply the same `PROPERTY_USAGE_EDITOR` filter in `_build_field_labels()` when building the `owned` dictionary.~~
+
+**Fix applied**: `_build_field_labels()` now applies the same `PROPERTY_USAGE_EDITOR` check plus the same `resource_*`, `metadata/`, `script`, `resource_local_to_scene` exclusions used by `get_properties_from_script_path()`. Also replaced `range()` with direct size iteration.
 
 ---
 
@@ -353,13 +359,15 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `ui/dialogs/save_resource_dialog.gd`
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `_get_class_script_path()` does its own full pass over `ProjectSettings.get_global_class_list()` instead of using the centralized cache.
+~~**Problem**: `_get_class_script_path()` does its own full pass over `ProjectSettings.get_global_class_list()` instead of using the centralized cache.~~
 
-**Fix**: Accept the script path as a parameter or use the cached maps from StateManager/ProjectClassScanner.
+~~**Fix**: Accept the script path as a parameter or use the cached maps from StateManager/ProjectClassScanner.~~
 
-**Conflicting**: Item #4, #10 (same root cause).
+~~**Conflicting**: Item #4, #10 (same root cause).~~
+
+**Fix applied**: `_get_class_script_path()` already iterates `global_classes_map` which is set from `%VREStateManager.global_clases_map` in `_on_class_selected()`. It does NOT call `get_global_class_list()` independently. Items #4 and #10 already resolved the root cause.
 
 ---
 
@@ -368,11 +376,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Claude
 **Severity**: MEDIUM
 **File**: `ui/dialogs/save_resource_dialog.gd` — line 40
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: Calls `EditorInterface.get_resource_filesystem().scan()` directly. Multiple rapid saves trigger independent scans, uncoordinated with StateManager's debounce timer.
+~~**Problem**: Calls `EditorInterface.get_resource_filesystem().scan()` directly. Multiple rapid saves trigger independent scans, uncoordinated with StateManager's debounce timer.~~
 
-**Fix**: Remove `scan()` call. Let `filesystem_changed` propagate naturally through StateManager's debounce.
+~~**Fix**: Remove `scan()` call. Let `filesystem_changed` propagate naturally through StateManager's debounce.~~
+
+**Fix applied**: Removed `EditorInterface.get_resource_filesystem().scan()` call from `_on_file_selected()`. The `filesystem_changed` signal fires naturally when the file is written to disk, flowing through StateManager's debounce timer.
 
 ---
 

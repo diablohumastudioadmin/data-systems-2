@@ -35,13 +35,21 @@ func _build_field_labels() -> void:
 		child.queue_free()
 	_prop_labels.clear()
 
-	# Map which properties this resource's script actually declares
+	# Map which editor-visible properties this resource's script actually declares
+	# Uses the same filter as ProjectClassScanner.get_properties_from_script_path()
 	var owned: Dictionary = {}
 	if resource and resource.get_script():
 		for p: Dictionary in resource.get_script().get_script_property_list():
-			owned[p.name] = true
+			if not (p.usage & PROPERTY_USAGE_EDITOR):
+				continue
+			var pname: String = p.name
+			if pname.begins_with("resource_") or pname.begins_with("metadata/"):
+				continue
+			if pname in ["script", "resource_local_to_scene"]:
+				continue
+			owned[pname] = true
 
-	for i: int in range(columns.size()):
+	for i: int in columns.size():
 		if i > 0:
 			var sep: VSeparator = FIELD_SEPARATOR_SCENE.instantiate()
 			%FieldsContainer.add_child(sep)
