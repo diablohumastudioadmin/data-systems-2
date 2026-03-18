@@ -539,11 +539,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Claude
 **Severity**: MEDIUM
 **File**: `ui/resource_list/resource_row.gd` — line 51
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `columns[i].name` accessed without null check. Malformed column Dictionary crashes.
+~~**Problem**: `columns[i].name` accessed without null check. Malformed column Dictionary crashes.~~
 
-**Fix**: Validate `col.has("name")` before accessing.
+~~**Fix**: Validate `col.has("name")` before accessing.~~
+
+**Fix applied**: `_build_field_labels()` now checks `columns[i].has("name")` and skips the iteration if missing.
 
 ---
 
@@ -552,13 +554,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Codex
 **Severity**: LOW
 **File**: `ui/resource_list/resource_row.gd`
-**Solved**: not solved
+**Solved**: not a problem
 
-**Problem**: `button_pressed` only works if `toggle_mode = true`. If scene changes, selection breaks silently.
+~~**Problem**: `button_pressed` only works if `toggle_mode = true`. If scene changes, selection breaks silently.~~
 
-**Fix**: Set `toggle_mode = true` defensively in `_ready()`.
+~~**Fix**: Set `toggle_mode = true` defensively in `_ready()`.~~
 
-**problem_claude_correction**: Valid defensive coding. However, `toggle_mode` IS set in the `.tscn` scene file. Setting it again in `_ready()` is harmless but redundant. Low priority.
+**problem_claude_correction**: `toggle_mode` IS set in the `.tscn` scene file. The scene is the source of truth for visual configuration per project conventions. Not a problem.
 
 ---
 
@@ -567,11 +569,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Claude
 **Severity**: MEDIUM
 **File**: `ui/class_selector/class_selector.gd` — `set_classes_in_dropdown()` and `_rebuild_dropdown_preserving_selection()`
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: Nearly identical dropdown rebuild logic in two methods.
+~~**Problem**: Nearly identical dropdown rebuild logic in two methods.~~
 
-**Fix**: Extract to shared `_populate_dropdown(preserve_selection: bool)`.
+~~**Fix**: Extract to shared `_populate_dropdown(preserve_selection: bool)`.~~
+
+**Fix applied**: `_rebuild_dropdown_preserving_selection()` no longer exists. `set_classes_in_dropdown()` is the single method that rebuilds the dropdown and preserves the current selection. Already resolved.
 
 ---
 
@@ -580,15 +584,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `ui/class_selector/class_selector.gd` — setter on line 7 + `set_classes()` on line 27
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: Both the `_classes_names` setter and `set_classes()` do the same thing.
+~~**Problem**: Both the `_classes_names` setter and `set_classes()` do the same thing.~~
 
-**Fix**: Remove one. Keep `set_classes()` as the public API and remove the setter, or keep the setter and remove `set_classes()`.
+~~**Fix**: Remove one. Keep `set_classes()` as the public API and remove the setter, or keep the setter and remove `set_classes()`.~~
 
-**problem_claude_correction**: Looking at the code, the setter (line 6-10) triggers `set_classes_in_dropdown()` when `is_node_ready()`. `set_classes()` (line 27-30) does the same thing. They ARE redundant. However, the setter fires on ANY assignment (`_classes_names = x`), while `set_classes()` is an explicit method. Having both is confusing but not harmful. Recommend: keep `set_classes()` as public API, make setter call it internally to avoid duplication.
-
-**Conflicting**: Item #35 (both address ClassSelector duplication).
+**Fix applied**: The `_classes_names` setter was removed. `set_classes()` is the sole public API. Already resolved.
 
 ---
 
@@ -612,11 +614,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Codex
 **Severity**: MEDIUM
 **File**: `ui/class_selector/class_selector.gd`
-**Solved**: not solved
+**Solved**: not a problem
 
-**Problem**: If the selected class is removed from the project, dropdown falls back to placeholder silently. No warning to user.
+~~**Problem**: If the selected class is removed from the project, dropdown falls back to placeholder silently. No warning to user.~~
 
-**Fix**: Emit a signal or show a warning when the selected class disappears.
+~~**Fix**: Emit a signal or show a warning when the selected class disappears.~~
+
+**problem_claude_correction**: Not a problem. When a class is deleted, the native Godot delete file confirmation dialog is the only interaction point. No additional warning in the window is necessary — the user already confirmed deletion.
 
 ---
 
@@ -625,11 +629,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Claude
 **Severity**: MEDIUM
 **File**: `ui/visual_resources_editor_window.gd` — `_ready()` lines 5-22
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `%ClassSelector.set_classes()` called before connecting to `%VREStateManager.data_changed`. If `set_classes()` triggers internal class selection, state won't sync.
+~~**Problem**: `%ClassSelector.set_classes()` called before connecting to `%VREStateManager.data_changed`. If `set_classes()` triggers internal class selection, state won't sync.~~
 
-**Fix**: Connect signals first, then set initial state.
+~~**Fix**: Connect signals first, then set initial state.~~
+
+**Fix applied**: All signal connections in `_ready()` moved before `%ClassSelector.set_classes()`. Signals are now always connected before initial state is set.
 
 ---
 
@@ -638,11 +644,13 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **Creator**: Gemini
 **Severity**: LOW
 **File**: `ui/visual_resources_editor_window.gd` — line 25-26
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: `_input()` catches `ui_cancel` globally when window is focused, potentially intercepting other editor popups.
+~~**Problem**: `_input()` catches `ui_cancel` globally when window is focused, potentially intercepting other editor popups.~~
 
-**Fix**: Use `_unhandled_input()` instead, or remove entirely (Window already emits `close_requested` on ESC if not exclusive).
+~~**Fix**: Use `_unhandled_input()` instead, or remove entirely (Window already emits `close_requested` on ESC if not exclusive).~~
+
+**Fix applied**: Changed `_input()` to `_unhandled_input()` so ESC only closes the window if no other control has already consumed the event.
 
 ---
 
