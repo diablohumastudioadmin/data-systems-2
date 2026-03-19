@@ -4,6 +4,10 @@ extends Node
 
 signal data_changed(resources: Array[Resource], columns: Array[Dictionary])
 signal project_classes_changed(classes: Array[String])
+signal selection_changed(resources: Array[Resource])
+signal pagination_changed(page: int, page_count: int)
+
+const PAGE_SIZE: int = 50
 
 var global_classes_map: Array[Dictionary]
 var _classes_parent_map: Dictionary[String, String]
@@ -19,6 +23,11 @@ var current_class_property_list: Array[Dictionary] = []
 var subclasses_property_lists: Dictionary = {}
 var columns: Array[Dictionary] = []
 var resources: Array[Resource] = []
+
+var selected_resources: Array[Resource] = []
+var _selected_paths: Array[String] = []
+var _last_anchor: int = -1
+var _current_page: int = 0
 
 func _ready() -> void:
 	if not Engine.is_editor_hint(): return
@@ -54,6 +63,47 @@ func set_include_subclasses(value: bool) -> void:
 	rescan()
 
 
+func select(resource: Resource, ctrl_held: bool, shift_held: bool) -> void:
+	var current_idx: int = resources.find(resource)
+	if shift_held and _last_anchor != -1 and current_idx != -1:
+		selected_resources.clear()
+		_selected_paths.clear()
+		var from: int = mini(_last_anchor, current_idx)
+		var to: int = maxi(_last_anchor, current_idx)
+		for i: int in (to - from + 1):
+			var res: Resource = resources[from + i]
+			selected_resources.append(res)
+			_selected_paths.append(res.resource_path)
+		# anchor stays unchanged on shift+click
+	elif ctrl_held:
+		if selected_resources.has(resource):
+			selected_resources.erase(resource)
+			_selected_paths.erase(resource.resource_path)
+		else:
+			selected_resources.append(resource)
+			_selected_paths.append(resource.resource_path)
+		_last_anchor = current_idx
+	else:
+		selected_resources.clear()
+		_selected_paths.clear()
+		selected_resources.append(resource)
+		_selected_paths.append(resource.resource_path)
+		_last_anchor = current_idx
+	selection_changed.emit(selected_resources.duplicate())
+
+
+func next_page() -> void:
+	if _current_page < _page_count() - 1:
+		_current_page += 1
+		_emit_page_data()
+
+
+func prev_page() -> void:
+	if _current_page > 0:
+		_current_page -= 1
+		_emit_page_data()
+
+
 func rescan() -> void:
 	if _current_class_name.is_empty():
 		return
@@ -87,10 +137,36 @@ func rescan() -> void:
 		return
 	resources = ProjectClassScanner.load_classed_resources_from_dir(current_class_names, root)
 
-	data_changed.emit(resources, columns)
+	# Restore selection for resources that still exist after rescan
+	var prev_paths: Array[String] = _selected_paths.duplicate()
+	selected_resources.clear()
+	_selected_paths.clear()
+	for res: Resource in resources:
+		if prev_paths.has(res.resource_path):
+			selected_resources.append(res)
+			_selected_paths.append(res.resource_path)
+	_last_anchor = resources.find(selected_resources.back()) if not selected_resources.is_empty() else -1
+	selection_changed.emit(selected_resources.duplicate())
+
+	_current_page = 0
+	_emit_page_data()
 
 
 # ── Private ────────────────────────────────────────────────────────────────────
+
+func _page_count() -> int:
+	if resources.is_empty():
+		return 1
+	return ceili(float(resources.size()) / float(PAGE_SIZE))
+
+
+func _emit_page_data() -> void:
+	var start: int = _current_page * PAGE_SIZE
+	var end: int = mini(start + PAGE_SIZE, resources.size())
+	data_changed.emit(resources.slice(start, end), columns)
+	pagination_changed.emit(_current_page, _page_count())
+
+
 func _set_maps() -> void:
 	global_classes_map = ProjectClassScanner.build_global_classes_map()
 	_classes_parent_map = ProjectClassScanner.build_project_classes_parent_map(global_classes_map)

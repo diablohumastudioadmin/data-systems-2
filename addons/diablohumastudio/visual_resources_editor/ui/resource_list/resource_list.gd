@@ -2,42 +2,35 @@
 class_name ResourceList
 extends VBoxContainer
 
-signal rows_selected(resources: Array[Resource])
+signal row_clicked(resource: Resource, ctrl_held: bool, shift_held: bool)
 signal create_requested
 signal delete_requested(paths: Array[String])
 signal refresh_requested
+signal prev_page_requested
+signal next_page_requested
 
 const RESOURCE_ROW_SCENE: PackedScene = preload("uid://dukcnu4xa4lbd")
 
-var selected_rows: Array[Resource] = []
-var _selected_paths: Array[String] = []        # persists across rescans
-var _rows: Array[ResourceRow] = []             # ResourceRow nodes
+var _rows: Array[ResourceRow] = []
 var _resource_to_row: Dictionary = {}  # Resource → ResourceRow
+var _selected_resources: Array[Resource] = []  # cache for delete button
+var _visible_count: int = 0
 
 
 func _ready() -> void:
 	%CreateBtn.pressed.connect(create_requested.emit)
 	%DeleteSelectedBtn.pressed.connect(_on_delete_selected_pressed)
 	%RefreshBtn.pressed.connect(refresh_requested.emit)
+	%PrevBtn.pressed.connect(prev_page_requested.emit)
+	%NextBtn.pressed.connect(next_page_requested.emit)
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 func set_data(resources: Array[Resource], columns: Array[Dictionary]) -> void:
-	var prev_paths: Array[String] = _selected_paths.duplicate()
-	selected_rows.clear()
-	_selected_paths.clear()
+	_visible_count = resources.size()
 	_build_rows(resources, columns)
-	# Restore selection for resources that still exist after rescan
-	for res: Resource in resources:
-		if prev_paths.has(res.resource_path):
-			selected_rows.append(res)
-			_selected_paths.append(res.resource_path)
-			if _resource_to_row.has(res) and is_instance_valid(_resource_to_row[res]):
-				_resource_to_row[res].set_selected(true)
-	_update_selection_ui()
-	if not selected_rows.is_empty():
-		rows_selected.emit(selected_rows.duplicate())
+	_update_status("%d resource(s)" % _visible_count)
 
 
 func refresh_row(resource_path: String) -> void:
@@ -45,6 +38,21 @@ func refresh_row(resource_path: String) -> void:
 		if is_instance_valid(row) and row.get_resource_path() == resource_path:
 			row.update_display()
 			break
+
+
+func update_selection(selected: Array[Resource]) -> void:
+	_selected_resources = selected
+	for row: ResourceRow in _rows:
+		if is_instance_valid(row):
+			row.set_selected(selected.has(row.get_resource()))
+	_update_selection_ui()
+
+
+func update_pagination_bar(page: int, page_count: int) -> void:
+	%PaginationBar.visible = page_count > 1
+	%PageLabel.text = "Page %d / %d" % [page + 1, page_count]
+	%PrevBtn.disabled = page == 0
+	%NextBtn.disabled = page >= page_count - 1
 
 
 # ── Table building ─────────────────────────────────────────────────────────────
@@ -63,8 +71,6 @@ func _build_rows(resources: Array[Resource], columns: Array[Dictionary]) -> void
 		_rows.append(row)
 		_resource_to_row[res] = row
 
-	_update_status("%d resource(s) found" % resources.size())
-
 
 func _clear_rows() -> void:
 	for row: ResourceRow in _rows:
@@ -78,42 +84,19 @@ func _clear_rows() -> void:
 	_resource_to_row.clear()
 
 
-# ── Selection ──────────────────────────────────────────────────────────────────
+# ── Selection (visual only) ────────────────────────────────────────────────────
 
-func _on_resource_row_selected(resource: Resource, ctrl_held: bool) -> void:
-	if ctrl_held:
-		if selected_rows.has(resource):
-			selected_rows.erase(resource)
-			_selected_paths.erase(resource.resource_path)
-			if _resource_to_row.has(resource) and is_instance_valid(_resource_to_row[resource]):
-				_resource_to_row[resource].set_selected(false)
-		else:
-			selected_rows.append(resource)
-			_selected_paths.append(resource.resource_path)
-			if _resource_to_row.has(resource) and is_instance_valid(_resource_to_row[resource]):
-				_resource_to_row[resource].set_selected(true)
-	else:
-		for res: Resource in selected_rows:
-			if _resource_to_row.has(res) and is_instance_valid(_resource_to_row[res]):
-				_resource_to_row[res].set_selected(false)
-		selected_rows.clear()
-		_selected_paths.clear()
-		selected_rows.append(resource)
-		_selected_paths.append(resource.resource_path)
-		if _resource_to_row.has(resource) and is_instance_valid(_resource_to_row[resource]):
-			_resource_to_row[resource].set_selected(true)
-
-	_update_selection_ui()
-	rows_selected.emit(selected_rows.duplicate())
+func _on_resource_row_selected(resource: Resource, ctrl_held: bool, shift_held: bool) -> void:
+	row_clicked.emit(resource, ctrl_held, shift_held)
 
 
 func _update_selection_ui() -> void:
-	var count: int = selected_rows.size()
+	var count: int = _selected_resources.size()
 	%DeleteSelectedBtn.text = "Delete Selected (%d)" % count if count > 0 else "Delete Selected"
 	if count > 0:
 		_update_status("%d selected" % count)
 	else:
-		_update_status("%d resource(s)" % _rows.size())
+		_update_status("%d resource(s)" % _visible_count)
 
 
 # ── CRUD ───────────────────────────────────────────────────────────────────────
@@ -125,10 +108,10 @@ func _on_row_delete_requested(resource_path: String) -> void:
 
 
 func _on_delete_selected_pressed() -> void:
-	if selected_rows.is_empty():
+	if _selected_resources.is_empty():
 		return
 	var paths: Array[String] = []
-	for res: Resource in selected_rows:
+	for res: Resource in _selected_resources:
 		paths.append(res.resource_path)
 	delete_requested.emit(paths)
 

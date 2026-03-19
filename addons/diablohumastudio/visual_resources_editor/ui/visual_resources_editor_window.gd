@@ -9,10 +9,15 @@ func _ready() -> void:
 	%ClassSelector.class_selected.connect(_on_class_selected)
 	%IncludeSubclassesCheck.toggled.connect(_on_include_subclasses_toggled)
 
-	%ResourceList.rows_selected.connect(_on_rows_selected)
+	%ResourceList.row_clicked.connect(%VREStateManager.select)
+	%ResourceList.prev_page_requested.connect(%VREStateManager.prev_page)
+	%ResourceList.next_page_requested.connect(%VREStateManager.next_page)
 	%ResourceList.create_requested.connect(%SaveResourceDialog.show_create_dialog)
 	%ResourceList.delete_requested.connect(%ConfirmDeleteDialog.show_delete_dialog)
 	%ResourceList.refresh_requested.connect(%VREStateManager.rescan)
+
+	%VREStateManager.selection_changed.connect(_on_selection_changed)
+	%VREStateManager.pagination_changed.connect(%ResourceList.update_pagination_bar)
 
 	%SaveResourceDialog.error_occurred.connect(%ErrorDialog.show_error)
 	%ConfirmDeleteDialog.error_occurred.connect(%ErrorDialog.show_error)
@@ -57,8 +62,9 @@ func _on_state_data_changed(
 
 # ── Selection & inspection ─────────────────────────────────────────────────────
 
-func _on_rows_selected(resources: Array[Resource]) -> void:
+func _on_selection_changed(resources: Array[Resource]) -> void:
 	%BulkEditor.edited_resources = resources
+	%ResourceList.update_selection(resources)
 
 
 func _on_resources_edited(resources: Array[Resource]) -> void:

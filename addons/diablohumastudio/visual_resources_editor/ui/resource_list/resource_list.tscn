@@ -50,6 +50,27 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
+[node name="PaginationBar" type="HBoxContainer" parent="." unique_id=624382917]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+
+[node name="PrevBtn" type="Button" parent="PaginationBar" unique_id=812947563]
+unique_name_in_owner = true
+layout_mode = 2
+text = "◄"
+
+[node name="PageLabel" type="Label" parent="PaginationBar" unique_id=391827465]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 1
+
+[node name="NextBtn" type="Button" parent="PaginationBar" unique_id=547293810]
+unique_name_in_owner = true
+layout_mode = 2
+text = "►"
+
 [node name="StatusLabel" type="Label" parent="." unique_id=483376271]
 unique_name_in_owner = true
 layout_mode = 2

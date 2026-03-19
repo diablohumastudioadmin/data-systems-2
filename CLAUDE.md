@@ -5,7 +5,7 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 
 ## Workflow
 - **Before implementing changes**: write a proposal with problem/fix/files for each item. Wait for user approval.
-- **When implementing**: make one git commit per change item. Use clear commit messages.
+- **When implementing**: make one git commit per change item. Use clear commit messages. **Never commit unless the user explicitly asks** (e.g. "commit", "please commit").
 - **Do NOT write to `data_system_redesign_claude.md`** unless the user explicitly asks for it.
 - Deleting resource files does not require undo/redo; use version control for recovery.
 - Bulk edit undo/redo is optional; do not block work on adding it unless explicitly requested.

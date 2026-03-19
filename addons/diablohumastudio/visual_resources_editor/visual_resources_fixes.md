@@ -450,12 +450,14 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 
 **Creator**: Gemini + Codex
 **Severity**: MEDIUM
-**File**: `ui/resource_list/resource_list.gd`, `ui/resource_list/resource_row.gd`
-**Solved**: not solved
+**File**: `ui/resource_list/resource_list.gd`, `ui/resource_list/resource_row.gd`, `core/state_manager.gd`
+**Solved**: yes
 
-**Problem**: Shift+click should range-select all rows between last selected and current. Not yet implemented.
+~~**Problem**: Shift+click should range-select all rows between last selected and current. Not yet implemented.~~
 
-**Fix**: Track `_last_selected_index`. Shift+click selects all rows between last and current index.
+~~**Fix**: Track `_last_selected_index`. Shift+click selects all rows between last and current index.~~
+
+**Fix applied**: Selection state moved entirely to `VREStateManager`. `StateManager.select(resource, ctrl_held, shift_held)` owns `selected_resources`, `_selected_paths`, and `_last_anchor` (a global index into `resources[]`). Shift+click computes `[min(anchor, current)..max(anchor, current)]` over the full resource list — so range selection works correctly across pagination pages. The anchor stays fixed on repeated Shift+clicks. `resource_row.gd` emits `shift_held` via `Input.is_key_pressed(KEY_SHIFT)`. `resource_list.gd` forwards the click to `row_clicked` signal with no state of its own. `visual_resources_editor_window.gd` wires `row_clicked → StateManager.select` and `StateManager.selection_changed → ResourceList.update_selection`.
 
 ---
 
@@ -508,14 +510,16 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 
 **Creator**: Codex (Claude noted as "full table rebuild")
 **Severity**: MEDIUM
-**File**: `ui/resource_list/resource_list.gd`, `ui/resource_list/resource_row.gd`
-**Solved**: not solved
+**File**: `ui/resource_list/resource_list.gd`, `ui/resource_list/resource_row.gd`, `core/state_manager.gd`
+**Solved**: yes (pagination)
 
-**Problem**: Full control row instantiated for every resource. UI freezes on large lists.
+~~**Problem**: Full control row instantiated for every resource. UI freezes on large lists.~~
 
-**Fix (Codex)**: Replace with `Tree` or implement row pooling/virtualization.
+~~**Fix (Codex)**: Replace with `Tree` or implement row pooling/virtualization.~~
 
-**problem_claude_correction**: Valid at scale. However, for the typical use case (< 100 resources of a given class), the current approach works fine. A `Tree` would also require rewriting all row rendering logic. Recommend: first implement incremental updates (skip rebuild when data unchanged), defer full virtualization until proven needed.
+~~**problem_claude_correction**: Valid at scale. However, for the typical use case (< 100 resources of a given class), the current approach works fine. A `Tree` would also require rewriting all row rendering logic. Recommend: first implement incremental updates (skip rebuild when data unchanged), defer full virtualization until worden needed.~~
+
+**Fix applied**: Pagination implemented with `PAGE_SIZE = 50` in `VREStateManager`. `StateManager` owns `_current_page`, `_page_count()`, `_emit_page_data()`, `next_page()`, and `prev_page()`. `rescan()` resets to page 0 and calls `_emit_page_data()` which emits `data_changed(slice, columns)` (only the current page) and `pagination_changed(page, page_count)`. `ResourceList` is now a pure UI component — `set_data()` just builds rows from whatever slice it receives, with no knowledge of the total resource count. A `PaginationBar` (hidden when ≤ PAGE_SIZE resources) was added to `resource_list.tscn` with Prev/Next buttons that emit `prev_page_requested`/`next_page_requested`, wired through the window to `StateManager.prev_page()`/`next_page()`.
 
 ---
 
@@ -789,8 +793,6 @@ Size constants (delete button width) are already in `.tscn` as `custom_minimum_s
 | # | Severity | Description |
 |---|----------|-------------|
 | 17 | CRITICAL | Full project re-scan on every filesystem change — no incremental updates. Architectural refactor needed. |
-| 27b | MEDIUM | Shift+click range select not implemented (Ctrl/Cmd toggle done; range select deferred). |
-| 31 | MEDIUM | No row virtualization in resource list — UI may freeze on large datasets. |
 | 48 | MEDIUM | No automated tests for scan logic or CRUD paths. |
 
 ---
@@ -801,7 +803,9 @@ Size constants (delete button width) are already in `.tscn` as `custom_minimum_s
 
 **Problem**: Every filesystem change (even saving a file in an unrelated folder) triggers a full `rescan()`: rebuilds class maps, re-scans all `.tres` files recursively, reloads all resources, and rebuilds the entire UI. On a project with hundreds of `.tres` files this causes noticeable stalls.
 
-**Root cause**: `_on_filesystem_changed` → debounce → `rescan()` is a blunt instrument. Godot's `EditorFileSystem` provides finer-grained signals (`resources_reimported`) that are unused.
+**Root cause**: `_on_filesystem_changed` → debounce → `rescan()` is a blunt instrument.
+
+**Note on `resources_reimported`**: This signal only fires for files that go through Godot's import pipeline (images, audio, etc. — files that generate `.import` sidecars). `.tres` files are not imported; they are native resources loaded directly. `resources_reimported` never fires for `.tres` changes. The only reliable signal for `.tres` changes is `filesystem_changed`.
 
 **Proposed architecture**:
 
@@ -816,142 +820,66 @@ Current flow:
                            │ rebuild ALL UI rows             │
                            └───────────────────────────────┘
 
-Proposed flow — two separate paths:
+Proposed flow — split by trigger:
 
-  resources_reimported(paths) ──────────────────────────────────────┐
-                                                                     │
-                                              ┌──────────────────────▼──────────┐
-                                              │ filter paths to .tres of         │
-                                              │ current_class_names              │
-                                              │                                  │
-                                              │  for each matched path:          │
-                                              │    reload resource               │
-                                              │    if in _known_paths → update   │
-                                              │    else              → add row   │
-                                              └──────────────────────────────────┘
+  script_classes_updated ──────────────────────────────► full rescan()
+                                                  (class definitions changed,
+                                                   columns may change — rebuild all)
 
-  filesystem_changed ──debounce──► _lightweight_rescan()
+  filesystem_changed ──debounce──► _incremental_update()
                                          │
-                             ┌───────────▼────────────────────────┐
-                             │ rebuild class maps (ProjectSettings) │
-                             │ re-scan .tres paths only (no load)  │
-                             │ diff vs _known_resource_paths cache  │
-                             │   new paths  → load + add row       │
-                             │   gone paths → remove row           │
-                             └────────────────────────────────────┘
+                             ┌───────────▼────────────────────────────────────┐
+                             │ scan .tres paths + mtime for current_class_names│
+                             │                                                 │
+                             │  path in scan, NOT in _known_mtimes:           │
+                             │    load resource → add row  (NEW FILE)         │
+                             │                                                 │
+                             │  path in _known_mtimes, NOT in scan:           │
+                             │    remove row  (DELETED FILE)                  │
+                             │                                                 │
+                             │  path in both, mtime changed:                  │
+                             │    reload resource → update row  (MODIFIED)    │
+                             │                                                 │
+                             │  path in both, mtime unchanged:                │
+                             │    skip  (unrelated file changed)              │
+                             │                                                 │
+                             │  update _known_mtimes cache                    │
+                             └───────────────────────────────────────────────┘
+```
+
+**Key API**: `FileAccess.get_modified_time(path: String) -> int` — static, no file open needed.
+
+**New data in `state_manager.gd`**:
+```gdscript
+var _known_resource_mtimes: Dictionary[String, int] = {}  # path → mtime
+var _resource_by_path: Dictionary[String, Resource] = {}  # path → loaded Resource
+```
+
+**New signals on `state_manager.gd`**:
+```gdscript
+signal resource_added(res: Resource, columns: Array[Dictionary])
+signal resource_removed(path: String)
+signal resource_updated(res: Resource)
 ```
 
 **Files to modify**:
-- `core/state_manager.gd` — split `rescan()` into path-scan and resource-load phases; add `_known_resource_paths: Array[String]`; connect `resources_reimported`; add `resource_added(res)`, `resource_removed(path)`, `resource_updated(res)` signals
-- `ui/resource_list/resource_list.gd` — add `add_row(res, columns)`, `remove_row(path)`, `update_row(res)` methods wired to the new StateManager signals
+- `core/state_manager.gd` — keep `rescan()` for full rebuilds (triggered only by `script_classes_updated`); add `_incremental_update()` called from `filesystem_changed`; add three new signals; populate `_known_resource_mtimes` and `_resource_by_path` at end of `rescan()`
+- `ui/resource_list/resource_list.gd` — add `add_row(res, columns)`, `remove_row(path)`, `update_row(res)` methods
+- `ui/visual_resources_editor_window.gd` — wire the three new StateManager signals
 
 **Steps**:
-1. In `StateManager._ready()`: also connect `efs.resources_reimported.connect(_on_resources_reimported)`
-2. Add `var _known_resource_paths: Array[String] = []` updated at end of each scan
-3. Add `_on_resources_reimported(paths: PackedStringArray)`:
-   - filter to `.tres` whose `script_class` matches `current_class_names`
-   - reload matched resources; emit `resource_updated` or `resource_added`
-4. Replace `rescan()` body: split into `_rescan_class_maps()` and `_rescan_paths_and_diff()` — path scan only, no full resource reload
-5. Wire new signals in `visual_resources_editor_window.gd`
-6. Implement `add_row` / `remove_row` / `update_row` in `ResourceList`
-
----
-
-### Item 27b — Shift+Click Range Select
-
-**Problem**: Clicking a row while holding Shift should select all rows between the last-clicked row and the current one (standard list-view behaviour). Currently only Ctrl/Cmd toggle is supported.
-
-**Proposed architecture**:
-
-```
-ResourceRow press event
-         │
-    ┌────▼──────────────────────────────┐
-    │ detect modifiers via Input         │
-    │   ctrl_held = KEY_CTRL | KEY_META  │
-    │   shift_held = KEY_SHIFT           │
-    └────┬──────────────────────────────┘
-         │ emit resource_row_selected(resource, ctrl_held, shift_held)
-         ▼
-ResourceList._on_resource_row_selected(res, ctrl_held, shift_held)
-         │
-    ┌────▼──────────────────────────────────────────────────┐
-    │ shift_held AND _last_selected_index != -1?             │
-    │   yes → range select rows[_last_selected_index..this] │
-    │   no  → normal ctrl toggle or single select           │
-    │                                                        │
-    │ always: _last_selected_index = index of this row      │
-    └───────────────────────────────────────────────────────┘
-```
-
-**Files to modify**:
-- `ui/resource_list/resource_row.gd`:
-  - Signal: `resource_row_selected(resource: Resource, ctrl_held: bool, shift_held: bool)`
-  - `_on_pressed()`: detect `shift_held = Input.is_key_pressed(KEY_SHIFT)`
-- `ui/resource_list/resource_list.gd`:
-  - Add `var _last_selected_index: int = -1`
-  - Add `var _rows_ordered: Array[ResourceRow] = []` (ordered parallel to resources, built in `_build_rows`)
-  - Update `_on_resource_row_selected` signature to include `shift_held`
-  - On Shift+click: find indices, select all rows in `[min..max]` range, update `selected_rows` and emit
-
-**Steps**:
-1. Add `shift_held: bool` param to `resource_row_selected` signal and `_on_pressed()`
-2. In `ResourceList._build_rows()`: populate `_rows_ordered` alongside existing `_resource_to_row`; clear `_last_selected_index = -1`
-3. In `_on_resource_row_selected(resource, ctrl_held, shift_held)`:
-   - Find `current_idx = _rows_ordered.find_custom(func(r): return r.get_resource() == resource)`
-   - If `shift_held and _last_selected_index != -1`: deselect all; select `_rows_ordered[min..max]`
-   - Else: existing ctrl/single logic
-   - Set `_last_selected_index = current_idx`
-4. Reset `_last_selected_index = -1` in `_clear_rows()`
-
----
-
-### Item 31 — Row Virtualization / Pagination
-
-**Problem**: `ResourceList` instantiates one `ResourceRow` node per resource. At 200+ resources, `_build_rows()` creates 200+ nodes, each with N Label children. This causes the editor to stall on class selection.
-
-**Two options considered**:
-
-```
-Option A — Pagination (recommended):
-  ┌──────────────────────────────────────────────┐
-  │  ResourceList                                 │
-  │  ┌──────────────────────────────────────────┐│
-  │  │  HeaderRow                               ││
-  │  ├──────────────────────────────────────────┤│
-  │  │  Row 1   │ val │ val │ [x]               ││
-  │  │  Row 2   │ val │ val │ [x]               ││
-  │  │  ...  (max PAGE_SIZE = 50 rows)          ││
-  │  ├──────────────────────────────────────────┤│
-  │  │  [◄ Prev]   Page 2 / 12   [Next ►]      ││
-  │  └──────────────────────────────────────────┘│
-  └──────────────────────────────────────────────┘
-  Instantiates only PAGE_SIZE rows per page change.
-  Simple; no scroll tracking needed.
-
-Option B — Virtual Scroll (complex):
-  ScrollContainer
-    └─ VBoxContainer
-         ├─ SpacerTop    (height = row_h × first_visible_idx)
-         ├─ VisiblePool  (~N_VISIBLE recycled ResourceRow nodes)
-         └─ SpacerBottom (height = row_h × remaining_count)
-  On scroll: update SpacerTop/Bottom heights, rebind pool nodes to new data.
-  Requires fixed row height assumption; complex lifecycle management.
-```
-
-**Recommendation**: Option A (pagination). Simpler, fits the inspector-like use pattern where users pick a class and browse resources, rather than continuously scrolling.
-
-**Files to modify / create**:
-- `ui/resource_list/resource_list.tscn` — add `PaginationBar` HBoxContainer with `PrevBtn`, `PageLabel`, `NextBtn` below `RowsContainer`; set `unique_name_in_owner = true`
-- `ui/resource_list/resource_list.gd` — add `const PAGE_SIZE: int = 50`; add `_current_page: int = 0`; add `_all_resources`/`_all_columns` cache; slice in `_build_rows()`; wire Prev/Next buttons
-
-**Steps**:
-1. Add `PaginationBar` to `resource_list.tscn` (hidden when ≤ PAGE_SIZE resources)
-2. In `set_data()`: store full `_all_resources` and `_all_columns`; compute `_page_count`; call `_build_page(0)`
-3. `_build_page(page: int)`: slice `_all_resources[page*PAGE_SIZE .. (page+1)*PAGE_SIZE]`; call `_build_rows(slice, _all_columns)`; update `%PageLabel.text`
-4. Wire `%PrevBtn.pressed` / `%NextBtn.pressed` to decrement/increment `_current_page` and call `_build_page()`
-5. Reset `_current_page = 0` when a new class is selected (`set_data` called with different columns)
-6. Hide `%PaginationBar` when `_all_resources.size() <= PAGE_SIZE`
+1. In `StateManager.rescan()`: after building `resources`, populate `_known_resource_mtimes` and `_resource_by_path`
+2. Change `_on_filesystem_changed()` to call `_incremental_update()` instead of `rescan()`
+3. `_incremental_update()`:
+   - If `_current_class_name.is_empty()`: return early
+   - Get root dir; if invalid: return
+   - Scan paths: `var new_paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(root, current_class_names)`
+   - Diff vs `_known_resource_mtimes`
+   - For new paths: load resource, emit `resource_added(res, columns)`
+   - For gone paths: emit `resource_removed(path)`, update caches
+   - For same paths with changed mtime: reload, emit `resource_updated(res)`, update caches
+4. `script_classes_updated` still calls full `rescan()` (class definitions and columns may have changed)
+5. Wire signals in window; implement `add_row`/`remove_row`/`update_row` in ResourceList
 
 ---
 
