@@ -791,5 +791,202 @@ Size constants (delete button width) are already in `.tscn` as `custom_minimum_s
 | 17 | CRITICAL | Full project re-scan on every filesystem change — no incremental updates. Architectural refactor needed. |
 | 27b | MEDIUM | Shift+click range select not implemented (Ctrl/Cmd toggle done; range select deferred). |
 | 31 | MEDIUM | No row virtualization in resource list — UI may freeze on large datasets. |
-| 32 | MEDIUM | StyleBox allocation pressure in ResourceRow color cells — consider ColorRect or cached StyleBoxes. |
 | 48 | MEDIUM | No automated tests for scan logic or CRUD paths. |
+
+---
+
+## Implementation Plans
+
+### Item 17 — Incremental Filesystem Updates
+
+**Problem**: Every filesystem change (even saving a file in an unrelated folder) triggers a full `rescan()`: rebuilds class maps, re-scans all `.tres` files recursively, reloads all resources, and rebuilds the entire UI. On a project with hundreds of `.tres` files this causes noticeable stalls.
+
+**Root cause**: `_on_filesystem_changed` → debounce → `rescan()` is a blunt instrument. Godot's `EditorFileSystem` provides finer-grained signals (`resources_reimported`) that are unused.
+
+**Proposed architecture**:
+
+```
+Current flow:
+  filesystem_changed ──debounce──► rescan()
+                                       │
+                           ┌───────────▼───────────────────┐
+                           │ rebuild class maps              │
+                           │ scan ALL .tres  (O(N files))   │
+                           │ reload ALL resources            │
+                           │ rebuild ALL UI rows             │
+                           └───────────────────────────────┘
+
+Proposed flow — two separate paths:
+
+  resources_reimported(paths) ──────────────────────────────────────┐
+                                                                     │
+                                              ┌──────────────────────▼──────────┐
+                                              │ filter paths to .tres of         │
+                                              │ current_class_names              │
+                                              │                                  │
+                                              │  for each matched path:          │
+                                              │    reload resource               │
+                                              │    if in _known_paths → update   │
+                                              │    else              → add row   │
+                                              └──────────────────────────────────┘
+
+  filesystem_changed ──debounce──► _lightweight_rescan()
+                                         │
+                             ┌───────────▼────────────────────────┐
+                             │ rebuild class maps (ProjectSettings) │
+                             │ re-scan .tres paths only (no load)  │
+                             │ diff vs _known_resource_paths cache  │
+                             │   new paths  → load + add row       │
+                             │   gone paths → remove row           │
+                             └────────────────────────────────────┘
+```
+
+**Files to modify**:
+- `core/state_manager.gd` — split `rescan()` into path-scan and resource-load phases; add `_known_resource_paths: Array[String]`; connect `resources_reimported`; add `resource_added(res)`, `resource_removed(path)`, `resource_updated(res)` signals
+- `ui/resource_list/resource_list.gd` — add `add_row(res, columns)`, `remove_row(path)`, `update_row(res)` methods wired to the new StateManager signals
+
+**Steps**:
+1. In `StateManager._ready()`: also connect `efs.resources_reimported.connect(_on_resources_reimported)`
+2. Add `var _known_resource_paths: Array[String] = []` updated at end of each scan
+3. Add `_on_resources_reimported(paths: PackedStringArray)`:
+   - filter to `.tres` whose `script_class` matches `current_class_names`
+   - reload matched resources; emit `resource_updated` or `resource_added`
+4. Replace `rescan()` body: split into `_rescan_class_maps()` and `_rescan_paths_and_diff()` — path scan only, no full resource reload
+5. Wire new signals in `visual_resources_editor_window.gd`
+6. Implement `add_row` / `remove_row` / `update_row` in `ResourceList`
+
+---
+
+### Item 27b — Shift+Click Range Select
+
+**Problem**: Clicking a row while holding Shift should select all rows between the last-clicked row and the current one (standard list-view behaviour). Currently only Ctrl/Cmd toggle is supported.
+
+**Proposed architecture**:
+
+```
+ResourceRow press event
+         │
+    ┌────▼──────────────────────────────┐
+    │ detect modifiers via Input         │
+    │   ctrl_held = KEY_CTRL | KEY_META  │
+    │   shift_held = KEY_SHIFT           │
+    └────┬──────────────────────────────┘
+         │ emit resource_row_selected(resource, ctrl_held, shift_held)
+         ▼
+ResourceList._on_resource_row_selected(res, ctrl_held, shift_held)
+         │
+    ┌────▼──────────────────────────────────────────────────┐
+    │ shift_held AND _last_selected_index != -1?             │
+    │   yes → range select rows[_last_selected_index..this] │
+    │   no  → normal ctrl toggle or single select           │
+    │                                                        │
+    │ always: _last_selected_index = index of this row      │
+    └───────────────────────────────────────────────────────┘
+```
+
+**Files to modify**:
+- `ui/resource_list/resource_row.gd`:
+  - Signal: `resource_row_selected(resource: Resource, ctrl_held: bool, shift_held: bool)`
+  - `_on_pressed()`: detect `shift_held = Input.is_key_pressed(KEY_SHIFT)`
+- `ui/resource_list/resource_list.gd`:
+  - Add `var _last_selected_index: int = -1`
+  - Add `var _rows_ordered: Array[ResourceRow] = []` (ordered parallel to resources, built in `_build_rows`)
+  - Update `_on_resource_row_selected` signature to include `shift_held`
+  - On Shift+click: find indices, select all rows in `[min..max]` range, update `selected_rows` and emit
+
+**Steps**:
+1. Add `shift_held: bool` param to `resource_row_selected` signal and `_on_pressed()`
+2. In `ResourceList._build_rows()`: populate `_rows_ordered` alongside existing `_resource_to_row`; clear `_last_selected_index = -1`
+3. In `_on_resource_row_selected(resource, ctrl_held, shift_held)`:
+   - Find `current_idx = _rows_ordered.find_custom(func(r): return r.get_resource() == resource)`
+   - If `shift_held and _last_selected_index != -1`: deselect all; select `_rows_ordered[min..max]`
+   - Else: existing ctrl/single logic
+   - Set `_last_selected_index = current_idx`
+4. Reset `_last_selected_index = -1` in `_clear_rows()`
+
+---
+
+### Item 31 — Row Virtualization / Pagination
+
+**Problem**: `ResourceList` instantiates one `ResourceRow` node per resource. At 200+ resources, `_build_rows()` creates 200+ nodes, each with N Label children. This causes the editor to stall on class selection.
+
+**Two options considered**:
+
+```
+Option A — Pagination (recommended):
+  ┌──────────────────────────────────────────────┐
+  │  ResourceList                                 │
+  │  ┌──────────────────────────────────────────┐│
+  │  │  HeaderRow                               ││
+  │  ├──────────────────────────────────────────┤│
+  │  │  Row 1   │ val │ val │ [x]               ││
+  │  │  Row 2   │ val │ val │ [x]               ││
+  │  │  ...  (max PAGE_SIZE = 50 rows)          ││
+  │  ├──────────────────────────────────────────┤│
+  │  │  [◄ Prev]   Page 2 / 12   [Next ►]      ││
+  │  └──────────────────────────────────────────┘│
+  └──────────────────────────────────────────────┘
+  Instantiates only PAGE_SIZE rows per page change.
+  Simple; no scroll tracking needed.
+
+Option B — Virtual Scroll (complex):
+  ScrollContainer
+    └─ VBoxContainer
+         ├─ SpacerTop    (height = row_h × first_visible_idx)
+         ├─ VisiblePool  (~N_VISIBLE recycled ResourceRow nodes)
+         └─ SpacerBottom (height = row_h × remaining_count)
+  On scroll: update SpacerTop/Bottom heights, rebind pool nodes to new data.
+  Requires fixed row height assumption; complex lifecycle management.
+```
+
+**Recommendation**: Option A (pagination). Simpler, fits the inspector-like use pattern where users pick a class and browse resources, rather than continuously scrolling.
+
+**Files to modify / create**:
+- `ui/resource_list/resource_list.tscn` — add `PaginationBar` HBoxContainer with `PrevBtn`, `PageLabel`, `NextBtn` below `RowsContainer`; set `unique_name_in_owner = true`
+- `ui/resource_list/resource_list.gd` — add `const PAGE_SIZE: int = 50`; add `_current_page: int = 0`; add `_all_resources`/`_all_columns` cache; slice in `_build_rows()`; wire Prev/Next buttons
+
+**Steps**:
+1. Add `PaginationBar` to `resource_list.tscn` (hidden when ≤ PAGE_SIZE resources)
+2. In `set_data()`: store full `_all_resources` and `_all_columns`; compute `_page_count`; call `_build_page(0)`
+3. `_build_page(page: int)`: slice `_all_resources[page*PAGE_SIZE .. (page+1)*PAGE_SIZE]`; call `_build_rows(slice, _all_columns)`; update `%PageLabel.text`
+4. Wire `%PrevBtn.pressed` / `%NextBtn.pressed` to decrement/increment `_current_page` and call `_build_page()`
+5. Reset `_current_page = 0` when a new class is selected (`set_data` called with different columns)
+6. Hide `%PaginationBar` when `_all_resources.size() <= PAGE_SIZE`
+
+---
+
+### Item 48 — Automated Tests
+
+**Problem**: No automated tests exist for the visual resources editor. Regressions in scan logic, property filtering, or CRUD operations are only caught manually.
+
+**Proposed test structure**:
+
+```
+tests/
+  test_project_class_scanner.gd   ← unit tests for static scanner methods
+  test_visual_resources_editor.gd ← integration smoke test (editor must be running)
+  fixtures/
+    SampleResource.gd             ← minimal Resource subclass for tests
+    sample_a.tres                 ← .tres of SampleResource
+    sample_b.tres                 ← .tres of a subclass
+```
+
+**Test cases for `test_project_class_scanner.gd`**:
+
+| Test | What it verifies |
+|------|-----------------|
+| `test_get_class_from_tres_file` | Parses `script_class` from a fixture `.tres` header |
+| `test_build_project_classes_parent_map` | Returns a dict containing known fixture classes |
+| `test_get_descendant_classes` | Returns base + subclasses; excludes unrelated classes |
+| `test_get_properties_from_script_path` | Returns only `PROPERTY_USAGE_EDITOR` props; excludes `resource_*` |
+| `test_unite_classes_properties` | Merges props from two scripts without duplicates |
+| `test_class_is_resource_descendant` | Returns true for Resource subclass, false for Node subclass |
+
+**Test runner command** (existing infrastructure):
+```
+Godot4.6 --headless --path . --script tests/test_project_class_scanner.gd
+```
+
+**Files to create**:
+- `tests/test_project_class_scanner.gd` — extends `Node`, uses `assert()` + `print()` pattern matching existing tests
+- `tests/fixtures/SampleResource.gd` + `.tres` files

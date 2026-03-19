@@ -11,16 +11,9 @@ const FIELD_SEPARATOR_SCENE: PackedScene = preload("uid://y2kj6h91hm8r6")
 var resource: Resource = null
 var columns: Array[Dictionary] = []
 var _prop_labels: Dictionary = {}  # property_name → Label (only for properties this resource owns)
-var _color_style: StyleBoxFlat
 
 
 func _ready() -> void:
-	_color_style = StyleBoxFlat.new()
-	_color_style.corner_radius_top_left = 2
-	_color_style.corner_radius_top_right = 2
-	_color_style.corner_radius_bottom_left = 2
-	_color_style.corner_radius_bottom_right = 2
-
 	if not resource: return
 	
 	%DeleteBtn.pressed.connect(_on_delete_pressed)
@@ -97,12 +90,15 @@ func _set_label_value(label: Label, col: Dictionary) -> void:
 	label.tooltip_text = "%s: %s" % [col.name, label.text]
 
 	if col.type == TYPE_COLOR and value is Color:
-		_color_style.bg_color = value
-		label.add_theme_stylebox_override("normal", _color_style.duplicate())
+		var style: StyleBoxFlat = label.get_theme_stylebox("normal") as StyleBoxFlat
+		if style:
+			style.bg_color = value
 		label.add_theme_color_override("font_color",
 			Color.BLACK if value.get_luminance() > 0.5 else Color.WHITE)
 	else:
-		label.remove_theme_stylebox_override("normal")
+		var style: StyleBoxFlat = label.get_theme_stylebox("normal") as StyleBoxFlat
+		if style:
+			style.bg_color = Color.TRANSPARENT
 		label.remove_theme_color_override("font_color")
 
 
