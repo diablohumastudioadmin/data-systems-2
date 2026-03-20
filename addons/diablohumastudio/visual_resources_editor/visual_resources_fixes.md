@@ -793,7 +793,6 @@ Size constants (delete button width) are already in `.tscn` as `custom_minimum_s
 | # | Severity | Description |
 |---|----------|-------------|
 | 17 | CRITICAL | Full project re-scan on every filesystem change — no incremental updates. Architectural refactor needed. |
-| 48 | MEDIUM | No automated tests for scan logic or CRUD paths. |
 
 ---
 
@@ -881,40 +880,3 @@ signal resource_updated(res: Resource)
 4. `script_classes_updated` still calls full `rescan()` (class definitions and columns may have changed)
 5. Wire signals in window; implement `add_row`/`remove_row`/`update_row` in ResourceList
 
----
-
-### Item 48 — Automated Tests
-
-**Problem**: No automated tests exist for the visual resources editor. Regressions in scan logic, property filtering, or CRUD operations are only caught manually.
-
-**Proposed test structure**:
-
-```
-tests/
-  test_project_class_scanner.gd   ← unit tests for static scanner methods
-  test_visual_resources_editor.gd ← integration smoke test (editor must be running)
-  fixtures/
-    SampleResource.gd             ← minimal Resource subclass for tests
-    sample_a.tres                 ← .tres of SampleResource
-    sample_b.tres                 ← .tres of a subclass
-```
-
-**Test cases for `test_project_class_scanner.gd`**:
-
-| Test | What it verifies |
-|------|-----------------|
-| `test_get_class_from_tres_file` | Parses `script_class` from a fixture `.tres` header |
-| `test_build_project_classes_parent_map` | Returns a dict containing known fixture classes |
-| `test_get_descendant_classes` | Returns base + subclasses; excludes unrelated classes |
-| `test_get_properties_from_script_path` | Returns only `PROPERTY_USAGE_EDITOR` props; excludes `resource_*` |
-| `test_unite_classes_properties` | Merges props from two scripts without duplicates |
-| `test_class_is_resource_descendant` | Returns true for Resource subclass, false for Node subclass |
-
-**Test runner command** (existing infrastructure):
-```
-Godot4.6 --headless --path . --script tests/test_project_class_scanner.gd
-```
-
-**Files to create**:
-- `tests/test_project_class_scanner.gd` — extends `Node`, uses `assert()` + `print()` pattern matching existing tests
-- `tests/fixtures/SampleResource.gd` + `.tres` files
