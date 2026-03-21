@@ -793,15 +793,15 @@ Size constants (delete button width) are already in `.tscn` as `custom_minimum_s
 **Creator**: Fernando (review)
 **Severity**: LOW
 **File**: `core/project_class_scanner.gd` — `get_resource_classes_in_folder()`
-**Solved**: not solved
+**Solved**: yes
 
-**Problem**: Two issues in the same function:
-1. The name says "in folder" but the function never searches a folder — it iterates `ProjectSettings.get_global_class_list()` and filters by `classes_parent_map`. The folder name is a lie.
-2. It calls `ProjectSettings.get_global_class_list()` internally even though `StateManager` already has a cached `global_classes_map`. Every call rebuilds the class list from scratch, defeating the cache.
+~~**Problem**: Two issues in the same function:~~
+~~1. The name says "in folder" but the function never searches a folder — it iterates `ProjectSettings.get_global_class_list()` and filters by `classes_parent_map`. The folder name is a lie.~~
+~~2. It calls `ProjectSettings.get_global_class_list()` internally even though `StateManager` already has a cached `global_classes_map`. Every call rebuilds the class list from scratch, defeating the cache.~~
 
-**Fix**: Rename to `get_project_resource_classes(global_classes_map: Array[Dictionary])`. Receive the already-built `global_classes_map` and derive `classes_parent_map` internally from it. `StateManager` passes its cached map — one source of truth, no extra `get_global_class_list()` call.
+~~**Fix**: Rename to `get_project_resource_classes(global_classes_map: Array[Dictionary])`. Receive the already-built `global_classes_map` and derive `classes_parent_map` internally from it. `StateManager` passes its cached map — one source of truth, no extra `get_global_class_list()` call.~~
 
-**fix_claude_recommendation**: Agreed. The rename is important for readability. Receiving `global_classes_map` (and computing `classes_parent_map` from it inside the function) keeps the API consistent with the rest of `ProjectClassScanner` — every other function that needs the parent map also accepts `global_classes_map` and builds it internally.
+**Fix applied**: Renamed to `get_project_resource_classes(global_classes_map: Array[Dictionary])`. Function now receives the cached `global_classes_map`, derives `classes_parent_map` internally via `build_project_classes_parent_map()`, and iterates `global_classes_map` instead of calling `ProjectSettings.get_global_class_list()`. Both call sites in `state_manager.gd` updated to pass `global_classes_map`.
 
 ---
 
@@ -810,13 +810,11 @@ Size constants (delete button width) are already in `.tscn` as `custom_minimum_s
 **Creator**: Fernando (review)
 **Severity**: LOW
 **File**: `core/project_class_scanner.gd` — `class_is_resource_descendant()`
-**Solved**: not solved
+**Solved**: not a problem
 
-**Problem**: The function receives `classes_parent_map: Dictionary[String, String]` (class → parent). It uses it to walk the inheritance chain recursively: look up the parent of `cls_name`, then recurse on the parent. The parameter name is accurate, but when reading the call site in `get_resource_classes_in_folder`, it's not obvious why a full Dictionary is needed instead of just a class name or a simple list.
+~~**Problem**: The function receives `classes_parent_map: Dictionary[String, String]` (class → parent). It uses it to walk the inheritance chain recursively: look up the parent of `cls_name`, then recurse on the parent. The parameter name is accurate, but when reading the call site in `get_resource_classes_in_folder`, it's not obvious why a full Dictionary is needed instead of just a class name or a simple list.~~
 
-The user observation ("it only uses the name, not the parent value") is only true on the first call — the recursion IS the reason the full map is needed. To walk `MySword → Weapon → Resource`, you need to look up the parent of `Weapon` too, which requires the map.
-
-**fix_claude_recommendation**: The signature is correct and necessary. No functional change needed. However, adding a brief comment before the function clarifying that `classes_parent_map` is needed for recursive ancestor traversal (not just a single lookup) would prevent future confusion. Optionally, if item 50 is fixed and the function receives `global_classes_map`, this function could derive its own parent map internally — but that would add overhead per-call since it's called in a loop. Current approach is better.
+**problem_claude_correction**: The parameter name `base` in `get_global_class_list()` entries comes from the native Godot API (`ProjectSettings.get_global_class_list()`). The `classes_parent_map` parameter name accurately describes its purpose — a map from class to parent class used for recursive ancestor traversal. No changes needed.
 
 ---
 
@@ -825,8 +823,6 @@ The user observation ("it only uses the name, not the parent value") is only tru
 | # | Severity | Description |
 |---|----------|-------------|
 | 17 | CRITICAL | Full project re-scan on every filesystem change — no incremental updates. Architectural refactor needed. |
-| 50 | LOW | `get_resource_classes_in_folder` — misleading name and redundant `get_global_class_list()` call. |
-| 51 | LOW | `class_is_resource_descendant` — parameter name obscures recursive traversal need. |
 
 ---
 
@@ -840,24 +836,31 @@ The user observation ("it only uses the name, not the parent value") is only tru
 
 **Note on `resources_reimported`**: This signal only fires for files that go through Godot's import pipeline (images, audio, etc. — files that generate `.import` sidecars). `.tres` files are not imported; they are native resources loaded directly. `resources_reimported` never fires for `.tres` changes. The only reliable signal for `.tres` changes is `filesystem_changed`.
 
+**Already done (commit 4cdc4c3)**:
+- `script_classes_updated` is now smart: `_handle_classes_updated()` compares old vs new `project_resource_classes` and only calls `rescan()` when the current class or its properties actually changed. This eliminates unnecessary full rescans from `.gd` saves that don't affect the viewed class.
+- `_classes_update_pending` flag prevents double-rescan when saving a `.gd` triggers both `script_classes_updated` and `filesystem_changed`.
+- `_get_current_class_props()` helper enables property-level diffing.
+
+**Remaining work**: `filesystem_changed` still calls full `rescan()` via debounce. This path handles `.tres` file additions, deletions, and modifications — the most frequent trigger. The incremental update below replaces this with a diff-based approach.
+
 **Proposed architecture**:
 
 ```
-Current flow:
-  filesystem_changed ──debounce──► rescan()
+Current flow (after commit 4cdc4c3):
+  script_classes_updated ──debounce──► _handle_classes_updated()
+                                             │
+                                   compares old vs new class list + props
+                                   only calls rescan() if current class affected ✅
+
+  filesystem_changed ──debounce──► rescan()  ← STILL FULL RESCAN (remaining work)
                                        │
                            ┌───────────▼───────────────────┐
-                           │ rebuild class maps              │
                            │ scan ALL .tres  (O(N files))   │
                            │ reload ALL resources            │
                            │ rebuild ALL UI rows             │
                            └───────────────────────────────┘
 
-Proposed flow — split by trigger:
-
-  script_classes_updated ──────────────────────────────► full rescan()
-                                                  (class definitions changed,
-                                                   columns may change — rebuild all)
+Proposed flow — replace filesystem_changed handler:
 
   filesystem_changed ──debounce──► _incremental_update()
                                          │
@@ -865,18 +868,18 @@ Proposed flow — split by trigger:
                              │ scan .tres paths + mtime for current_class_names│
                              │                                                 │
                              │  path in scan, NOT in _known_mtimes:           │
-                             │    load resource → add row  (NEW FILE)         │
+                             │    load resource → add to resources  (NEW)     │
                              │                                                 │
                              │  path in _known_mtimes, NOT in scan:           │
-                             │    remove row  (DELETED FILE)                  │
+                             │    remove from resources  (DELETED)            │
                              │                                                 │
                              │  path in both, mtime changed:                  │
-                             │    reload resource → update row  (MODIFIED)    │
+                             │    reload resource → update in resources (MOD) │
                              │                                                 │
                              │  path in both, mtime unchanged:                │
                              │    skip  (unrelated file changed)              │
                              │                                                 │
-                             │  update _known_mtimes cache                    │
+                             │  if any changes: update caches, re-emit data   │
                              └───────────────────────────────────────────────┘
 ```
 
@@ -885,32 +888,27 @@ Proposed flow — split by trigger:
 **New data in `state_manager.gd`**:
 ```gdscript
 var _known_resource_mtimes: Dictionary[String, int] = {}  # path → mtime
-var _resource_by_path: Dictionary[String, Resource] = {}  # path → loaded Resource
-```
-
-**New signals on `state_manager.gd`**:
-```gdscript
-signal resource_added(res: Resource, columns: Array[Dictionary])
-signal resource_removed(path: String)
-signal resource_updated(res: Resource)
 ```
 
 **Files to modify**:
-- `core/state_manager.gd` — keep `rescan()` for full rebuilds (triggered only by `script_classes_updated`); add `_incremental_update()` called from `filesystem_changed`; add three new signals; populate `_known_resource_mtimes` and `_resource_by_path` at end of `rescan()`
-- `ui/resource_list/resource_list.gd` — add `add_row(res, columns)`, `remove_row(path)`, `update_row(res)` methods
-- `ui/visual_resources_editor_window.gd` — wire the three new StateManager signals
+- `core/state_manager.gd` — populate `_known_resource_mtimes` at end of `rescan()`; add `_incremental_update()` called from `_on_filesystem_changed()`
+- `ui/resource_list/resource_list.gd` — no changes needed (receives full page slice via `data_changed`)
+- `ui/visual_resources_editor_window.gd` — no changes needed (signal wiring already in place)
 
 **Steps**:
-1. In `StateManager.rescan()`: after building `resources`, populate `_known_resource_mtimes` and `_resource_by_path`
+1. In `StateManager.rescan()`: after building `resources`, populate `_known_resource_mtimes` from `resources[].resource_path`
 2. Change `_on_filesystem_changed()` to call `_incremental_update()` instead of `rescan()`
 3. `_incremental_update()`:
    - If `_current_class_name.is_empty()`: return early
    - Get root dir; if invalid: return
    - Scan paths: `var new_paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(root, current_class_names)`
-   - Diff vs `_known_resource_mtimes`
-   - For new paths: load resource, emit `resource_added(res, columns)`
-   - For gone paths: emit `resource_removed(path)`, update caches
-   - For same paths with changed mtime: reload, emit `resource_updated(res)`, update caches
-4. `script_classes_updated` still calls full `rescan()` (class definitions and columns may have changed)
-5. Wire signals in window; implement `add_row`/`remove_row`/`update_row` in ResourceList
+   - Build `new_mtimes: Dictionary[String, int]` from `FileAccess.get_modified_time()` for each path
+   - Diff vs `_known_resource_mtimes`:
+     - New paths: load resource, insert into `resources` sorted
+     - Gone paths: erase from `resources`, update selection if affected
+     - Changed mtime: reload resource in place (`ResourceLoader.load(..., CACHE_MODE_REPLACE)`)
+   - If no changes detected: return early (no UI update)
+   - Update `_known_resource_mtimes = new_mtimes`
+   - Restore selection, re-emit `_emit_page_data()`
+4. `_handle_classes_updated()` continues to call full `rescan()` only when needed (already done)
 

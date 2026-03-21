@@ -34,7 +34,7 @@ func _ready() -> void:
 	if not Engine.is_editor_hint(): return
 
 	_set_maps()
-	project_resource_classes = ProjectClassScanner.get_resource_classes_in_folder(_classes_parent_map)
+	project_resource_classes = ProjectClassScanner.get_project_resource_classes(global_classes_map)
 
 	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
 	if efs:
@@ -183,7 +183,7 @@ func _handle_classes_updated() -> void:
 	_set_maps()
 
 	var previous_classes: Array[String] = project_resource_classes.duplicate()
-	project_resource_classes = ProjectClassScanner.get_resource_classes_in_folder(_classes_parent_map)
+	project_resource_classes = ProjectClassScanner.get_project_resource_classes(global_classes_map)
 
 	# Nothing changed in the class list — check only for internal property changes
 	if previous_classes == project_resource_classes:

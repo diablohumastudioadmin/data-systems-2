@@ -1,12 +1,13 @@
 @tool
 class_name ProjectClassScanner
 
-static func get_resource_classes_in_folder(classes_parent_map: Dictionary[String,String] = {}) -> Array[String]:
-	var resource_classes: Array[String]
-	if classes_parent_map.is_empty():
-		classes_parent_map = build_project_classes_parent_map()
+static func get_project_resource_classes(global_classes_map: Array[Dictionary] = []) -> Array[String]:
+	if global_classes_map.is_empty():
+		global_classes_map = build_global_classes_map()
+	var classes_parent_map: Dictionary[String, String] = build_project_classes_parent_map(global_classes_map)
 
-	for entry: Dictionary in ProjectSettings.get_global_class_list():
+	var resource_classes: Array[String]
+	for entry: Dictionary in global_classes_map:
 		var cls_name: String = entry.get("class", "")
 		var cls_path: String = entry.get("path", "")
 
