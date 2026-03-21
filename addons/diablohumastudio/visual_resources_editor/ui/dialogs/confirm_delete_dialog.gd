@@ -1,4 +1,5 @@
 @tool
+class_name ComfirmDeleteDialog
 extends ConfirmationDialog
 
 signal error_occurred(message: String)

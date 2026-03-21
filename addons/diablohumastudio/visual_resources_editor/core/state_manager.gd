@@ -192,5 +192,4 @@ func _get_class_script(class_name_str: String) -> GDScript:
 
 
 func _on_filesystem_changed() -> void:
-	print("fs changed")
 	%RescanDebounceTimer.start_debouncing(rescan)

@@ -5,9 +5,6 @@
 [ext_resource type="PackedScene" uid="uid://c113p8acip31a" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/resource_list.tscn" id="3_list"]
 [ext_resource type="PackedScene" uid="uid://qpp7tk62euog" path="res://addons/diablohumastudio/visual_resources_editor/core/state_manager.tscn" id="4_a1n50"]
 [ext_resource type="Script" uid="uid://dmco8u3b2nshv" path="res://addons/diablohumastudio/visual_resources_editor/core/bulk_editor.gd" id="5_mtwm8"]
-[ext_resource type="Script" uid="uid://crj8o6mkhh13c" path="res://addons/diablohumastudio/visual_resources_editor/ui/dialogs/save_resource_dialog.gd" id="6_savedialog"]
-[ext_resource type="Script" uid="uid://3y48t2sura63" path="res://addons/diablohumastudio/visual_resources_editor/ui/dialogs/confirm_delete_dialog.gd" id="7_confirmdialog"]
-[ext_resource type="Script" uid="uid://d4kh8p3auqq3j" path="res://addons/diablohumastudio/visual_resources_editor/ui/dialogs/error_dialog.gd" id="8_errordialog"]
 
 [node name="VisualResourcesEditorWindow" type="Window" unique_id=382482314]
 oversampling_override = 1.0
@@ -74,18 +71,5 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 script = ExtResource("5_mtwm8")
 metadata/_custom_type_script = "uid://dmco8u3b2nshv"
-
-[node name="SaveResourceDialog" type="EditorFileDialog" parent="." unique_id=900000001]
-unique_name_in_owner = true
-filters = PackedStringArray("*.tres")
-script = ExtResource("6_savedialog")
-
-[node name="ConfirmDeleteDialog" type="ConfirmationDialog" parent="." unique_id=900000002]
-unique_name_in_owner = true
-script = ExtResource("7_confirmdialog")
-
-[node name="ErrorDialog" type="AcceptDialog" parent="." unique_id=900000003]
-unique_name_in_owner = true
-script = ExtResource("8_errordialog")
 
 [connection signal="close_requested" from="." to="." method="_on_close_requested"]

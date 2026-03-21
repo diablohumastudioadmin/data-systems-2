@@ -1,4 +1,5 @@
 @tool
+class_name SaveResourceDialog
 extends EditorFileDialog
 
 signal error_occurred(message: String)
@@ -8,6 +9,7 @@ var global_classes_map: Array[Dictionary] = []
 
 
 func _ready() -> void:
+	filters = PackedStringArray(["*.tres"])
 	file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
 	file_selected.connect(_on_file_selected)
 
