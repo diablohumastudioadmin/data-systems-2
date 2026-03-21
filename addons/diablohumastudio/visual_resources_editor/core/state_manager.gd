@@ -28,6 +28,7 @@ var selected_resources: Array[Resource] = []
 var _selected_paths: Array[String] = []
 var _last_anchor: int = -1
 var _current_page: int = 0
+var _classes_update_pending: bool = false
 
 func _ready() -> void:
 	if not Engine.is_editor_hint(): return
@@ -173,10 +174,49 @@ func _set_maps() -> void:
 
 
 func _on_script_classes_updated() -> void:
+	_classes_update_pending = true
+	%RescanDebounceTimer.start_debouncing(_handle_classes_updated)
+
+
+func _handle_classes_updated() -> void:
+	_classes_update_pending = false
 	_set_maps()
+
+	var previous_classes: Array[String] = project_resource_classes.duplicate()
 	project_resource_classes = ProjectClassScanner.get_resource_classes_in_folder(_classes_parent_map)
+
+	# Nothing changed in the class list — check only for internal property changes
+	if previous_classes == project_resource_classes:
+		if not _current_class_name.is_empty():
+			var new_props: Array[Dictionary] = _get_current_class_props()
+			if new_props != current_class_property_list:
+				project_classes_changed.emit(project_resource_classes)
+				rescan()
+		return
+
+	# Class list changed — always update the dropdown
 	project_classes_changed.emit(project_resource_classes)
-	rescan()
+
+	if _current_class_name.is_empty():
+		return
+
+	# Check if any of the currently browsed classes were added or removed
+	for cls: String in current_class_names:
+		if not previous_classes.has(cls) or not project_resource_classes.has(cls):
+			rescan()
+			return
+
+	# Current class set is unchanged in the list — check if its properties changed
+	var new_props: Array[Dictionary] = _get_current_class_props()
+	if new_props != current_class_property_list:
+		rescan()
+
+
+func _get_current_class_props() -> Array[Dictionary]:
+	for entry: Dictionary in global_classes_map:
+		if entry.get("class", "") == _current_class_name:
+			return ProjectClassScanner.get_properties_from_script_path(entry.get("path", ""))
+	return []
 
 
 func _get_included_classes() -> Array[String]:
@@ -192,4 +232,6 @@ func _get_class_script(class_name_str: String) -> GDScript:
 
 
 func _on_filesystem_changed() -> void:
+	if _classes_update_pending:
+		return
 	%RescanDebounceTimer.start_debouncing(rescan)

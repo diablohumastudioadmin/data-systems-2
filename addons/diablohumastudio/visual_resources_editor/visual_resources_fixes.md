@@ -788,11 +788,45 @@ Size constants (delete button width) are already in `.tscn` as `custom_minimum_s
 
 ---
 
+### 50. `get_resource_classes_in_folder` — misleading name and redundant class list call
+
+**Creator**: Fernando (review)
+**Severity**: LOW
+**File**: `core/project_class_scanner.gd` — `get_resource_classes_in_folder()`
+**Solved**: not solved
+
+**Problem**: Two issues in the same function:
+1. The name says "in folder" but the function never searches a folder — it iterates `ProjectSettings.get_global_class_list()` and filters by `classes_parent_map`. The folder name is a lie.
+2. It calls `ProjectSettings.get_global_class_list()` internally even though `StateManager` already has a cached `global_classes_map`. Every call rebuilds the class list from scratch, defeating the cache.
+
+**Fix**: Rename to `get_project_resource_classes(global_classes_map: Array[Dictionary])`. Receive the already-built `global_classes_map` and derive `classes_parent_map` internally from it. `StateManager` passes its cached map — one source of truth, no extra `get_global_class_list()` call.
+
+**fix_claude_recommendation**: Agreed. The rename is important for readability. Receiving `global_classes_map` (and computing `classes_parent_map` from it inside the function) keeps the API consistent with the rest of `ProjectClassScanner` — every other function that needs the parent map also accepts `global_classes_map` and builds it internally.
+
+---
+
+### 51. `class_is_resource_descendant` — parameter name obscures what it actually needs
+
+**Creator**: Fernando (review)
+**Severity**: LOW
+**File**: `core/project_class_scanner.gd` — `class_is_resource_descendant()`
+**Solved**: not solved
+
+**Problem**: The function receives `classes_parent_map: Dictionary[String, String]` (class → parent). It uses it to walk the inheritance chain recursively: look up the parent of `cls_name`, then recurse on the parent. The parameter name is accurate, but when reading the call site in `get_resource_classes_in_folder`, it's not obvious why a full Dictionary is needed instead of just a class name or a simple list.
+
+The user observation ("it only uses the name, not the parent value") is only true on the first call — the recursion IS the reason the full map is needed. To walk `MySword → Weapon → Resource`, you need to look up the parent of `Weapon` too, which requires the map.
+
+**fix_claude_recommendation**: The signature is correct and necessary. No functional change needed. However, adding a brief comment before the function clarifying that `classes_parent_map` is needed for recursive ancestor traversal (not just a single lookup) would prevent future confusion. Optionally, if item 50 is fixed and the function receives `global_classes_map`, this function could derive its own parent map internally — but that would add overhead per-call since it's called in a loop. Current approach is better.
+
+---
+
 ## Pending Items
 
 | # | Severity | Description |
 |---|----------|-------------|
 | 17 | CRITICAL | Full project re-scan on every filesystem change — no incremental updates. Architectural refactor needed. |
+| 50 | LOW | `get_resource_classes_in_folder` — misleading name and redundant `get_global_class_list()` call. |
+| 51 | LOW | `class_is_resource_descendant` — parameter name obscures recursive traversal need. |
 
 ---
 
