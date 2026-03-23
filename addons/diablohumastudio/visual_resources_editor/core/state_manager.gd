@@ -6,6 +6,7 @@ signal data_changed(resources: Array[Resource], columns: Array[Dictionary])
 signal project_classes_changed(classes: Array[String])
 signal selection_changed(resources: Array[Resource])
 signal pagination_changed(page: int, page_count: int)
+signal current_class_renamed(new_name: String)
 
 const PAGE_SIZE: int = 50
 
@@ -202,6 +203,7 @@ func _set_maps() -> void:
 
 
 func _on_script_classes_updated() -> void:
+	print("classes updated")
 	_classes_update_pending = true
 	%RescanDebounceTimer.start_debouncing(_handle_classes_updated)
 
@@ -227,17 +229,18 @@ func _handle_classes_updated() -> void:
 			for res: Resource in resources_to_update:
 				ResourceSaver.save(res, res.resource_path)
 
-	# Nothing changed in the class list — check for property changes + rescan resources
+	# Nothing changed in the class list — only check for property changes
 	if previous_classes == project_resource_classes:
 		if not _current_class_name.is_empty():
 			var new_props: Array[Dictionary] = _get_current_class_props()
 			if new_props != current_class_property_list:
 				project_classes_changed.emit(project_resource_classes)
 				_scan_properties()
-			# Always rescan resources — filesystem_changed was blocked by _classes_update_pending
-			_scan_resources()
-			_restore_selection()
-			_emit_page_data_preserving_page()
+				# Resave resources to drop stale properties / pick up new ones
+				for res: Resource in resources:
+					ResourceSaver.save(res, res.resource_path)
+				_restore_selection()
+				_emit_page_data_preserving_page()
 		return
 
 	# Class list changed — always update the dropdown
@@ -246,9 +249,23 @@ func _handle_classes_updated() -> void:
 	if _current_class_name.is_empty():
 		return
 
-	# Current class was deleted or renamed — clear the view (user re-selects from dropdown)
+	# Current class no longer in list — check if it was renamed (same script path, new name)
 	if not project_resource_classes.has(_current_class_name):
-		_clear_view()
+		var old_path: String = ""
+		if current_class_script != null:
+			old_path = current_class_script.resource_path
+		var new_name: String = ""
+		if not old_path.is_empty():
+			for cls: String in class_to_path_map:
+				if class_to_path_map[cls] == old_path:
+					new_name = cls
+					break
+		if new_name.is_empty():
+			_clear_view()
+			return
+		_current_class_name = new_name
+		current_class_renamed.emit(new_name)
+		refresh_view()
 		return
 
 	# Check if any of the currently browsed classes were added or removed
@@ -300,6 +317,7 @@ func _clear_view() -> void:
 
 
 func _on_filesystem_changed() -> void:
+	print("fs changed ")
 	if _classes_update_pending:
 		return
 	%RescanDebounceTimer.start_debouncing(_rescan_resources_only)

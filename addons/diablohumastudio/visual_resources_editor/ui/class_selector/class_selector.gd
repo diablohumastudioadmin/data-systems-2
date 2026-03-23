@@ -36,6 +36,12 @@ func set_classes(classes: Array[String]) -> void:
 		set_classes_in_dropdown()
 
 
+func select_class(class_name_str: String) -> void:
+	var index: int = _classes_names.find(class_name_str)
+	if index != -1:
+		%ClassDropdown.select(index + 1)
+
+
 func _on_class_dropdown_item_selected(index: int) -> void:
 	if index == 0: return
 	var class_name_index: int = index - 1

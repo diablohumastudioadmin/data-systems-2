@@ -23,6 +23,7 @@ func create_and_add_dialogs() -> void:
 func connect_components() -> void:
 	%VREStateManager.data_changed.connect(_on_state_data_changed)
 	%VREStateManager.project_classes_changed.connect(_on_project_classes_changed)
+	%VREStateManager.current_class_renamed.connect(%ClassSelector.select_class)
 
 	%ClassSelector.class_selected.connect(_on_class_selected)
 	%IncludeSubclassesCheck.toggled.connect(_on_include_subclasses_toggled)

@@ -16,6 +16,7 @@ func start_debouncing(_callback: Callable, ..._args: Array):
 	start()
 
 func _on_timout():
+	print(callback)
 	if callback:
 		if args:
 			callback.call(args)
