@@ -127,16 +127,7 @@ static func get_properties_from_script_path(script_path: String) -> Array[Dictio
 	return properties
 
 
-static func unite_classes_properties(class_names: Array[String], global_classes_map: Array[Dictionary] = []) -> Array[Dictionary]:
-	if global_classes_map.is_empty(): global_classes_map = build_global_classes_map()
-
-	var class_to_path: Dictionary[String, String] = {}
-	for entry: Dictionary in global_classes_map:
-		var cls: String = entry.get("class", "")
-		var path: String = entry.get("path", "")
-		if not cls.is_empty() and not path.is_empty():
-			class_to_path[cls] = path
-
+static func unite_classes_properties(class_names: Array[String], class_to_path: Dictionary[String, String] = {}) -> Array[Dictionary]:
 	var properties: Array[Dictionary] = []
 	for cls_name: String in class_names:
 		var script_path: String = class_to_path.get(cls_name, "")

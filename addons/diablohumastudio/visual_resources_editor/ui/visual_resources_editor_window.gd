@@ -32,7 +32,7 @@ func connect_components() -> void:
 	%ResourceList.next_page_requested.connect(%VREStateManager.next_page)
 	%ResourceList.create_requested.connect(save_resource_dialog.show_create_dialog)
 	%ResourceList.delete_requested.connect(confirm_delete_dialog.show_delete_dialog)
-	%ResourceList.refresh_requested.connect(%VREStateManager.rescan)
+	%ResourceList.refresh_requested.connect(%VREStateManager.refresh_view)
 
 	%VREStateManager.selection_changed.connect(_on_selection_changed)
 	%VREStateManager.pagination_changed.connect(%ResourceList.update_pagination_bar)
