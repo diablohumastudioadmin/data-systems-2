@@ -4,7 +4,10 @@
       "WebSearch",
       "WebFetch(domain:docs.godotengine.org)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(\"/Volumes/Fer/RespaldoFER/Documentos/GODOT/Editor/Executables/Godot_v4.6.1-stable_macos.universal.app/Contents/MacOS/Godot\" --headless --path /Users/fernandobarahona/Documents/DiabloHumaStudio/tools/data-systems --quit)",
+      "Bash(\"/Volumes/Fer/RespaldoFER/Documentos/GODOT/Editor/Executables/Godot_v4.6.1-stable_macos.universal.app/Contents/MacOS/Godot\" --headless --path /Users/fernandobarahona/Documents/DiabloHumaStudio/tools/data-systems --import --quit)",
+      "Bash(git status:*)"
     ]
   }
 }
