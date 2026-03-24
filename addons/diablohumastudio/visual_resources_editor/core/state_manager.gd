@@ -182,12 +182,14 @@ func _rescan_resources_only() -> void:
 	# Detect new and modified resources
 	for path: String in current_paths:
 		var mtime: int = FileAccess.get_modified_time(path)
+		# Is a new resource
 		if not _known_resource_mtimes.has(path):
 			# New resource
 			var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
 			if res:
 				resources.append(res)
 				changed = true
+		# Is a changed resource
 		elif mtime != _known_resource_mtimes[path]:
 			# Modified resource — reload in place
 			var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)

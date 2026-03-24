@@ -15,7 +15,7 @@ func _rebuild_labels() -> void:
 	for child: Node in %FieldsContainer.get_children():
 		child.queue_free()
 
-	for i: int in range(columns.size()):
+	for i: int in columns.size():
 		if i > 0:
 			var sep: VSeparator = FIELD_SEPARATOR_SCENE.instantiate()
 			%FieldsContainer.add_child(sep)
