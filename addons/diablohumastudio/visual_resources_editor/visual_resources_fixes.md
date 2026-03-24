@@ -828,3 +828,71 @@ Size constants (delete button width) are already in `.tscn` as `custom_minimum_s
 
 (none)
 
+---
+
+## Claude Opus Code Analysis (2026-03-24)
+
+### Overall Impression
+
+This is a well-structured Godot editor plugin for visually browsing, creating, editing, and deleting `.tres` resource files filtered by class type. The architecture is clean — there's a clear separation between scanning (`ProjectClassScanner`), state management (`VREStateManager`), UI (`ResourceList`, `ResourceRow`, `ClassSelector`), and bulk editing (`BulkEditor`). The signal-based wiring in `connect_components()` is explicit and easy to follow. For its scope, this is solid work.
+
+### Architecture Strengths
+
+1. **Good component boundaries.** `VREStateManager` owns all data state (resources, columns, selection, pagination) and emits signals. The window script wires things together but doesn't hold business logic. The `BulkEditor` is a self-contained editing proxy that hooks into Godot's inspector. Each piece can be reasoned about independently.
+
+2. **Incremental rescan via mtime.** `_rescan_resources_only()` uses modification times to detect new/modified/deleted resources without reloading everything. This is a meaningful optimization for large projects.
+
+3. **Smart class rename detection.** `_detect_class_rename()` checks if the old script path now maps to a different class name — cheap and effective for the common rename case.
+
+4. **Orphan resource re-saving.** When a class is removed, `_resave_orphaned_resources()` saves existing `.tres` files so they don't break. This is a thoughtful touch that shows awareness of real-world editor workflows.
+
+5. **Scene-first UI convention followed well.** Most visual structure lives in `.tscn` files. Dialogs without children are script-only nodes added at runtime — exactly the right call per the project conventions.
+
+### Issues and Concerns
+
+#### Bugs / Correctness
+
+1. **Typo in class name: `ComfirmDeleteDialog`** — should be `ConfirmDeleteDialog`. This is a public `class_name` so it propagates everywhere (the window script already references it with the misspelled name).
+
+2. **`header_row.gd` uses `range()` in for loop (line 18)** — `for i: int in range(columns.size())` violates the project convention. Should be `for i: int in columns.size():`.
+
+3. **`_handle_property_changes()` re-saves ALL loaded resources when properties change** (state_manager.gd:333-334). If you have 500 resources loaded and rename a field, it saves all 500 even if only the schema changed. The resources themselves haven't changed on disk — the schema script did. Godot will serialize them correctly on next load without re-saving. This is expensive I/O for no benefit, and it can trigger cascading `filesystem_changed` signals.
+
+4. **`_scan_resources()` uses `CACHE_MODE_REPLACE` for every resource** (project_class_scanner.gd:149). This is intentional to force reloads, but it evicts every resource from Godot's cache. If other parts of the editor hold references to those resources, they'll get stale objects. Consider `CACHE_MODE_REPLACE` only when the class filter actually changes, not on every refresh.
+
+5. **`BulkEditor._on_inspector_property_edited` listens to ALL inspector edits** (bulk_editor.gd:62-86). It correctly checks `edited_obj == _bulk_proxy`, but if the user edits a *different* resource in the inspector while the VRE window is open, this callback fires unnecessarily on every keystroke. Not a bug, but a waste.
+
+6. **`select_class()` in class_selector.gd doesn't emit `class_selected`** — it only visually selects the dropdown item. If a class rename triggers `current_class_renamed → select_class()`, the dropdown updates visually but the window's `_on_class_selected` never fires. The state manager already handles the rename internally, so this works by coincidence, but it's fragile.
+
+#### Performance
+
+7. **Full table rebuild on every page change.** `_emit_page_data()` emits a slice of resources + columns → `ResourceList.set_data()` → `_build_rows()` which destroys and re-instantiates every row. For 50 rows per page, that's 50 scene instantiations, 50+ label instantiations per row (one per column), plus signal connections/disconnections. Object pooling or just hiding/showing rows would be significantly cheaper.
+
+8. **`scan_folder_for_classed_tres_paths()` opens and reads the first line of every `.tres` file** to extract the class. With hundreds of `.tres` files across the project, this is a lot of disk I/O on every scan. Consider caching the class→path mapping and only re-reading files that changed (similar to the mtime approach already used for resources).
+
+9. **`unite_classes_properties()` uses `properties.has(prop)` which is O(n) array scan per property per class.** With many subclasses and many properties, this becomes O(classes × props²). A Dictionary keyed on property name would be O(1) per lookup.
+
+10. **Linear search in `_rescan_resources_only()` for both modified and deleted resources.** `current_paths.has(path)` is O(n) on an Array. For deleted detection, `known_paths` iterates all known paths and does a `.has()` on current_paths for each. Converting `current_paths` to a Dictionary (or set) before the loop would reduce this from O(n²) to O(n).
+
+#### Design / Maintainability
+
+11. **`VisualResourcesEditorWindow` manually copies state between components** in `_on_class_selected()` (lines 56-63). When a class is selected, it sets `BulkEditor.current_class_name`, `current_class_script`, `current_class_property_list`, and `subclasses_property_lists` individually. This is a coupling surface — if `VREStateManager` adds a new field, someone has to remember to forward it. A single state object or having `BulkEditor` observe `VREStateManager` directly would be cleaner.
+
+12. **Debug `print()` statements left in production code.** `state_manager.gd:253` (`print("classes updated")`), `state_manager.gd:383` (`print("fs changed")`), `debounce_timer.gd:19` (`print(callback)`). These will spam the Godot output panel during normal use.
+
+13. **`create_and_add_dialogs()` / `connect_components()` split is awkward.** The toolbar calls both in sequence after instantiation. The comment explains why (Window-in-Window tool mode issues), but the two-step initialization means the window is in a partially-initialized state between calls. A single `initialize()` method that does both would be safer.
+
+14. **`DebounceTimer` has a subtle bug with variadic args.** `start_debouncing(_callback, ..._args)` captures args, and on timeout calls `callback.call(args)` — but `args` is always an Array. If someone called `start_debouncing(my_func, "a", "b")`, the callback receives a single Array `["a", "b"]` instead of two separate arguments. In current usage this doesn't matter (callbacks are zero-arg), but the API is misleading. Also `_on_timout` is misspelled (should be `_on_timeout`).
+
+15. **No keyboard navigation.** The resource list is click-only. Tab/arrow-key navigation through rows would improve editor usability, especially for power users who work keyboard-first. This is a UX gap, not a bug.
+
+16. **`save_resource_dialog` duplicates class-to-path lookup** instead of reusing `class_to_path_map` from `VREStateManager`. It receives `global_classes_map` and iterates it with `_get_class_script_path()`. Passing the already-built `class_to_path_map` would be simpler.
+
+17. **`ResourceRow._build_field_labels()` duplicates the property filtering logic** from `ProjectClassScanner.get_properties_from_script_path()` — the same `usage & PROPERTY_USAGE_EDITOR`, `begins_with("resource_")` checks appear in both places. If the filter criteria change, both need updating. The row could just receive the list of property names its resource owns, rather than re-deriving it.
+
+### Minor Nits
+
+- `plugin.cfg` description: "An visual" → "A visual".
+- `header_row.gd` has no `class_name` — intentional (it's a scene-only script), but inconsistent with `ResourceRow` which does have one.
+- `_on_close_requested` in the window is connected via the `.tscn` signal connection, but `_unhandled_input` for ESC calls `close_requested.emit()` which triggers it — clean, but the ESC handler doesn't call `get_viewport().set_input_as_handled()`, so the event might propagate.
+
