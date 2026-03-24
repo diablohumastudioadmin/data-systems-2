@@ -31,6 +31,7 @@ var _selected_paths: Array[String] = []
 var _last_anchor: int = -1
 var _current_page: int = 0
 var _classes_update_pending: bool = false
+var _known_resource_mtimes: Dictionary[String, int] = {}
 
 func _ready() -> void:
 	if not Engine.is_editor_hint(): return
@@ -148,6 +149,7 @@ func _scan_resources() -> void:
 		push_warning("VREStateManager: filesystem directory is not valid, skipping resource scan.")
 		return
 	resources = ProjectClassScanner.load_classed_resources_from_dir(current_class_names, root)
+	_rebuild_known_mtimes()
 
 
 func _restore_selection() -> void:
@@ -162,10 +164,55 @@ func _restore_selection() -> void:
 	selection_changed.emit(selected_resources.duplicate())
 
 
+func _rebuild_known_mtimes() -> void:
+	_known_resource_mtimes.clear()
+	for res: Resource in resources:
+		_known_resource_mtimes[res.resource_path] = FileAccess.get_modified_time(res.resource_path)
+
+
 func _rescan_resources_only() -> void:
 	if _current_class_name.is_empty():
 		return
-	_scan_resources()
+	var root: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
+	if root == null or not is_instance_valid(root):
+		return
+	var current_paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(root, current_class_names)
+	var changed: bool = false
+
+	# Detect new and modified resources
+	for path: String in current_paths:
+		var mtime: int = FileAccess.get_modified_time(path)
+		if not _known_resource_mtimes.has(path):
+			# New resource
+			var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
+			if res:
+				resources.append(res)
+				changed = true
+		elif mtime != _known_resource_mtimes[path]:
+			# Modified resource — reload in place
+			var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
+			if res:
+				for i: int in resources.size():
+					if resources[i].resource_path == path:
+						resources[i] = res
+						break
+				changed = true
+
+	# Detect deleted resources
+	var known_paths: Array = _known_resource_mtimes.keys()
+	for path: String in known_paths:
+		if not current_paths.has(path):
+			for i: int in resources.size():
+				if resources[i].resource_path == path:
+					resources.remove_at(i)
+					break
+			changed = true
+
+	if not changed:
+		return
+
+	resources.sort_custom(func(a: Resource, b: Resource) -> bool: return a.resource_path < b.resource_path)
+	_rebuild_known_mtimes()
 	_restore_selection()
 	_emit_page_data_preserving_page()
 
