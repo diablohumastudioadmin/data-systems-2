@@ -284,11 +284,11 @@ This is the only way to create an empty typed dict in one line. Using `as` only 
 **File**: `core/state_manager.gd`, `core/project_class_scanner.gd`
 **Solved**: solved
 
-**Problem**: Every `filesystem_changed` triggers debounce then full recursive scan + load of all `.tres` files. Falls over on medium/large projects.
+~~**Problem**: Every `filesystem_changed` triggers debounce then full recursive scan + load of all `.tres` files. Falls over on medium/large projects.~~
 
-**Fix**: Build a cached index `path -> class_name`, update incrementally on changes. Use `EditorFileSystem` APIs to detect which files changed. Only reload changed files.
+~~**Fix**: Build a cached index `path -> class_name`, update incrementally on changes. Use `EditorFileSystem` APIs to detect which files changed. Only reload changed files.~~
 
-**problem_claude_correction**: Problem is real and will become severe at scale. However, the current debounce timer already mitigates rapid-fire rescans. The fix is architecturally correct but is a significant refactor — should be planned as a dedicated phase, not a quick fix.
+~~**problem_claude_correction**: Problem is real and will become severe at scale. However, the current debounce timer already mitigates rapid-fire rescans. The fix is architecturally correct but is a significant refactor — should be planned as a dedicated phase, not a quick fix.~~
 
 ---
 
@@ -820,110 +820,11 @@ Size constants (delete button width) are already in `.tscn` as `custom_minimum_s
 
 ## Pending Items
 
-| # | Severity | Description |
-|---|----------|-------------|
-| 17 | CRITICAL | Full project re-scan on every filesystem change — no incremental updates. Architectural refactor needed. |
+(none)
 
 ---
 
 ## Implementation Plans
 
-### Item 17 — Incremental Filesystem Updates
-
-**Problem**: Every `.tres` filesystem change triggers a full resource scan via `_rescan_resources_only()` → `_scan_resources()`, which recursively walks the entire project tree and reloads all matching resources. On projects with hundreds of `.tres` files this causes noticeable stalls.
-
-**Root cause**: `_on_filesystem_changed` → debounce → `_rescan_resources_only()` calls `_scan_resources()` which uses `ProjectClassScanner.load_classed_resources_from_dir()` — a full recursive scan every time.
-
-**Note on `resources_reimported`**: This signal only fires for files that go through Godot's import pipeline (images, audio, etc. — files that generate `.import` sidecars). `.tres` files are not imported; they are native resources loaded directly. `resources_reimported` never fires for `.tres` changes. The only reliable signal for `.tres` changes is `filesystem_changed`.
-
-**Already done (commits 4cdc4c3, cfa136d, a8ac495, 1b62776)**:
-- `_handle_classes_updated()` is now a clean decision tree with extracted helpers. It only triggers full `refresh_resource_list_values()` when the current class or subclasses are actually affected.
-- `_handle_property_changes()` consolidates property-change detection + resource resave into one function, used by both "class list changed" and "class list unchanged" branches.
-- `_classes_update_pending` flag prevents double-rescan when `script_classes_updated` and `filesystem_changed` fire together.
-- Delete dialog uses `EditorFileSystem.update_file()` per path instead of `scan()`, so deleting from the plugin only triggers `filesystem_changed` (not `script_classes_updated`).
-- `_rescan_resources_only()` handles the `filesystem_changed` path: `_scan_resources()` → `_restore_selection()` → `_emit_page_data_preserving_page()`.
-
-**Remaining work**: `_rescan_resources_only()` still does a full `_scan_resources()`. Replace with an mtime-based diff so only changed/added/removed `.tres` files are processed.
-
-**Current flow**:
-
-```
-  script_classes_updated ──debounce──► _handle_classes_updated()
-                                             │
-                                   decision tree: compares old vs new class list,
-                                   detects renames, checks property changes.
-                                   Only calls refresh_resource_list_values()
-                                   when current view is actually affected. ✅
-
-  filesystem_changed ──debounce──► _rescan_resources_only()  ← STILL FULL SCAN
-                                         │
-                               ┌─────────▼──────────────────────┐
-                               │ _scan_resources()               │
-                               │   walk entire project tree      │
-                               │   load ALL matching .tres       │
-                               │ _restore_selection()            │
-                               │ _emit_page_data_preserving_page │
-                               └────────────────────────────────┘
-```
-
-**Proposed flow** — replace `_rescan_resources_only()` internals:
-
-```
-  filesystem_changed ──debounce──► _rescan_resources_only()
-                                         │
-                               ┌─────────▼───────────────────────────────────┐
-                               │ scan .tres paths + mtime for current_class_names │
-                               │                                                   │
-                               │  path in scan, NOT in _known_mtimes:             │
-                               │    load resource → add to resources  (NEW)       │
-                               │                                                   │
-                               │  path in _known_mtimes, NOT in scan:             │
-                               │    remove from resources  (DELETED)              │
-                               │                                                   │
-                               │  path in both, mtime changed:                    │
-                               │    reload resource in place (CACHE_MODE_REPLACE) │
-                               │                                                   │
-                               │  path in both, mtime unchanged:                  │
-                               │    skip  (unrelated file saved)                  │
-                               │                                                   │
-                               │  no changes detected? → return early             │
-                               │  update _known_resource_mtimes                   │
-                               │  _restore_selection()                            │
-                               │  _emit_page_data_preserving_page()               │
-                               └─────────────────────────────────────────────────┘
-```
-
-**Key API**: `FileAccess.get_modified_time(path: String) -> int` — static, no file open needed.
-
-**New data in `state_manager.gd`**:
-```gdscript
-var _known_resource_mtimes: Dictionary[String, int] = {}  # path → mtime
-```
-
-**New static function in `project_class_scanner.gd`**:
-```gdscript
-static func scan_classed_tres_paths(class_names: Array[String], root: EditorFileSystemDirectory) -> Array[String]
-```
-Like `load_classed_resources_from_dir` but returns only paths (no loading). Used for the mtime diff.
-
-**Files to modify**:
-- `core/state_manager.gd` — add `_known_resource_mtimes`, populate after `_scan_resources()`, replace `_rescan_resources_only()` internals with mtime diff
-- `core/project_class_scanner.gd` — add `scan_classed_tres_paths()` static function
-- No changes to window or resource_list (signal wiring already in place)
-
-**Steps**:
-1. Add `scan_classed_tres_paths()` to `ProjectClassScanner` — same walk as `load_classed_resources_from_dir` but collects paths only
-2. Add `_known_resource_mtimes: Dictionary[String, int]` to `StateManager`
-3. Populate `_known_resource_mtimes` at the end of `_scan_resources()` (called by `refresh_resource_list_values()` and `_handle_property_changes()`)
-4. Rewrite `_rescan_resources_only()` to:
-   - If `_current_class_name.is_empty()`: return
-   - Get root dir; scan paths via `scan_classed_tres_paths()`
-   - Build `new_mtimes` from `FileAccess.get_modified_time()` for each path
-   - Diff vs `_known_resource_mtimes`:
-     - New paths → load resource, append to `resources`
-     - Gone paths → erase from `resources`
-     - Changed mtime → reload with `CACHE_MODE_REPLACE`, replace in `resources`
-   - If no changes: return early
-   - Update `_known_resource_mtimes = new_mtimes`
-   - `_restore_selection()`, `_emit_page_data_preserving_page()`
+(none)
 
