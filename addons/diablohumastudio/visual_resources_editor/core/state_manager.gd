@@ -58,12 +58,12 @@ func _exit_tree() -> void:
 
 func set_class(class_name_str: String) -> void:
 	_current_class_name = class_name_str
-	refresh_view()
+	refresh_resource_list_values()
 
 
 func set_include_subclasses(value: bool) -> void:
 	_include_subclasses = value
-	refresh_view()
+	refresh_resource_list_values()
 
 
 func select(resource: Resource, ctrl_held: bool, shift_held: bool) -> void:
@@ -107,7 +107,7 @@ func prev_page() -> void:
 		_emit_page_data()
 
 
-func refresh_view() -> void:
+func refresh_resource_list_values() -> void:
 	if not _resolve_current_classes():
 		return
 	_scan_properties()
@@ -215,70 +215,82 @@ func _handle_classes_updated() -> void:
 	var previous_classes: Array[String] = project_resource_classes.duplicate()
 	project_resource_classes = ProjectClassScanner.get_project_resource_classes(global_classes_map)
 
-	# Re-save .tres files for classes that disappeared (handles renames: updates script_class header)
-	var removed_classes: Array[String] = []
-	for cls: String in previous_classes:
-		if not project_resource_classes.has(cls):
-			removed_classes.append(cls)
-	if not removed_classes.is_empty():
-		var root: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
-		if root != null and is_instance_valid(root):
-			var resources_to_update: Array[Resource] = (
-				ProjectClassScanner.load_classed_resources_from_dir(removed_classes, root)
-			)
-			for res: Resource in resources_to_update:
-				ResourceSaver.save(res, res.resource_path)
-
-	# Nothing changed in the class list — only check for property changes
+	# Class list unchanged — only check for property changes
 	if previous_classes == project_resource_classes:
-		if not _current_class_name.is_empty():
-			var new_props: Array[Dictionary] = _get_current_class_props()
-			if new_props != current_class_property_list:
-				project_classes_changed.emit(project_resource_classes)
-				_scan_properties()
-				# Resave resources to drop stale properties / pick up new ones
-				for res: Resource in resources:
-					ResourceSaver.save(res, res.resource_path)
-				_restore_selection()
-				_emit_page_data_preserving_page()
+		_handle_property_changes()
 		return
 
-	# Class list changed — always update the dropdown
+	# Class list changed
+	_resave_orphaned_resources(previous_classes)
 	project_classes_changed.emit(project_resource_classes)
 
 	if _current_class_name.is_empty():
 		return
 
-	# Current class no longer in list — check if it was renamed (same script path, new name)
 	if not project_resource_classes.has(_current_class_name):
-		var old_path: String = ""
-		if current_class_script != null:
-			old_path = current_class_script.resource_path
-		var new_name: String = ""
-		if not old_path.is_empty():
-			for cls: String in class_to_path_map:
-				if class_to_path_map[cls] == old_path:
-					new_name = cls
-					break
+		var new_name: String = _detect_class_rename()
 		if new_name.is_empty():
 			_clear_view()
 			return
 		_current_class_name = new_name
 		current_class_renamed.emit(new_name)
-		refresh_view()
+		refresh_resource_list_values()
 		return
 
-	# Check if any of the currently browsed classes were added or removed
+	if _has_current_class_set_changed(previous_classes):
+		refresh_resource_list_values()
+		return
+
+	_handle_property_changes()
+
+
+func _resave_orphaned_resources(previous_classes: Array[String]) -> void:
+	var removed_classes: Array[String] = []
+	for cls: String in previous_classes:
+		if not project_resource_classes.has(cls):
+			removed_classes.append(cls)
+	if removed_classes.is_empty():
+		return
+	var root: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
+	if root == null or not is_instance_valid(root):
+		return
+	var orphaned_resources: Array[Resource] = (
+		ProjectClassScanner.load_classed_resources_from_dir(removed_classes, root)
+	)
+	for res: Resource in orphaned_resources:
+		ResourceSaver.save(res, res.resource_path)
+
+
+func _detect_class_rename() -> String:
+	if current_class_script == null:
+		return ""
+	var old_path: String = current_class_script.resource_path
+	if old_path.is_empty():
+		return ""
+	for cls: String in class_to_path_map:
+		if class_to_path_map[cls] == old_path:
+			return cls
+	return ""
+
+
+func _handle_property_changes() -> void:
+	if _current_class_name.is_empty():
+		return
+	var new_props: Array[Dictionary] = _get_current_class_props()
+	if new_props == current_class_property_list:
+		return
+	_scan_properties()
+	for res: Resource in resources:
+		ResourceSaver.save(res, res.resource_path)
+	_restore_selection()
+	_emit_page_data_preserving_page()
+
+
+func _has_current_class_set_changed(previous_classes: Array[String]) -> bool:
 	for cls: String in current_class_names:
 		if not previous_classes.has(cls) or not project_resource_classes.has(cls):
-			refresh_view()
-			return
-
-	# Current class set is unchanged in the list — check if its properties changed
-	var new_props: Array[Dictionary] = _get_current_class_props()
-	if new_props != current_class_property_list:
-		_scan_properties()
-		_emit_page_data_preserving_page()
+			return true
+	return false
 
 
 func _get_current_class_props() -> Array[Dictionary]:
