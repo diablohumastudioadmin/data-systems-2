@@ -121,3 +121,132 @@ func _build_rows(resources: Array[Resource], columns: Array[Dictionary]) -> void
             row.hide()
 ```
 This guarantees you only instantiate nodes exactly once, dropping UI rebuild times to zero.
+
+---
+
+## 6. Transforming the Plugin to MVVM (Model-View-ViewModel)
+
+MVVM separates your logic into three distinct layers. This entirely eliminates the "Spaghetti Wiring" in your Window node because **Views only talk to ViewModels**, and **ViewModels only talk to Models**. 
+
+Here is how you would comprehensively re-architect `visual_resources_editor` using MVVM.
+
+### The Model Layer (Data & Business Logic)
+The Model layer contains your core data structures and raw operations. It has zero knowledge of the UI or the ViewModels.
+
+- **`ResourceRepository.gd`**: A global/singleton class (or injected dependency) that handles reading files, caching `mtimes`, and holding the array of `Resource` objects.
+- **`ClassDefinitions.gd`**: Holds the mapped properties of your Godot classes.
+- **`FileOperations.gd`**: Handles deleting resources to the trash or saving them.
+
+### The ViewModel Layer (The Glue & State)
+The ViewModel holds the specific state required for a View and translates Model data into UI-friendly data. **It exposes Signals that the UI listens to.**
+
+You would create a `VREViewModel` (or separate `ResourceListViewModel`, `ClassSelectorViewModel` if it gets too big):
+
+```gdscript
+# core/view_models/vre_view_model.gd
+class_name VREViewModel extends RefCounted
+
+signal data_updated(visible_resources: Array[Resource], columns: Array[Dictionary])
+signal pagination_updated(current_page: int, total_pages: int)
+signal selection_updated(selected_count: int, can_delete: bool)
+signal error_occurred(message: String)
+
+var _repository: ResourceRepository
+var _current_class: String = ""
+var _current_page: int = 0
+var _selected_resources: Array[Resource] = []
+
+func _init(repo: ResourceRepository) -> void:
+    _repository = repo
+    _repository.repository_changed.connect(_on_repository_changed)
+
+# --- INCOMING COMMANDS FROM VIEW ---
+
+func set_target_class(class_name: String) -> void:
+    _current_class = class_name
+    _current_page = 0
+    _selected_resources.clear()
+    _recalculate_view_state()
+
+func select_resource(resource: Resource, add_to_selection: bool) -> void:
+    if add_to_selection:
+        _selected_resources.append(resource)
+    else:
+        _selected_resources = [resource]
+    selection_updated.emit(_selected_resources.size(), _selected_resources.size() > 0)
+
+func delete_selected() -> void:
+    var paths = _selected_resources.map(func(r): return r.resource_path)
+    var success = FileOperations.trash_files(paths)
+    if not success:
+        error_occurred.emit("Failed to delete some files.")
+    # Repository automatically detects the deletion and triggers _on_repository_changed
+
+# --- OUTGOING STATE TO VIEW ---
+
+func _recalculate_view_state() -> void:
+    var resources = _repository.get_resources_for_class(_current_class)
+    var columns = ClassDefinitions.get_columns(_current_class)
+    
+    # Calculate pagination slice
+    var start = _current_page * 50
+    var paged_resources = resources.slice(start, start + 50)
+    
+    data_updated.emit(paged_resources, columns)
+    pagination_updated.emit(_current_page, ceil(resources.size() / 50.0))
+```
+
+### The View Layer (UI Only)
+The Views are your `.tscn` and `.gd` files inside the `ui/` folder. They do **not** hold state. They are injected with a ViewModel. They listen to the ViewModel's signals to update labels, and they call functions on the ViewModel when buttons are pressed.
+
+**Example of the Main Window (View):**
+```gdscript
+# ui/visual_resources_editor_window.gd
+class_name VisualResourcesEditorWindow extends Window
+
+var view_model: VREViewModel
+
+func initialize(vm: VREViewModel) -> void:
+    view_model = vm
+    
+    # Bind ViewModel signals to View updates
+    view_model.error_occurred.connect($ErrorDialog.show_error)
+    
+    # Pass the ViewModel down to child views
+    $ResourceList.initialize(view_model)
+    $ClassSelector.initialize(view_model)
+```
+
+**Example of a Child View (`ResourceList`):**
+```gdscript
+# ui/resource_list/resource_list.gd
+class_name ResourceList extends VBoxContainer
+
+var view_model: VREViewModel
+
+func initialize(vm: VREViewModel) -> void:
+    view_model = vm
+    
+    # 1. Listen to ViewModel to update UI
+    view_model.data_updated.connect(_on_data_updated)
+    view_model.pagination_updated.connect(_on_pagination_updated)
+    view_model.selection_updated.connect(_on_selection_updated)
+    
+    # 2. Bind UI actions directly to the ViewModel commands
+    $Toolbar/DeleteSelectedBtn.pressed.connect(view_model.delete_selected)
+    $Toolbar/NextPageBtn.pressed.connect(view_model.next_page)
+
+func _on_data_updated(resources: Array, columns: Array) -> void:
+    # Use object pooling here to rebuild rows
+    _build_rows(resources, columns)
+
+func _on_selection_updated(count: int, can_delete: bool) -> void:
+    $Toolbar/DeleteSelectedBtn.disabled = not can_delete
+    $Toolbar/DeleteSelectedBtn.text = "Delete Selected (%d)" % count
+```
+
+### Why MVVM fixes your architecture:
+1. **No Spaghetti Wiring:** `VisualResourcesEditorWindow` no longer has a massive `connect_components()` block routing signals from `ResourceList` back down to `StateManager`.
+2. **True Modularity:** `ResourceList.tscn` can be dropped into any other plugin or test scene simply by passing it a mocked `VREViewModel`.
+3. **Decoupling:** `VREViewModel` handles all the "business rules" (e.g., changing a class resets pagination to 0 and clears the selection). The UI doesn't need to know *why* the page changed, it just blindly renders what the ViewModel emits.
+4. **Testability:** You can instantiate `VREViewModel` in a unit test without instantiating any UI nodes, and verify that `delete_selected()` correctly tells the repository to delete files.

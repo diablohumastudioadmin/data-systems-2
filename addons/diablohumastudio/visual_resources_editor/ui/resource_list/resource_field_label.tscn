@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://bgtsclwqqu255"]
 
+[ext_resource type="Script" uid="uid://dy607o7fnsypa" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/resource_field_label.gd" id="1_rfl"]
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_a1hcq"]
 resource_local_to_scene = true
 
@@ -8,3 +10,5 @@ size_flags_horizontal = 3
 theme_override_styles/normal = SubResource("StyleBoxFlat_a1hcq")
 clip_text = true
 text_overrun_behavior = 3
+script = ExtResource("1_rfl")
+metadata/_custom_type_script = "uid://dy607o7fnsypa"

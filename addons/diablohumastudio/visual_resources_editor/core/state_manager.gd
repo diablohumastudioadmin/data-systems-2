@@ -2,7 +2,7 @@
 class_name VREStateManager
 extends Node
 
-signal data_changed(resources: Array[Resource], columns: Array[Dictionary])
+signal data_changed(resources: Array[Resource], columns: Array[ResourceProperty])
 signal project_classes_changed(classes: Array[String])
 signal selection_changed(resources: Array[Resource])
 signal pagination_changed(page: int, page_count: int)
@@ -21,9 +21,9 @@ var _include_subclasses: bool = true
 var project_resource_classes: Array[String] = []
 
 var current_class_script: GDScript = null
-var current_class_property_list: Array[Dictionary] = []
+var current_class_property_list: Array[ResourceProperty] = []
 var subclasses_property_lists: Dictionary = {}
-var columns: Array[Dictionary] = []
+var columns: Array[ResourceProperty] = []
 var resources: Array[Resource] = []
 
 var selected_resources: Array[Resource] = []
@@ -138,7 +138,7 @@ func _scan_properties() -> void:
 		if not script_path.is_empty():
 			subclasses_property_lists[cls_name] = ProjectClassScanner.get_properties_from_script_path(script_path)
 
-	var empty_props: Array[Dictionary] = []
+	var empty_props: Array[ResourceProperty] = []
 	current_class_property_list = subclasses_property_lists.get(_current_class_name, empty_props)
 	columns = ProjectClassScanner.unite_classes_properties(current_class_names, class_to_path_map)
 
@@ -328,8 +328,8 @@ func _detect_class_rename() -> String:
 func _handle_property_changes() -> void:
 	if _current_class_name.is_empty():
 		return
-	var new_props: Array[Dictionary] = _get_current_class_props()
-	if new_props == current_class_property_list:
+	var new_props: Array[ResourceProperty] = _get_current_class_props()
+	if ResourceProperty.arrays_equal(new_props, current_class_property_list):
 		return
 	_scan_properties()
 	for res: Resource in resources:
@@ -345,11 +345,11 @@ func _has_current_class_set_changed(previous_classes: Array[String]) -> bool:
 	return false
 
 
-func _get_current_class_props() -> Array[Dictionary]:
+func _get_current_class_props() -> Array[ResourceProperty]:
 	var script_path: String = class_to_path_map.get(_current_class_name, "")
 	if not script_path.is_empty():
 		return ProjectClassScanner.get_properties_from_script_path(script_path)
-	var empty_props: Array[Dictionary] = []
+	var empty_props: Array[ResourceProperty] = []
 	return empty_props
 
 
@@ -364,7 +364,7 @@ func _clear_view() -> void:
 	_current_class_name = ""
 	current_class_names.clear()
 	current_class_script = null
-	var empty_props: Array[Dictionary] = []
+	var empty_props: Array[ResourceProperty] = []
 	current_class_property_list = empty_props
 	subclasses_property_lists.clear()
 	columns.clear()
@@ -374,7 +374,7 @@ func _clear_view() -> void:
 	_last_anchor = -1
 	_current_page = 0
 	var empty_resources: Array[Resource] = []
-	var empty_columns: Array[Dictionary] = []
+	var empty_columns: Array[ResourceProperty] = []
 	data_changed.emit(empty_resources, empty_columns)
 	selection_changed.emit(empty_resources)
 	pagination_changed.emit(0, 1)

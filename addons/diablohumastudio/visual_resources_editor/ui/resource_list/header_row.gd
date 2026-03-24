@@ -4,7 +4,7 @@ extends HBoxContainer
 const HEADER_FIELD_LABEL_SCENE: PackedScene = preload("uid://ufyx2ezw09xlg")
 const FIELD_SEPARATOR_SCENE: PackedScene = preload("uid://y2kj6h91hm8r6")
 
-var columns: Array[Dictionary] = []:
+var columns: Array[ResourceProperty] = []:
 	set(value):
 		columns = value
 		if is_inside_tree():

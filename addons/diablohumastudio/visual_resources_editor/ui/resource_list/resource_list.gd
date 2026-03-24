@@ -27,7 +27,7 @@ func _ready() -> void:
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-func set_data(resources: Array[Resource], columns: Array[Dictionary]) -> void:
+func set_data(resources: Array[Resource], columns: Array[ResourceProperty]) -> void:
 	_visible_count = resources.size()
 	_build_rows(resources, columns)
 	_update_status("%d resource(s)" % _visible_count)
@@ -57,7 +57,7 @@ func update_pagination_bar(page: int, page_count: int) -> void:
 
 # ── Table building ─────────────────────────────────────────────────────────────
 
-func _build_rows(resources: Array[Resource], columns: Array[Dictionary]) -> void:
+func _build_rows(resources: Array[Resource], columns: Array[ResourceProperty]) -> void:
 	_clear_rows()
 	%HeaderRow.columns = columns
 

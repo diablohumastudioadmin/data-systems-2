@@ -4,7 +4,7 @@ extends Window
 
 var save_resource_dialog: SaveResourceDialog
 var error_dialog: ErrorDialog
-var confirm_delete_dialog: ComfirmDeleteDialog
+var confirm_delete_dialog: ConfirmDeleteDialog
 
 func create_and_add_dialogs() -> void:
 	save_resource_dialog = SaveResourceDialog.new()
@@ -15,7 +15,7 @@ func create_and_add_dialogs() -> void:
 	error_dialog.name = "ErrorDialog"
 	add_child(error_dialog)
 
-	confirm_delete_dialog = ComfirmDeleteDialog.new()
+	confirm_delete_dialog = ConfirmDeleteDialog.new()
 	confirm_delete_dialog.name = "ConfirmDeleteDialog"
 	add_child(confirm_delete_dialog)
 
@@ -75,7 +75,7 @@ func _on_project_classes_changed(classes: Array[String]) -> void:
 # ── State → UI ─────────────────────────────────────────────────────────────────
 
 func _on_state_data_changed(
-		resources: Array[Resource], columns: Array[Dictionary]) -> void:
+		resources: Array[Resource], columns: Array[ResourceProperty]) -> void:
 	%ResourceList.set_data(resources, columns)
 
 

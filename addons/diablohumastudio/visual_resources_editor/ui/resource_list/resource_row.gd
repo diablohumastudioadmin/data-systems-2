@@ -9,8 +9,8 @@ const RESOURCE_FIELD_LABEL_SCENE: PackedScene = preload("uid://uru49vi0kvgxy")
 const FIELD_SEPARATOR_SCENE: PackedScene = preload("uid://y2kj6h91hm8r6")
 
 var resource: Resource = null
-var columns: Array[Dictionary] = []
-var _prop_labels: Dictionary = {}  # property_name → Label (only for properties this resource owns)
+var columns: Array[ResourceProperty] = []
+var _prop_labels: Dictionary = {}  # property_name → ResourceFieldLabel (only for properties this resource owns)
 
 
 func _ready() -> void:
@@ -43,18 +43,16 @@ func _build_field_labels() -> void:
 			owned[pname] = true
 
 	for i: int in columns.size():
-		if not columns[i].has("name"):
-			continue
 		if i > 0:
 			var sep: VSeparator = FIELD_SEPARATOR_SCENE.instantiate()
 			%FieldsContainer.add_child(sep)
 
-		var label: Label = RESOURCE_FIELD_LABEL_SCENE.instantiate()
+		var label: ResourceFieldLabel = RESOURCE_FIELD_LABEL_SCENE.instantiate()
 
 		var col_name: String = columns[i].name
 		if owned.has(col_name):
 			_prop_labels[col_name] = label
-			_set_label_value(label, columns[i])
+			label.set_value(resource, columns[i])
 		# else: label stays blank — belongs to a sibling subclass
 
 		%FieldsContainer.add_child(label)
@@ -63,9 +61,9 @@ func _build_field_labels() -> void:
 func update_display() -> void:
 	if not resource:
 		return
-	for col: Dictionary in columns:
+	for col: ResourceProperty in columns:
 		if _prop_labels.has(col.name):
-			_set_label_value(_prop_labels[col.name], col)
+			_prop_labels[col.name].set_value(resource, col)
 
 
 func is_selected() -> bool:
@@ -82,43 +80,6 @@ func get_resource() -> Resource:
 
 func get_resource_path() -> String:
 	return resource.resource_path
-
-
-func _set_label_value(label: Label, col: Dictionary) -> void:
-	var value: Variant = resource.get(col.name)
-	label.text = _format_value(value, col.type)
-	label.tooltip_text = "%s: %s" % [col.name, label.text]
-
-	if col.type == TYPE_COLOR and value is Color:
-		var style: StyleBoxFlat = label.get_theme_stylebox("normal") as StyleBoxFlat
-		if style:
-			style.bg_color = value
-		label.add_theme_color_override("font_color",
-			Color.BLACK if value.get_luminance() > 0.5 else Color.WHITE)
-	else:
-		var style: StyleBoxFlat = label.get_theme_stylebox("normal") as StyleBoxFlat
-		if style:
-			style.bg_color = Color.TRANSPARENT
-		label.remove_theme_color_override("font_color")
-
-
-func _format_value(value: Variant, type: int) -> String:
-	if value == null:
-		return "<null>"
-	match type:
-		TYPE_BOOL:
-			return "true" if value else "false"
-		TYPE_OBJECT:
-			if value is Resource and not value.resource_path.is_empty():
-				return value.resource_path.get_file()
-			return str(value)
-		TYPE_VECTOR2:
-			return "(%g, %g)" % [value.x, value.y]
-		TYPE_VECTOR3:
-			return "(%g, %g, %g)" % [value.x, value.y, value.z]
-		TYPE_COLOR:
-			return value.to_html()
-	return str(value)
 
 
 func _on_pressed() -> void:

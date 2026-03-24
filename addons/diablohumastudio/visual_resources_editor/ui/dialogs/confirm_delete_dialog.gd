@@ -1,5 +1,5 @@
 @tool
-class_name ComfirmDeleteDialog
+class_name ConfirmDeleteDialog
 extends ConfirmationDialog
 
 signal error_occurred(message: String)
@@ -13,7 +13,7 @@ func _ready() -> void:
 
 func show_delete_dialog(paths: Array[String]) -> void:
 	_pending_paths = paths
-	dialog_text = "Delete %d resource(s)?\nThis cannot be undone.\n\n%s" % [
+	dialog_text = "Move %d resource(s) to trash?\n\n%s" % [
 		paths.size(),
 		"\n".join(paths.map(func(p: String) -> String: return p.get_file()))
 	]
@@ -29,7 +29,7 @@ func _on_confirmed() -> void:
 			push_warning("VRE: Skipping delete of path outside project: %s" % path)
 			failed_paths.append(path)
 			continue
-		var err: Error = DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+		var err: Error = OS.move_to_trash(ProjectSettings.globalize_path(path))
 		if err != OK:
 			failed_paths.append(path)
 	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()

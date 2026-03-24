@@ -100,8 +100,8 @@ static func get_class_from_tres_file(tres_file_path: String) -> String:
 	return first_line.substr(start, end - start)
 
 
-static func get_properties_from_script_path(script_path: String) -> Array[Dictionary]:
-	var properties: Array[Dictionary] = []
+static func get_properties_from_script_path(script_path: String) -> Array[ResourceProperty]:
+	var properties: Array[ResourceProperty] = []
 	if script_path.is_empty():
 		return properties
 
@@ -117,24 +117,28 @@ static func get_properties_from_script_path(script_path: String) -> Array[Dictio
 			continue
 		if prop_name in ["script", "resource_local_to_scene"]:
 			continue
-		properties.append({
-			"name": prop_name,
-			"type": prop.type,
-			"hint": prop.get("hint", PROPERTY_HINT_NONE),
-			"hint_string": prop.get("hint_string", ""),
-		})
+		properties.append(ResourceProperty.new(
+			prop_name,
+			prop.type,
+			prop.get("hint", PROPERTY_HINT_NONE),
+			prop.get("hint_string", ""),
+		))
 
 	return properties
 
 
-static func unite_classes_properties(class_names: Array[String], class_to_path: Dictionary[String, String] = {}) -> Array[Dictionary]:
-	var properties: Array[Dictionary] = []
+static func unite_classes_properties(
+	class_names: Array[String], class_to_path: Dictionary[String, String] = {}
+) -> Array[ResourceProperty]:
+	var properties: Array[ResourceProperty] = []
+	var seen_names: Dictionary[String, bool] = {}
 	for cls_name: String in class_names:
 		var script_path: String = class_to_path.get(cls_name, "")
 		if script_path.is_empty():
 			continue
-		for prop: Dictionary in ProjectClassScanner.get_properties_from_script_path(script_path):
-			if not properties.has(prop):
+		for prop: ResourceProperty in get_properties_from_script_path(script_path):
+			if not seen_names.has(prop.name):
+				seen_names[prop.name] = true
 				properties.append(prop)
 	return properties
 

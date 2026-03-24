@@ -818,15 +818,105 @@ Size constants (delete button width) are already in `.tscn` as `custom_minimum_s
 
 ---
 
+### 52. Granular resource-change signal instead of full page rebuild on modification
+
+**Creator**: Claude Opus (analysis of Gemini "Redundant Signals" item)
+**Severity**: MEDIUM
+**File**: `core/state_manager.gd`, `ui/resource_list/resource_list.gd`
+**Solved**: not solved
+
+**Problem**: `_rescan_resources_only()` already knows which resources are new/modified/deleted via mtime, but discards this info and emits `data_changed` → full table rebuild. For the common case (one resource modified externally), this destroys and recreates 50 rows when only one label needs updating.
+
+**Fix**: Add `signal resources_modified(changed_paths: Array[String])`. In `_rescan_resources_only()`, emit it for modifications. `ResourceList` calls `refresh_row()` for each changed path. Only emit `data_changed` when rows are added/deleted (structural change).
+
+---
+
+### 53. StateManager does too many things — split data layer from UI state
+
+**Creator**: Claude Opus (analysis of Gemini "Dividing the VREStateManager" item)
+**Severity**: MEDIUM
+**File**: `core/state_manager.gd`
+**Solved**: not solved
+
+**Problem**: `VREStateManager` (~385 lines) mixes data scanning/filesystem reactions with UI state (selection, pagination). This makes it hard to reason about, test, or extend independently.
+
+**Proposed fix**: Split into `VREDataService` (filesystem reactions, scanning, resource cache) and a slimmed `VREStateManager` (selection, pagination, page slicing). See Implementation Plans for details.
+
+**Claude correction on Gemini's proposal**: Gemini's 4-way split (`ResourceRepository`, `ClassMetadataScanner`, `SelectionModel`, `PaginationState`) over-fragments tightly coupled state. A 2-way split along the data/UI boundary is cleaner and avoids excessive cross-wiring.
+
+---
+
+### 54. New column doesn't display default value for pre-existing resources
+
+**Creator**: Fernando (manual testing)
+**Severity**: MEDIUM
+**File**: `ui/resource_list/resource_row.gd`, `ui/resource_list/resource_field_label.gd`
+**Solved**: not solved
+
+**Problem**: When adding a new `@export` property with a default value (e.g. `@export var my_int: int = 2`) to a class that already has saved `.tres` instances, the new column appears in the table but the cell is blank for pre-existing resources. The Inspector shows the correct default value. The root cause is that `.tres` files only serialize properties whose values differ from the script default. Since the resource was saved *before* the property existed, the `.tres` file has no entry for it. When `ResourceFieldLabel.set_value()` calls `resource.get(col.name)`, Godot returns the script default correctly — but only if the resource's script is properly loaded. The issue is likely in the `owned` dictionary check in `ResourceRow._build_field_labels()`: it builds `owned` from `resource.get_script().get_script_property_list()`, but if the loaded resource still has a stale cached script (due to `CACHE_MODE_REPLACE` timing), the new property may not appear in `owned`, so the label is skipped.
+
+**Fix**: Investigate whether the `owned` check correctly picks up newly added properties after a class change. May need to force-reload the resource's script, or rebuild `owned` from the column list + class hierarchy rather than from the loaded resource's script instance.
+
+---
+
 ## Pending Items
 
-(none)
+- **Item 52**: Granular resource-change signal — emit which specific resources changed instead of full page rebuild
+- **Item 53**: StateManager division — split into focused components following MVVM-like pattern
+- **Item 54**: New column doesn't display default value for pre-existing resources
 
 ---
 
 ## Implementation Plans
 
-(none)
+### Item 52: Granular resource-change signal
+
+**Problem**: `_rescan_resources_only()` already knows exactly which resources are new, modified, or deleted (via mtime comparison), but it discards that information and emits `data_changed` with the full page slice. This causes a full table rebuild even when only one resource changed. The `BulkEditor.resources_edited` path already does targeted row refresh via `refresh_row()` — the rescan path should do the same.
+
+**Proposed fix**:
+1. Add a new signal: `signal resources_modified(changed_paths: Array[String])` on `VREStateManager`.
+2. In `_rescan_resources_only()`, collect the paths of new/modified/deleted resources into arrays.
+3. For modifications: emit `resources_modified` with the changed paths. `ResourceList` calls `refresh_row()` for each.
+4. For additions/deletions (structural changes): emit `data_changed` as today (full page rebuild needed since row count changed).
+5. This way, the common case (user edits a resource externally) triggers a targeted row update, not a full rebuild.
+
+**Files**: `core/state_manager.gd`, `ui/resource_list/resource_list.gd`, `ui/visual_resources_editor_window.gd`
+
+---
+
+### Item 53: StateManager MVVM-inspired division
+
+**Problem**: `VREStateManager` currently handles: class metadata scanning, resource scanning/caching, selection state, pagination, filesystem change reactions, orphan detection, and class rename detection. This is too many responsibilities in one class (~385 lines).
+
+**What Gemini proposed (and why it's not quite right)**:
+Gemini suggested splitting into `ResourceRepository`, `ClassMetadataScanner`, `SelectionModel`, `PaginationState`. The problem with this split is that it fragments state that is tightly coupled — selection depends on the resource list, pagination depends on resource count, and class changes trigger cascading updates across all of them. Four separate objects with cross-references would add wiring complexity without reducing conceptual load.
+
+**What MVVM would imply**:
+In MVVM terms:
+- **Model**: The data sources — `ProjectClassScanner` (already exists, static utilities), the filesystem, the resource files on disk.
+- **ViewModel**: The state that the UI observes — this is what `VREStateManager` currently is. A ViewModel is *expected* to aggregate model data into a shape the View can consume. The issue isn't that VREStateManager has too many fields — it's that it mixes *data transformation* (scanning, property uniting) with *UI state* (selection, pagination) and *side effects* (filesystem signal handling, orphan re-saving).
+- **View**: `ResourceList`, `ClassSelector`, etc. — these are already pure views that receive data and emit user actions.
+
+**Proposed split** (2 components, not 4):
+
+1. **`VREDataService`** (new, extends Node) — owns filesystem reactions and data scanning:
+   - Connects to `EditorFileSystem` signals
+   - Owns `global_classes_map`, `class_to_path_map`, `_classes_parent_map`
+   - Owns `project_resource_classes`, `resources`, `_known_resource_mtimes`
+   - Owns `_rescan_resources_only()`, `_handle_classes_updated()`, `_resave_orphaned_resources()`
+   - Emits: `project_classes_changed`, `resources_changed`, `class_renamed`
+   - This is a pure data layer — no knowledge of selection, pagination, or UI
+
+2. **`VREStateManager`** (slimmed down) — owns UI-facing state:
+   - Owns `selected_resources`, `_selected_paths`, `_last_anchor`, `_current_page`
+   - Owns `columns` (derived from data service's property lists)
+   - `select()`, `next_page()`, `prev_page()`
+   - Listens to `VREDataService.resources_changed` → restores selection, emits page data
+   - Emits: `data_changed`, `selection_changed`, `pagination_changed`
+
+This keeps the two concerns cleanly separated while avoiding the over-fragmentation of 4+ tiny classes that all need to cross-reference each other.
+
+**Files**: `core/state_manager.gd` (refactor), new `core/data_service.gd`, `core/state_manager.tscn` (add child node), `ui/visual_resources_editor_window.gd` (update wiring)
 
 ---
 

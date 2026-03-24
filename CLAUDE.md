@@ -69,6 +69,6 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 - **TODO**: Create a skill `diablohumastudio-shared-button-group` to scaffold a ButtonGroup `.tres` resource and wire it to a scene node.
 
 ## Running Tests
-- **Godot binary**: `Godot4.6` (alias or full path: `/Volumes/Fer/RespaldoFER/Documentos/GODOT/Editor/Executables/Godot_v4.6-stable_macos.universal.app/Contents/MacOS/Godot`)
+- **Godot binary**: `/Volumes/Fer/RespaldoFER/Documentos/GODOT/Editor/Executables/Godot_v4.6.1-stable_macos.universal.app/Contents/MacOS/Godot`
 - **Command**: `Godot4.6 --headless --path . --script tests/test_<name>.gd`
 - Test files: `tests/test_redesign.gd`, `tests/test_constraints.gd`, `tests/test_inheritance.gd`, `tests/test_autocomplete.gd`
