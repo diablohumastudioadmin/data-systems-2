@@ -274,11 +274,14 @@ func _handle_classes_updated() -> void:
 	if _current_class_name.is_empty():
 		return
 
+	# Current Class is missing
 	if not project_resource_classes.has(_current_class_name):
 		var new_name: String = _detect_class_rename()
+		# Current Class is deleted
 		if new_name.is_empty():
 			_clear_view()
 			return
+		# Current Class is renamed
 		_current_class_name = new_name
 		current_class_renamed.emit(new_name)
 		refresh_resource_list_values()
