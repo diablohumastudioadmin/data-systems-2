@@ -29,9 +29,12 @@ var current_included_classes_resources: Array[Resource] = []
 
 var selected_resources: Array[Resource] = []
 var _selected_paths: Array[String] = []
-var _last_anchor: int = -1
+var _selected_resources_last_index: int = -1
+
 var _current_page: int = 0
+
 var _classes_update_pending: bool = false
+
 var _known_resource_mtimes: Dictionary[String, int] = {}
 
 func _ready() -> void:
@@ -69,11 +72,11 @@ func set_include_subclasses(value: bool) -> void:
 
 func select(resource: Resource, ctrl_held: bool, shift_held: bool) -> void:
 	var current_idx: int = current_included_classes_resources.find(resource)
-	if shift_held and _last_anchor != -1 and current_idx != -1:
+	if shift_held and _selected_resources_last_index != -1 and current_idx != -1:
 		selected_resources.clear()
 		_selected_paths.clear()
-		var from: int = mini(_last_anchor, current_idx)
-		var to: int = maxi(_last_anchor, current_idx)
+		var from: int = mini(_selected_resources_last_index, current_idx)
+		var to: int = maxi(_selected_resources_last_index, current_idx)
 		for i: int in (to - from + 1):
 			var res: Resource = current_included_classes_resources[from + i]
 			selected_resources.append(res)
@@ -86,13 +89,13 @@ func select(resource: Resource, ctrl_held: bool, shift_held: bool) -> void:
 		else:
 			selected_resources.append(resource)
 			_selected_paths.append(resource.resource_path)
-		_last_anchor = current_idx
+		_selected_resources_last_index = current_idx
 	else:
 		selected_resources.clear()
 		_selected_paths.clear()
 		selected_resources.append(resource)
 		_selected_paths.append(resource.resource_path)
-		_last_anchor = current_idx
+		_selected_resources_last_index = current_idx
 	selection_changed.emit(selected_resources.duplicate())
 
 
@@ -160,7 +163,7 @@ func _restore_selection() -> void:
 		if prev_paths.has(res.resource_path):
 			selected_resources.append(res)
 			_selected_paths.append(res.resource_path)
-	_last_anchor = current_included_classes_resources.find(selected_resources.back()) if not selected_resources.is_empty() else -1
+	_selected_resources_last_index = current_included_classes_resources.find(selected_resources.back()) if not selected_resources.is_empty() else -1
 	selection_changed.emit(selected_resources.duplicate())
 
 
@@ -365,7 +368,7 @@ func _clear_view() -> void:
 	current_included_classes_resources.clear()
 	selected_resources.clear()
 	_selected_paths.clear()
-	_last_anchor = -1
+	_selected_resources_last_index = -1
 	_current_page = 0
 	var empty_resources: Array[Resource] = []
 	var empty_current_shared_propery_list: Array[ResourceProperty] = []
