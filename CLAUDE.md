@@ -30,6 +30,13 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
   - Create those child nodes in code, or
   - Make the parent a scene, add the children there, set `unique_name_in_owner = true`, and reference with `%`.
 
+## Signal Connection Convention
+- **Always connect signals via scene** (`[connection]` in `.tscn`) when both the signal source and target method are nodes within the same scene.
+- **Connect via code** (`.connect()`) only when:
+  - The node is **dynamically created** at runtime (`add_child()` / instantiated in code).
+  - The connection **passes a child callable** across scene boundaries (e.g. `%ClassSelector.class_selected.connect(_on_class_selected)`).
+  - The connection **re-emits another signal directly** (e.g. `btn.pressed.connect(my_signal.emit)`).
+
 ## Resource Loading Convention
 - **Always use UIDs in `load()` and `preload()`**, not string paths. UIDs survive file renames and moves without breaking references. Use `uid://xxxxxxxxxxxx` format: `preload("uid://xxxxxxxxxxxx")`. Find a file's UID in the `.uid` sidecar (for `.gd` scripts) or in the file header (`uid="uid://..."` on the first line of `.tscn` / `.tres` files).
 - **UID-only rule applies to hardcoded paths.** Dynamic runtime paths (computed at runtime) may use string paths.

@@ -21,11 +21,13 @@ visual_resources_editor/
 ├── ui/
 │   ├── visual_resources_editor_window.gd/.tscn  # Main Window: wires components together
 │   ├── class_selector/
-│   │   └── class_selector.gd/.tscn     # Dropdown to pick a Resource class
+│   │   └── class_selector.gd/.tscn     # Dropdown + include-subclasses checkbox
+│   ├── toolbar/
+│   │   └── toolbar.gd/.tscn            # VREToolbar: New/Delete Selected/Refresh + owns SaveResourceDialog & ConfirmDeleteDialog
 │   ├── resource_list/
-│   │   ├── resource_list.gd/.tscn      # Table container: toolbar, header, scrollable rows, pagination
+│   │   ├── resource_list.gd/.tscn      # Table container: header, scrollable rows, pagination
 │   │   ├── header_row.gd/.tscn         # Column header labels
-│   │   ├── resource_row.gd/.tscn       # One row per resource (Button with toggle_mode)
+│   │   ├── resource_row.gd/.tscn       # One row per resource (Button with toggle_mode, self-contained delete)
 │   │   ├── resource_field_label.gd/.tscn  # Label for a single property cell (owns display/format logic)
 │   │   ├── header_field_label.tscn      # Label for a single header cell
 │   │   └── field_separator.tscn         # VSeparator between columns
@@ -44,7 +46,7 @@ visual_resources_editor/
 
 3. **State → UI**: `VREStateManager` emits `data_changed(resources, columns)` with only the current page slice. `ResourceList` rebuilds rows from this slice. Pagination is handled entirely in `VREStateManager` (PAGE_SIZE = 50).
 
-4. **Selection**: `VREStateManager` owns all selection state (`selected_resources`, `_selected_paths`, `_last_anchor`). Supports click, Ctrl/Cmd+click (toggle), and Shift+click (range select across pages). Emits `selection_changed`.
+4. **Selection**: `VREStateManager` owns all selection state (`selected_resources`, `_selected_paths`, `_last_anchor`). Supports click, Ctrl/Cmd+click (toggle), and Shift+click (range select across pages). Emits `selection_changed`. The window forwards selection to both `ResourceList` (visual row highlighting) and `VREToolbar` (delete-selected button label).
 
 5. **Bulk editing**: `BulkEditor` creates a proxy resource matching the selected resources' script. For single selection, proxy copies the resource's values. For multi-selection, proxy uses defaults. When the user edits the proxy in Godot's Inspector, `BulkEditor` propagates the change to all selected resources and saves them.
 
@@ -53,10 +55,17 @@ visual_resources_editor/
    - `filesystem_changed` → incremental mtime-based resource rescan (new/modified/deleted detection without full reload)
    Both are debounced through a shared `DebounceTimer` (0.1s).
 
+7. **Delete flow**:
+   - **Single row delete**: Each `ResourceRow` owns a `ConfirmDeleteDialog` child. `DeleteBtn.pressed` → shows dialog → `confirmed` → moves file to OS trash. Fully self-contained, no signal bubbling.
+   - **Bulk delete**: `VREToolbar` owns a `ConfirmDeleteDialog`. "Delete Selected" button passes selected resource paths to the dialog. Window keeps toolbar's selection in sync via `update_selection()`.
+
 ## Design Decisions
 
 ### Scene Unique Nodes (`%NodeName`)
 All child node references use `%UniqueNode` directly in code — this is the project convention. Nodes are marked with `unique_name_in_owner = true` in their `.tscn`. This is intentional and preferred over `@onready var` or `@export` node references.
+
+### Signal Connections: Scene vs Code
+Signals are connected via scene (`[connection]` in `.tscn`) when both source and target are in the same scene. Code connections (`.connect()`) are used only for: dynamically created nodes, cross-scene callable forwarding, or direct signal re-emission.
 
 ### No UI Virtualization / Object Pooling
 Pagination (50 items per page) keeps the row count bounded. Full row rebuild on page change is acceptable at this scale. Virtualization/pooling would add complexity without meaningful benefit.
@@ -65,13 +74,19 @@ Pagination (50 items per page) keeps the row count bounded. Full row rebuild on 
 `EditorFileSystem` does not expose which specific files changed in `filesystem_changed`. The plugin maintains `_known_resource_mtimes` and compares against current disk state. `scan_folder_for_classed_tres_paths()` re-reads the first line of each `.tres` file to check the class — this is the best available approach given Godot's EditorFileSystem API limitations.
 
 ### Dialogs as Script-Only Nodes
-Dialogs (`SaveResourceDialog`, `ConfirmDeleteDialog`, `ErrorDialog`) have no children and are fully configured at runtime. Per project convention, they are script-only nodes (`.gd` extending the dialog base type) added to the window programmatically in `create_and_add_dialogs()`.
+Dialogs (`SaveResourceDialog`, `ConfirmDeleteDialog`, `ErrorDialog`) have no children and are fully configured at runtime. Per project convention, they are script-only nodes (`.gd` extending the dialog base type) added as children in their parent `.tscn` (toolbar, resource row) or programmatically for editor-only types (`ErrorDialog` in window's `create_and_add_dialogs()`).
 
 ### Delete Moves to OS Trash
-`ConfirmDeleteDialog` uses `OS.move_to_trash()` instead of `DirAccess.remove_absolute()`. Files are recoverable from the OS trash/recycle bin. No undo/redo for deletion — version control is the secondary safety net (see CLAUDE.md).
+Both `ConfirmDeleteDialog` (bulk) and `ResourceRow` (single) use `OS.move_to_trash()` instead of `DirAccess.remove_absolute()`. Files are recoverable from the OS trash/recycle bin. No undo/redo for deletion — version control is the secondary safety net (see CLAUDE.md).
 
 ### Two-Step Window Initialization
-`create_and_add_dialogs()` and `connect_components()` are called separately after instantiation (not in `_ready()`). This is required because Window-inside-Window in `@tool` mode causes errors when Godot reloads with the scene open. The toolbar controls this initialization sequence.
+`create_and_add_dialogs()` and `connect_components()` are called separately after instantiation (not in `_ready()`). This is required because Window-inside-Window in `@tool` mode causes errors when Godot reloads with the scene open. The editor plugin toolbar controls this initialization sequence.
+
+### ClassSelector Owns Include-Subclasses
+The "Include subclasses" checkbox and its warning label live inside the `ClassSelector` scene. `ClassSelector` emits `include_subclasses_toggled(pressed)` and manages the warning label visibility internally. The window connects this signal to `VREStateManager.set_include_subclasses`.
+
+### VREToolbar as Separate Scene
+The toolbar (New / Delete Selected / Refresh) is its own scene (`ui/toolbar/toolbar.tscn`), separate from `ResourceList`. It owns `SaveResourceDialog` and `ConfirmDeleteDialog` for create and bulk-delete operations. The window passes class info and selection state to the toolbar.
 
 ## Data Models
 
@@ -90,6 +105,10 @@ Properties: `class_name_str: String`, `script_path: String`, `properties: Array[
 - `project_classes_changed(classes: Array[String])`
 - `selection_changed(resources: Array[Resource])`
 - `pagination_changed(page: int, page_count: int)`
+- `class_selected(class_name_str: String)`
+- `include_subclasses_toggled(pressed: bool)`
+- `refresh_requested`
+- `error_occurred(message: String)`
 
 ## Key Conventions
 - All hardcoded `load()`/`preload()` use UIDs (`uid://...`), not string paths
@@ -97,3 +116,4 @@ Properties: `class_name_str: String`, `script_path: String`, `properties: Array[
 - No `:=` type inference — always explicit types with `=`
 - Constants are uppercase with explicit types
 - `EditorFileSystemDirectory` references are never cached (freed on rescan)
+- Signal connections via scene when possible; code connections only when necessary (see CLAUDE.md)

@@ -3,7 +3,6 @@ class_name ResourceRow
 extends Button
 
 signal resource_row_selected(resource: Resource, ctrl_held: bool, shift_held: bool)
-signal delete_requested(resource_path: String)
 
 const RESOURCE_FIELD_LABEL_SCENE: PackedScene = preload("uid://uru49vi0kvgxy")
 const FIELD_SEPARATOR_SCENE: PackedScene = preload("uid://y2kj6h91hm8r6")
@@ -15,8 +14,7 @@ var _prop_labels: Dictionary = {}  # property_name → ResourceFieldLabel (only 
 
 func _ready() -> void:
 	if not resource: return
-	
-	%DeleteBtn.pressed.connect(_on_delete_pressed)
+
 	%FileNameLabel.text = resource.resource_path.get_file()
 	%FileNameLabel.tooltip_text = resource.resource_path
 
@@ -91,4 +89,19 @@ func _on_pressed() -> void:
 func _on_delete_pressed() -> void:
 	if resource == null:
 		return
-	delete_requested.emit(resource.resource_path)
+	%ConfirmDeleteDialog.dialog_text = "Move to trash?\n\n%s" % resource.resource_path.get_file()
+	%ConfirmDeleteDialog.popup_centered()
+
+
+func _on_delete_confirmed() -> void:
+	if resource == null:
+		return
+	var path: String = resource.resource_path
+	if not path.begins_with("res://"):
+		push_warning("VRE: Skipping delete of path outside project: %s" % path)
+		return
+	var err: Error = OS.move_to_trash(ProjectSettings.globalize_path(path))
+	if err != OK:
+		push_warning("VRE: Failed to delete: %s" % path)
+		return
+	EditorInterface.get_resource_filesystem().update_file(path)

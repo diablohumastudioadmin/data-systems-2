@@ -71,4 +71,11 @@ layout_mode = 2
 text = "X"
 flat = true
 
+[node name="ConfirmDeleteDialog" type="ConfirmationDialog" parent="." unique_id=193847562]
+unique_name_in_owner = true
+title = "Confirm Delete"
+ok_button_text = "Delete"
+
 [connection signal="pressed" from="." to="." method="_on_pressed"]
+[connection signal="pressed" from="Content/DeleteBtn" to="." method="_on_delete_pressed"]
+[connection signal="confirmed" from="ConfirmDeleteDialog" to="." method="_on_delete_confirmed"]

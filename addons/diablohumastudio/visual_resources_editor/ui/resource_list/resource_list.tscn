@@ -11,31 +11,6 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_list")
 
-[node name="Toolbar" type="HBoxContainer" parent="." unique_id=1107886517]
-layout_mode = 2
-
-[node name="CreateBtn" type="Button" parent="Toolbar" unique_id=1446253593]
-unique_name_in_owner = true
-layout_mode = 2
-text = "New"
-
-[node name="DeleteSelectedBtn" type="Button" parent="Toolbar" unique_id=982454387]
-unique_name_in_owner = true
-layout_mode = 2
-custom_minimum_size = Vector2(170, 0)
-text = "Delete Selected"
-
-[node name="Sep1" type="VSeparator" parent="Toolbar" unique_id=1585828051]
-layout_mode = 2
-
-[node name="RefreshBtn" type="Button" parent="Toolbar" unique_id=1482022476]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Refresh"
-
-[node name="HSeparator" type="HSeparator" parent="." unique_id=1867903496]
-layout_mode = 2
-
 [node name="HeaderRow" parent="." unique_id=232825132 instance=ExtResource("2_hdr")]
 unique_name_in_owner = true
 layout_mode = 2

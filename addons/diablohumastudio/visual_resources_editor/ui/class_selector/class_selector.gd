@@ -2,6 +2,7 @@
 extends HBoxContainer
 
 signal class_selected(class_name_str: String)
+signal include_subclasses_toggled(pressed: bool)
 
 const PLACEHOLDER_TEXT: String = "-- Select a class --"
 
@@ -48,3 +49,8 @@ func _on_class_dropdown_item_selected(index: int) -> void:
 	if class_name_index >= 0 and class_name_index < _classes_names.size():
 		var _class_name: String = _classes_names[class_name_index]
 		class_selected.emit(_class_name)
+
+
+func _on_include_subclasses_toggled(pressed: bool) -> void:
+	%SubclassWarningLabel.visible = pressed
+	include_subclasses_toggled.emit(pressed)
