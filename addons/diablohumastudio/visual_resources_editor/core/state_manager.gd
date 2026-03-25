@@ -16,12 +16,12 @@ var global_class_to_parent_map: Dictionary[String, String]
 var global_class_name_list: Array[String] = []
 
 var _current_class_name: String = ""
-var current_class_names: Array[String] = []
+var _current_included_class_names: Array[String] = []
 var _include_subclasses: bool = true
 
 var current_class_script: GDScript = null
 var current_class_property_list: Array[ResourceProperty] = []
-var subclasses_property_lists: Dictionary = {}
+var current_subclasses_property_lists: Dictionary = {}
 var columns: Array[ResourceProperty] = []
 var resources: Array[Resource] = []
 
@@ -122,23 +122,23 @@ func _resolve_current_classes() -> bool:
 	if _current_class_name.is_empty():
 		return false
 	if _include_subclasses:
-		current_class_names = ProjectClassScanner.get_descendant_classes(_current_class_name, global_class_to_parent_map)
+		_current_included_class_names = ProjectClassScanner.get_descendant_classes(_current_class_name, global_class_to_parent_map)
 	else:
-		current_class_names = [_current_class_name]
+		_current_included_class_names = [_current_class_name]
 	current_class_script = _get_class_script(_current_class_name)
 	return true
 
 
 func _scan_properties() -> void:
-	subclasses_property_lists = {}
-	for cls_name: String in current_class_names:
+	current_subclasses_property_lists = {}
+	for cls_name: String in _current_included_class_names:
 		var script_path: String = global_class_to_path_map.get(cls_name, "")
 		if not script_path.is_empty():
-			subclasses_property_lists[cls_name] = ProjectClassScanner.get_properties_from_script_path(script_path)
+			current_subclasses_property_lists[cls_name] = ProjectClassScanner.get_properties_from_script_path(script_path)
 
 	var empty_props: Array[ResourceProperty] = []
-	current_class_property_list = subclasses_property_lists.get(_current_class_name, empty_props)
-	columns = ProjectClassScanner.unite_classes_properties(current_class_names, global_class_to_path_map)
+	current_class_property_list = current_subclasses_property_lists.get(_current_class_name, empty_props)
+	columns = ProjectClassScanner.unite_classes_properties(_current_included_class_names, global_class_to_path_map)
 
 
 func _scan_resources() -> void:
@@ -146,7 +146,7 @@ func _scan_resources() -> void:
 	if root == null or not is_instance_valid(root):
 		push_warning("VREStateManager: filesystem directory is not valid, skipping resource scan.")
 		return
-	resources = ProjectClassScanner.load_classed_resources_from_dir(current_class_names, root)
+	resources = ProjectClassScanner.load_classed_resources_from_dir(_current_included_class_names, root)
 	_rebuild_known_mtimes()
 
 
@@ -174,7 +174,7 @@ func _rescan_resources_only() -> void:
 	var root: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
 	if root == null or not is_instance_valid(root):
 		return
-	var current_paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(root, current_class_names)
+	var current_paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(root, _current_included_class_names)
 	var changed: bool = false
 
 	# Detect new and modified resources
@@ -331,7 +331,7 @@ func _handle_property_changes() -> void:
 
 
 func _has_current_class_set_changed(previous_classes: Array[String]) -> bool:
-	for cls: String in current_class_names:
+	for cls: String in _current_included_class_names:
 		if not previous_classes.has(cls) or not global_class_name_list.has(cls):
 			return true
 	return false
@@ -354,11 +354,11 @@ func _get_class_script(class_name_str: String) -> GDScript:
 
 func _clear_view() -> void:
 	_current_class_name = ""
-	current_class_names.clear()
+	_current_included_class_names.clear()
 	current_class_script = null
 	var empty_props: Array[ResourceProperty] = []
 	current_class_property_list = empty_props
-	subclasses_property_lists.clear()
+	current_subclasses_property_lists.clear()
 	columns.clear()
 	resources.clear()
 	selected_resources.clear()
