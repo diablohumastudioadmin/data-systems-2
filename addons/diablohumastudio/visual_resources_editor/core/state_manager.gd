@@ -252,10 +252,9 @@ func _on_script_classes_updated() -> void:
 
 func _handle_classes_updated() -> void:
 	_classes_update_pending = false
-	_set_maps()
 
 	var previous_classes: Array[String] = project_resource_classes.duplicate()
-	project_resource_classes = ProjectClassScanner.get_project_resource_classes(global_class_map)
+	_set_maps()
 
 	# Class list unchanged — only check for property changes
 	if previous_classes == project_resource_classes:
