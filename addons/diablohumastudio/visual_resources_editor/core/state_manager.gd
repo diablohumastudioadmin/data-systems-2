@@ -15,15 +15,17 @@ var global_class_to_path_map: Dictionary[String, String] = {}
 var global_class_to_parent_map: Dictionary[String, String]
 var global_class_name_list: Array[String] = []
 
+var _include_subclasses: bool = true
+
 var _current_class_name: String = ""
 var _current_included_class_names: Array[String] = []
-var _include_subclasses: bool = true
 
 var current_class_script: GDScript = null
 var current_class_property_list: Array[ResourceProperty] = []
-var current_subclasses_property_lists: Dictionary = {}
+var current_included_class_property_lists: Dictionary = {}
 var current_shared_propery_list: Array[ResourceProperty] = []
-var resources: Array[Resource] = []
+
+var current_included_classes_resources: Array[Resource] = []
 
 var selected_resources: Array[Resource] = []
 var _selected_paths: Array[String] = []
@@ -66,14 +68,14 @@ func set_include_subclasses(value: bool) -> void:
 
 
 func select(resource: Resource, ctrl_held: bool, shift_held: bool) -> void:
-	var current_idx: int = resources.find(resource)
+	var current_idx: int = current_included_classes_resources.find(resource)
 	if shift_held and _last_anchor != -1 and current_idx != -1:
 		selected_resources.clear()
 		_selected_paths.clear()
 		var from: int = mini(_last_anchor, current_idx)
 		var to: int = maxi(_last_anchor, current_idx)
 		for i: int in (to - from + 1):
-			var res: Resource = resources[from + i]
+			var res: Resource = current_included_classes_resources[from + i]
 			selected_resources.append(res)
 			_selected_paths.append(res.resource_path)
 		# anchor stays unchanged on shift+click
@@ -130,14 +132,14 @@ func _resolve_current_classes() -> bool:
 
 
 func _scan_properties() -> void:
-	current_subclasses_property_lists = {}
+	current_included_class_property_lists = {}
 	for cls_name: String in _current_included_class_names:
 		var script_path: String = global_class_to_path_map.get(cls_name, "")
 		if not script_path.is_empty():
-			current_subclasses_property_lists[cls_name] = ProjectClassScanner.get_properties_from_script_path(script_path)
+			current_included_class_property_lists[cls_name] = ProjectClassScanner.get_properties_from_script_path(script_path)
 
 	var empty_props: Array[ResourceProperty] = []
-	current_class_property_list = current_subclasses_property_lists.get(_current_class_name, empty_props)
+	current_class_property_list = current_included_class_property_lists.get(_current_class_name, empty_props)
 	current_shared_propery_list = ProjectClassScanner.unite_classes_properties(_current_included_class_names, global_class_to_path_map)
 
 
@@ -146,7 +148,7 @@ func _scan_resources() -> void:
 	if root == null or not is_instance_valid(root):
 		push_warning("VREStateManager: filesystem directory is not valid, skipping resource scan.")
 		return
-	resources = ProjectClassScanner.load_classed_resources_from_dir(_current_included_class_names, root)
+	current_included_classes_resources = ProjectClassScanner.load_classed_resources_from_dir(_current_included_class_names, root)
 	_rebuild_known_mtimes()
 
 
@@ -154,17 +156,17 @@ func _restore_selection() -> void:
 	var prev_paths: Array[String] = _selected_paths.duplicate()
 	selected_resources.clear()
 	_selected_paths.clear()
-	for res: Resource in resources:
+	for res: Resource in current_included_classes_resources:
 		if prev_paths.has(res.resource_path):
 			selected_resources.append(res)
 			_selected_paths.append(res.resource_path)
-	_last_anchor = resources.find(selected_resources.back()) if not selected_resources.is_empty() else -1
+	_last_anchor = current_included_classes_resources.find(selected_resources.back()) if not selected_resources.is_empty() else -1
 	selection_changed.emit(selected_resources.duplicate())
 
 
 func _rebuild_known_mtimes() -> void:
 	_known_resource_mtimes.clear()
-	for res: Resource in resources:
+	for res: Resource in current_included_classes_resources:
 		_known_resource_mtimes[res.resource_path] = FileAccess.get_modified_time(res.resource_path)
 
 
@@ -185,16 +187,16 @@ func _rescan_resources_only() -> void:
 			# New resource
 			var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
 			if res:
-				resources.append(res)
+				current_included_classes_resources.append(res)
 				changed = true
 		# Is a changed resource
 		elif mtime != _known_resource_mtimes[path]:
 			# Modified resource — reload in place
 			var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
 			if res:
-				for i: int in resources.size():
-					if resources[i].resource_path == path:
-						resources[i] = res
+				for i: int in current_included_classes_resources.size():
+					if current_included_classes_resources[i].resource_path == path:
+						current_included_classes_resources[i] = res
 						break
 				changed = true
 
@@ -202,31 +204,31 @@ func _rescan_resources_only() -> void:
 	var known_paths: Array = _known_resource_mtimes.keys()
 	for path: String in known_paths:
 		if not current_paths.has(path):
-			for i: int in resources.size():
-				if resources[i].resource_path == path:
-					resources.remove_at(i)
+			for i: int in current_included_classes_resources.size():
+				if current_included_classes_resources[i].resource_path == path:
+					current_included_classes_resources.remove_at(i)
 					break
 			changed = true
 
 	if not changed:
 		return
 
-	resources.sort_custom(func(a: Resource, b: Resource) -> bool: return a.resource_path < b.resource_path)
+	current_included_classes_resources.sort_custom(func(a: Resource, b: Resource) -> bool: return a.resource_path < b.resource_path)
 	_rebuild_known_mtimes()
 	_restore_selection()
 	_emit_page_data_preserving_page()
 
 
 func _page_count() -> int:
-	if resources.is_empty():
+	if current_included_classes_resources.is_empty():
 		return 1
-	return ceili(float(resources.size()) / float(PAGE_SIZE))
+	return ceili(float(current_included_classes_resources.size()) / float(PAGE_SIZE))
 
 
 func _emit_page_data() -> void:
 	var start: int = _current_page * PAGE_SIZE
-	var end: int = mini(start + PAGE_SIZE, resources.size())
-	data_changed.emit(resources.slice(start, end), current_shared_propery_list)
+	var end: int = mini(start + PAGE_SIZE, current_included_classes_resources.size())
+	data_changed.emit(current_included_classes_resources.slice(start, end), current_shared_propery_list)
 	pagination_changed.emit(_current_page, _page_count())
 
 
@@ -324,7 +326,7 @@ func _handle_property_changes() -> void:
 	if ResourceProperty.arrays_equal(new_props, current_class_property_list):
 		return
 	_scan_properties()
-	for res: Resource in resources:
+	for res: Resource in current_included_classes_resources:
 		ResourceSaver.save(res, res.resource_path)
 	_restore_selection()
 	_emit_page_data_preserving_page()
@@ -358,9 +360,9 @@ func _clear_view() -> void:
 	current_class_script = null
 	var empty_props: Array[ResourceProperty] = []
 	current_class_property_list = empty_props
-	current_subclasses_property_lists.clear()
+	current_included_class_property_lists.clear()
 	current_shared_propery_list.clear()
-	resources.clear()
+	current_included_classes_resources.clear()
 	selected_resources.clear()
 	_selected_paths.clear()
 	_last_anchor = -1

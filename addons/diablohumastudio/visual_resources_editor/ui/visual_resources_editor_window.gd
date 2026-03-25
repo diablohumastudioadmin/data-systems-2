@@ -47,7 +47,7 @@ func _on_class_selected(class_name_str: String) -> void:
 	%BulkEditor.current_class_name = class_name_str
 	%BulkEditor.current_class_script = %VREStateManager.current_class_script
 	%BulkEditor.current_class_property_list = %VREStateManager.current_class_property_list
-	%BulkEditor.current_subclasses_property_lists = %VREStateManager.current_subclasses_property_lists
+	%BulkEditor.current_included_class_property_lists = %VREStateManager.current_included_class_property_lists
 	%Toolbar.set_class_info(class_name_str, %VREStateManager.global_class_map)
 
 

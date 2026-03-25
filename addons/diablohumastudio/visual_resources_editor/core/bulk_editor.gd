@@ -10,7 +10,7 @@ const MAX_SAVE_ERROR_PATHS: int = 3
 var current_class_name: String = ""
 var current_class_script: GDScript = null
 var current_class_property_list: Array[ResourceProperty] = []
-var current_subclasses_property_lists: Dictionary = {}
+var current_included_class_property_lists: Dictionary = {}
 var edited_resources : Array[Resource] = [] :
 	set(new_value):
 		edited_resources = new_value
@@ -45,7 +45,7 @@ func _create_bulk_proxy() -> void:
 	_bulk_proxy = script.new()
 	if edited_resources.size() == 1:
 		var res_class: String = script.get_global_name()
-		var props: Array = current_subclasses_property_lists.get(res_class, current_class_property_list)
+		var props: Array = current_included_class_property_lists.get(res_class, current_class_property_list)
 		for prop: ResourceProperty in props:
 			_bulk_proxy.set(prop.name, edited_resources[0].get(prop.name))
 	EditorInterface.inspect_object(_bulk_proxy)
