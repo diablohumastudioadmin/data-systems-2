@@ -12,7 +12,7 @@ const PAGE_SIZE: int = 50
 
 var global_class_map: Array[Dictionary]
 var global_class_to_path_map: Dictionary[String, String] = {}
-var _classes_parent_map: Dictionary[String, String]
+var global_class_to_parent_map: Dictionary[String, String]
 var project_resource_classes: Array[String] = []
 
 var _current_class_name: String = ""
@@ -122,7 +122,7 @@ func _resolve_current_classes() -> bool:
 	if _current_class_name.is_empty():
 		return false
 	if _include_subclasses:
-		current_class_names = ProjectClassScanner.get_descendant_classes(_current_class_name, _classes_parent_map)
+		current_class_names = ProjectClassScanner.get_descendant_classes(_current_class_name, global_class_to_parent_map)
 	else:
 		current_class_names = [_current_class_name]
 	current_class_script = _get_class_script(_current_class_name)
@@ -239,7 +239,7 @@ func _emit_page_data_preserving_page() -> void:
 
 func _set_maps() -> void:
 	global_class_map = ProjectClassScanner.build_global_classes_map()
-	_classes_parent_map = ProjectClassScanner.build_project_classes_parent_map(global_class_map)
+	global_class_to_parent_map = ProjectClassScanner.build_project_classes_parent_map(global_class_map)
 	global_class_to_path_map = ProjectClassScanner.build_class_to_path_map(global_class_map)
 	project_resource_classes = ProjectClassScanner.get_project_resource_classes(global_class_map)
 
