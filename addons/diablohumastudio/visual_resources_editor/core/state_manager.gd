@@ -13,7 +13,7 @@ const PAGE_SIZE: int = 50
 var global_class_map: Array[Dictionary]
 var global_class_to_path_map: Dictionary[String, String] = {}
 var global_class_to_parent_map: Dictionary[String, String]
-var project_resource_classes: Array[String] = []
+var global_class_name_list: Array[String] = []
 
 var _current_class_name: String = ""
 var current_class_names: Array[String] = []
@@ -241,7 +241,7 @@ func _set_maps() -> void:
 	global_class_map = ProjectClassScanner.build_global_classes_map()
 	global_class_to_parent_map = ProjectClassScanner.build_project_classes_parent_map(global_class_map)
 	global_class_to_path_map = ProjectClassScanner.build_class_to_path_map(global_class_map)
-	project_resource_classes = ProjectClassScanner.get_project_resource_classes(global_class_map)
+	global_class_name_list = ProjectClassScanner.get_project_resource_classes(global_class_map)
 
 
 func _on_script_classes_updated() -> void:
@@ -253,23 +253,23 @@ func _on_script_classes_updated() -> void:
 func _handle_classes_updated() -> void:
 	_classes_update_pending = false
 
-	var previous_classes: Array[String] = project_resource_classes.duplicate()
+	var previous_classes: Array[String] = global_class_name_list.duplicate()
 	_set_maps()
 
 	# Class list unchanged — only check for property changes
-	if previous_classes == project_resource_classes:
+	if previous_classes == global_class_name_list:
 		_handle_property_changes()
 		return
 
 	# Class list changed
 	_resave_orphaned_resources(previous_classes)
-	project_classes_changed.emit(project_resource_classes)
+	project_classes_changed.emit(global_class_name_list)
 
 	if _current_class_name.is_empty():
 		return
 
 	# Current Class is missing
-	if not project_resource_classes.has(_current_class_name):
+	if not global_class_name_list.has(_current_class_name):
 		var new_name: String = _detect_class_rename()
 		# Current Class is deleted
 		if new_name.is_empty():
@@ -291,7 +291,7 @@ func _handle_classes_updated() -> void:
 func _resave_orphaned_resources(previous_classes: Array[String]) -> void:
 	var removed_classes: Array[String] = []
 	for cls: String in previous_classes:
-		if not project_resource_classes.has(cls):
+		if not global_class_name_list.has(cls):
 			removed_classes.append(cls)
 	if removed_classes.is_empty():
 		return
@@ -332,7 +332,7 @@ func _handle_property_changes() -> void:
 
 func _has_current_class_set_changed(previous_classes: Array[String]) -> bool:
 	for cls: String in current_class_names:
-		if not previous_classes.has(cls) or not project_resource_classes.has(cls):
+		if not previous_classes.has(cls) or not global_class_name_list.has(cls):
 			return true
 	return false
 

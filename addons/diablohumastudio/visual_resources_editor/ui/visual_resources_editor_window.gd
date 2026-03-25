@@ -32,7 +32,7 @@ func connect_components() -> void:
 	%BulkEditor.error_occurred.connect(error_dialog.show_error)
 	%BulkEditor.resources_edited.connect(_on_resources_edited)
 
-	%ClassSelector.set_classes(%VREStateManager.project_resource_classes)
+	%ClassSelector.set_classes(%VREStateManager.global_class_name_list)
 
 
 func _unhandled_input(event: InputEvent) -> void:
