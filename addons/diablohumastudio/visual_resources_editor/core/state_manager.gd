@@ -11,7 +11,7 @@ signal current_class_renamed(new_name: String)
 const PAGE_SIZE: int = 50
 
 var global_class_map: Array[Dictionary]
-var class_to_path_map: Dictionary[String, String] = {}
+var global_class_to_path_map: Dictionary[String, String] = {}
 var _classes_parent_map: Dictionary[String, String]
 var project_resource_classes: Array[String] = []
 
@@ -132,13 +132,13 @@ func _resolve_current_classes() -> bool:
 func _scan_properties() -> void:
 	subclasses_property_lists = {}
 	for cls_name: String in current_class_names:
-		var script_path: String = class_to_path_map.get(cls_name, "")
+		var script_path: String = global_class_to_path_map.get(cls_name, "")
 		if not script_path.is_empty():
 			subclasses_property_lists[cls_name] = ProjectClassScanner.get_properties_from_script_path(script_path)
 
 	var empty_props: Array[ResourceProperty] = []
 	current_class_property_list = subclasses_property_lists.get(_current_class_name, empty_props)
-	columns = ProjectClassScanner.unite_classes_properties(current_class_names, class_to_path_map)
+	columns = ProjectClassScanner.unite_classes_properties(current_class_names, global_class_to_path_map)
 
 
 func _scan_resources() -> void:
@@ -240,7 +240,7 @@ func _emit_page_data_preserving_page() -> void:
 func _set_maps() -> void:
 	global_class_map = ProjectClassScanner.build_global_classes_map()
 	_classes_parent_map = ProjectClassScanner.build_project_classes_parent_map(global_class_map)
-	class_to_path_map = ProjectClassScanner.build_class_to_path_map(global_class_map)
+	global_class_to_path_map = ProjectClassScanner.build_class_to_path_map(global_class_map)
 	project_resource_classes = ProjectClassScanner.get_project_resource_classes(global_class_map)
 
 
@@ -311,8 +311,8 @@ func _detect_class_rename() -> String:
 	var old_path: String = current_class_script.resource_path
 	if old_path.is_empty():
 		return ""
-	for cls: String in class_to_path_map:
-		if class_to_path_map[cls] == old_path:
+	for cls: String in global_class_to_path_map:
+		if global_class_to_path_map[cls] == old_path:
 			return cls
 	return ""
 
@@ -338,7 +338,7 @@ func _has_current_class_set_changed(previous_classes: Array[String]) -> bool:
 
 
 func _get_current_class_props() -> Array[ResourceProperty]:
-	var script_path: String = class_to_path_map.get(_current_class_name, "")
+	var script_path: String = global_class_to_path_map.get(_current_class_name, "")
 	if not script_path.is_empty():
 		return ProjectClassScanner.get_properties_from_script_path(script_path)
 	var empty_props: Array[ResourceProperty] = []
@@ -346,7 +346,7 @@ func _get_current_class_props() -> Array[ResourceProperty]:
 
 
 func _get_class_script(class_name_str: String) -> GDScript:
-	var script_path: String = class_to_path_map.get(class_name_str, "")
+	var script_path: String = global_class_to_path_map.get(class_name_str, "")
 	if not script_path.is_empty():
 		return load(script_path)
 	return null
