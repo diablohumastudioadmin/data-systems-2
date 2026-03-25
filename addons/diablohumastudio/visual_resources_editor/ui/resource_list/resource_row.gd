@@ -8,7 +8,7 @@ const RESOURCE_FIELD_LABEL_SCENE: PackedScene = preload("uid://uru49vi0kvgxy")
 const FIELD_SEPARATOR_SCENE: PackedScene = preload("uid://y2kj6h91hm8r6")
 
 var resource: Resource = null
-var columns: Array[ResourceProperty] = []
+var current_shared_propery_list: Array[ResourceProperty] = []
 var _prop_labels: Dictionary = {}  # property_name → ResourceFieldLabel (only for properties this resource owns)
 
 
@@ -40,17 +40,17 @@ func _build_field_labels() -> void:
 				continue
 			owned[pname] = true
 
-	for i: int in columns.size():
+	for i: int in current_shared_propery_list.size():
 		if i > 0:
 			var sep: VSeparator = FIELD_SEPARATOR_SCENE.instantiate()
 			%FieldsContainer.add_child(sep)
 
 		var label: ResourceFieldLabel = RESOURCE_FIELD_LABEL_SCENE.instantiate()
 
-		var col_name: String = columns[i].name
+		var col_name: String = current_shared_propery_list[i].name
 		if owned.has(col_name):
 			_prop_labels[col_name] = label
-			label.set_value(resource, columns[i])
+			label.set_value(resource, current_shared_propery_list[i])
 		# else: label stays blank — belongs to a sibling subclass
 
 		%FieldsContainer.add_child(label)
@@ -59,7 +59,7 @@ func _build_field_labels() -> void:
 func update_display() -> void:
 	if not resource:
 		return
-	for col: ResourceProperty in columns:
+	for col: ResourceProperty in current_shared_propery_list:
 		if _prop_labels.has(col.name):
 			_prop_labels[col.name].set_value(resource, col)
 

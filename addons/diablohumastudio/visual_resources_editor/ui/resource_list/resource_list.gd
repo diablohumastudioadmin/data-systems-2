@@ -20,9 +20,9 @@ func _ready() -> void:
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-func set_data(resources: Array[Resource], columns: Array[ResourceProperty]) -> void:
+func set_data(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty]) -> void:
 	_visible_count = resources.size()
-	_build_rows(resources, columns)
+	_build_rows(resources, current_shared_propery_list)
 	_update_status("%d resource(s)" % _visible_count)
 
 
@@ -53,14 +53,14 @@ func update_pagination_bar(page: int, page_count: int) -> void:
 
 # ── Table building ─────────────────────────────────────────────────────────────
 
-func _build_rows(resources: Array[Resource], columns: Array[ResourceProperty]) -> void:
+func _build_rows(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty]) -> void:
 	_clear_rows()
-	%HeaderRow.columns = columns
+	%HeaderRow.current_shared_propery_list = current_shared_propery_list
 
 	for res: Resource in resources:
 		var row: ResourceRow = RESOURCE_ROW_SCENE.instantiate()
 		row.resource = res
-		row.columns = columns
+		row.current_shared_propery_list = current_shared_propery_list
 		%RowsContainer.add_child(row)
 		row.resource_row_selected.connect(_on_resource_row_selected)
 		_rows.append(row)

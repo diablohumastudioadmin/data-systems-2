@@ -2,7 +2,7 @@
 class_name VREStateManager
 extends Node
 
-signal data_changed(resources: Array[Resource], columns: Array[ResourceProperty])
+signal data_changed(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty])
 signal project_classes_changed(classes: Array[String])
 signal selection_changed(resources: Array[Resource])
 signal pagination_changed(page: int, page_count: int)
@@ -22,7 +22,7 @@ var _include_subclasses: bool = true
 var current_class_script: GDScript = null
 var current_class_property_list: Array[ResourceProperty] = []
 var current_subclasses_property_lists: Dictionary = {}
-var columns: Array[ResourceProperty] = []
+var current_shared_propery_list: Array[ResourceProperty] = []
 var resources: Array[Resource] = []
 
 var selected_resources: Array[Resource] = []
@@ -138,7 +138,7 @@ func _scan_properties() -> void:
 
 	var empty_props: Array[ResourceProperty] = []
 	current_class_property_list = current_subclasses_property_lists.get(_current_class_name, empty_props)
-	columns = ProjectClassScanner.unite_classes_properties(_current_included_class_names, global_class_to_path_map)
+	current_shared_propery_list = ProjectClassScanner.unite_classes_properties(_current_included_class_names, global_class_to_path_map)
 
 
 func _scan_resources() -> void:
@@ -226,7 +226,7 @@ func _page_count() -> int:
 func _emit_page_data() -> void:
 	var start: int = _current_page * PAGE_SIZE
 	var end: int = mini(start + PAGE_SIZE, resources.size())
-	data_changed.emit(resources.slice(start, end), columns)
+	data_changed.emit(resources.slice(start, end), current_shared_propery_list)
 	pagination_changed.emit(_current_page, _page_count())
 
 
@@ -359,15 +359,15 @@ func _clear_view() -> void:
 	var empty_props: Array[ResourceProperty] = []
 	current_class_property_list = empty_props
 	current_subclasses_property_lists.clear()
-	columns.clear()
+	current_shared_propery_list.clear()
 	resources.clear()
 	selected_resources.clear()
 	_selected_paths.clear()
 	_last_anchor = -1
 	_current_page = 0
 	var empty_resources: Array[Resource] = []
-	var empty_columns: Array[ResourceProperty] = []
-	data_changed.emit(empty_resources, empty_columns)
+	var empty_current_shared_propery_list: Array[ResourceProperty] = []
+	data_changed.emit(empty_resources, empty_current_shared_propery_list)
 	selection_changed.emit(empty_resources)
 	pagination_changed.emit(0, 1)
 

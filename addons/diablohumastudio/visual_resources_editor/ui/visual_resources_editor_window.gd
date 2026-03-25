@@ -58,8 +58,8 @@ func _on_project_classes_changed(classes: Array[String]) -> void:
 # ── State → UI ─────────────────────────────────────────────────────────────────
 
 func _on_state_data_changed(
-		resources: Array[Resource], columns: Array[ResourceProperty]) -> void:
-	%ResourceList.set_data(resources, columns)
+		resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty]) -> void:
+	%ResourceList.set_data(resources, current_shared_propery_list)
 
 
 # ── Selection & inspection ─────────────────────────────────────────────────────
