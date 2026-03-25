@@ -10,7 +10,7 @@ signal current_class_renamed(new_name: String)
 
 const PAGE_SIZE: int = 50
 
-var global_classes_map: Array[Dictionary]
+var global_class_map: Array[Dictionary]
 var class_to_path_map: Dictionary[String, String] = {}
 var _classes_parent_map: Dictionary[String, String]
 var project_resource_classes: Array[String] = []
@@ -238,10 +238,10 @@ func _emit_page_data_preserving_page() -> void:
 
 
 func _set_maps() -> void:
-	global_classes_map = ProjectClassScanner.build_global_classes_map()
-	_classes_parent_map = ProjectClassScanner.build_project_classes_parent_map(global_classes_map)
-	class_to_path_map = ProjectClassScanner.build_class_to_path_map(global_classes_map)
-	project_resource_classes = ProjectClassScanner.get_project_resource_classes(global_classes_map)
+	global_class_map = ProjectClassScanner.build_global_classes_map()
+	_classes_parent_map = ProjectClassScanner.build_project_classes_parent_map(global_class_map)
+	class_to_path_map = ProjectClassScanner.build_class_to_path_map(global_class_map)
+	project_resource_classes = ProjectClassScanner.get_project_resource_classes(global_class_map)
 
 
 func _on_script_classes_updated() -> void:
@@ -255,7 +255,7 @@ func _handle_classes_updated() -> void:
 	_set_maps()
 
 	var previous_classes: Array[String] = project_resource_classes.duplicate()
-	project_resource_classes = ProjectClassScanner.get_project_resource_classes(global_classes_map)
+	project_resource_classes = ProjectClassScanner.get_project_resource_classes(global_class_map)
 
 	# Class list unchanged — only check for property changes
 	if previous_classes == project_resource_classes:

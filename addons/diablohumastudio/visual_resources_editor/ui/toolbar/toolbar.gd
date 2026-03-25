@@ -8,9 +8,9 @@ signal error_occurred(message: String)
 var _selected_resources: Array[Resource] = []
 
 
-func set_class_info(class_name_str: String, global_classes_map: Array[Dictionary]) -> void:
+func set_class_info(class_name_str: String, global_class_map: Array[Dictionary]) -> void:
 	%SaveResourceDialog.current_class_name = class_name_str
-	%SaveResourceDialog.global_classes_map = global_classes_map
+	%SaveResourceDialog.global_class_map = global_class_map
 
 
 func update_selection(resources: Array[Resource]) -> void:

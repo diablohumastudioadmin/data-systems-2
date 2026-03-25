@@ -48,7 +48,7 @@ func _on_class_selected(class_name_str: String) -> void:
 	%BulkEditor.current_class_script = %VREStateManager.current_class_script
 	%BulkEditor.current_class_property_list = %VREStateManager.current_class_property_list
 	%BulkEditor.subclasses_property_lists = %VREStateManager.subclasses_property_lists
-	%Toolbar.set_class_info(class_name_str, %VREStateManager.global_classes_map)
+	%Toolbar.set_class_info(class_name_str, %VREStateManager.global_class_map)
 
 
 func _on_project_classes_changed(classes: Array[String]) -> void:
