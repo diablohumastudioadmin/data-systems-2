@@ -128,121 +128,267 @@ This guarantees you only instantiate nodes exactly once, dropping UI rebuild tim
 
 MVVM separates your logic into three distinct layers. This entirely eliminates the "Spaghetti Wiring" in your Window node because **Views only talk to ViewModels**, and **ViewModels only talk to Models**. 
 
-Here is how you would comprehensively re-architect `visual_resources_editor` using MVVM.
+Here is how you would comprehensively re-architect `visual_resources_editor` using MVVM, considering every property and signal currently found in your `VREStateManager`.
 
 ### The Model Layer (Data & Business Logic)
-The Model layer contains your core data structures and raw operations. It has zero knowledge of the UI or the ViewModels.
+The Model layer contains your core data structures and raw operations. It has zero knowledge of the UI or the ViewModels. It manages caching, file operations, and project metadata.
 
-- **`ResourceRepository.gd`**: A global/singleton class (or injected dependency) that handles reading files, caching `mtimes`, and holding the array of `Resource` objects.
-- **`ClassDefinitions.gd`**: Holds the mapped properties of your Godot classes.
-- **`FileOperations.gd`**: Handles deleting resources to the trash or saving them.
+**1. `ClassDefinitions.gd`**
+Handles parsing and caching project scripts and properties. It replaces `project_classes_changed` and `current_class_renamed` signals from your old state manager.
+
+```gdscript
+# core/models/class_definitions.gd
+class_name ClassDefinitions extends RefCounted
+
+signal classes_updated(project_classes: Array[String])
+
+var global_classes_map: Array[Dictionary] = []
+var class_to_path_map: Dictionary[String, String] = {}
+var classes_parent_map: Dictionary[String, String] = {}
+var project_resource_classes: Array[String] = []
+
+func refresh_maps() -> void:
+    global_classes_map = ProjectSettings.get_global_class_list()
+    # Logic to rebuild class_to_path_map and classes_parent_map...
+    var previous_classes = project_resource_classes.duplicate()
+    project_resource_classes = _calculate_project_resource_classes()
+    
+    if previous_classes != project_resource_classes:
+        classes_updated.emit(project_resource_classes)
+
+func get_descendant_classes(base_class: String) -> Array[String]:
+    pass # Implementation
+
+func get_properties_for_classes(class_names: Array[String]) -> Array[Dictionary]:
+    pass # United properties logic
+```
+
+**2. `ResourceRepository.gd`**
+Responsible purely for maintaining the list of resources and checking for file system modifications.
+
+```gdscript
+# core/models/resource_repository.gd
+class_name ResourceRepository extends RefCounted
+
+signal repository_changed()
+
+var _known_resource_mtimes: Dictionary[String, int] = {}
+var _resources_cache: Dictionary[String, Resource] = {}
+
+# Scans a list of target classes and loads or updates modified resources
+func rescan_for_classes(target_class_names: Array[String]) -> Array[Resource]:
+    var paths = _get_paths_for_classes(target_class_names)
+    var changed = false
+    var result: Array[Resource] = []
+    
+    for path in paths:
+        var mtime = FileAccess.get_modified_time(path)
+        if not _known_resource_mtimes.has(path) or _known_resource_mtimes[path] != mtime:
+            var res = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
+            if res:
+                _resources_cache[path] = res
+                _known_resource_mtimes[path] = mtime
+                changed = true
+        elif _resources_cache.has(path):
+            result.append(_resources_cache[path])
+            
+    if changed:
+        repository_changed.emit()
+        
+    return result
+```
+
+**3. `FileOperations.gd`**
+Handles all modifications to the filesystem safely.
+
+```gdscript
+# core/models/file_operations.gd
+class_name FileOperations extends RefCounted
+
+static func move_to_trash(paths: Array[String]) -> Array[String]:
+    var failed_paths: Array[String] = []
+    for path in paths:
+        var err = OS.move_to_trash(ProjectSettings.globalize_path(path))
+        if err != OK:
+            failed_paths.append(path)
+    return failed_paths
+
+static func save_resource(resource: Resource, path: String) -> Error:
+    return ResourceSaver.save(resource, path)
+```
 
 ### The ViewModel Layer (The Glue & State)
-The ViewModel holds the specific state required for a View and translates Model data into UI-friendly data. **It exposes Signals that the UI listens to.**
-
-You would create a `VREViewModel` (or separate `ResourceListViewModel`, `ClassSelectorViewModel` if it gets too big):
+The ViewModel absorbs all the state orchestration that was previously crammed into `VREStateManager`. It holds the precise state that the Views need to render (pagination, selection, columns) and exposes signals for the UI to observe.
 
 ```gdscript
 # core/view_models/vre_view_model.gd
 class_name VREViewModel extends RefCounted
 
-signal data_updated(visible_resources: Array[Resource], columns: Array[Dictionary])
-signal pagination_updated(current_page: int, total_pages: int)
-signal selection_updated(selected_count: int, can_delete: bool)
+# --- ALL SIGNALS FROM PREVIOUS STATE MANAGER ---
+signal data_changed(resources: Array[Resource], columns: Array[Dictionary])
+signal project_classes_changed(classes: Array[String])
+signal selection_changed(selected_resources: Array[Resource])
+signal pagination_changed(page: int, page_count: int)
+signal current_class_renamed(new_name: String)
 signal error_occurred(message: String)
 
-var _repository: ResourceRepository
-var _current_class: String = ""
-var _current_page: int = 0
+# --- STATE PROPERTIES ---
+var current_class_name: String = ""
+var include_subclasses: bool = true
+var current_page: int = 0
+var page_size: int = 50
+
+var current_class_script: GDScript = null
+var current_class_property_list: Array[Dictionary] = []
+var subclasses_property_lists: Dictionary = {}
+
 var _selected_resources: Array[Resource] = []
+var _last_anchor: int = -1
+var _all_current_resources: Array[Resource] = []
 
-func _init(repo: ResourceRepository) -> void:
+# --- DEPENDENCIES ---
+var _repository: ResourceRepository
+var _class_definitions: ClassDefinitions
+
+func _init(repo: ResourceRepository, class_defs: ClassDefinitions) -> void:
     _repository = repo
-    _repository.repository_changed.connect(_on_repository_changed)
+    _class_definitions = class_defs
+    
+    _class_definitions.classes_updated.connect(func(classes): project_classes_changed.emit(classes))
+    _repository.repository_changed.connect(refresh_data)
 
-# --- INCOMING COMMANDS FROM VIEW ---
+# --- COMMANDS FROM VIEW ---
 
 func set_target_class(class_name: String) -> void:
-    _current_class = class_name
-    _current_page = 0
+    current_class_name = class_name
+    current_page = 0
     _selected_resources.clear()
-    _recalculate_view_state()
+    _last_anchor = -1
+    
+    _update_class_metadata()
+    refresh_data()
 
-func select_resource(resource: Resource, add_to_selection: bool) -> void:
-    if add_to_selection:
-        _selected_resources.append(resource)
+func set_include_subclasses(include: bool) -> void:
+    include_subclasses = include
+    refresh_data()
+
+func select_resource(resource: Resource, ctrl_held: bool, shift_held: bool) -> void:
+    var idx = _all_current_resources.find(resource)
+    if shift_held and _last_anchor != -1 and idx != -1:
+        # Shift selection logic...
+        pass
+    elif ctrl_held:
+        # Ctrl selection logic...
+        pass
     else:
         _selected_resources = [resource]
-    selection_updated.emit(_selected_resources.size(), _selected_resources.size() > 0)
+        _last_anchor = idx
+    selection_changed.emit(_selected_resources.duplicate())
+
+func next_page() -> void:
+    var max_pages = ceil(_all_current_resources.size() / float(page_size))
+    if current_page < max_pages - 1:
+        current_page += 1
+        _emit_page_state()
 
 func delete_selected() -> void:
     var paths = _selected_resources.map(func(r): return r.resource_path)
-    var success = FileOperations.trash_files(paths)
-    if not success:
-        error_occurred.emit("Failed to delete some files.")
-    # Repository automatically detects the deletion and triggers _on_repository_changed
+    var failed = FileOperations.move_to_trash(paths)
+    if not failed.is_empty():
+        error_occurred.emit("Failed to delete:\n" + "\n".join(failed))
+    else:
+        EditorInterface.get_resource_filesystem().scan() # Triggers repository refresh
 
-# --- OUTGOING STATE TO VIEW ---
+# --- INTERNAL LOGIC ---
 
-func _recalculate_view_state() -> void:
-    var resources = _repository.get_resources_for_class(_current_class)
-    var columns = ClassDefinitions.get_columns(_current_class)
+func _update_class_metadata() -> void:
+    var target_classes = [current_class_name]
+    if include_subclasses:
+        target_classes = _class_definitions.get_descendant_classes(current_class_name)
     
-    # Calculate pagination slice
-    var start = _current_page * 50
-    var paged_resources = resources.slice(start, start + 50)
+    current_class_script = load(_class_definitions.class_to_path_map.get(current_class_name, ""))
+    current_class_property_list = _class_definitions.get_properties_for_classes([current_class_name])
+    # Build subclasses_property_lists and columns...
+
+func refresh_data() -> void:
+    var target_classes = [current_class_name]
+    if include_subclasses:
+        target_classes = _class_definitions.get_descendant_classes(current_class_name)
+        
+    _all_current_resources = _repository.rescan_for_classes(target_classes)
+    _emit_page_state()
+
+func _emit_page_state() -> void:
+    var start = current_page * page_size
+    var end = mini(start + page_size, _all_current_resources.size())
+    var paged = _all_current_resources.slice(start, end)
+    var columns = _class_definitions.get_properties_for_classes([current_class_name]) # Or united columns
     
-    data_updated.emit(paged_resources, columns)
-    pagination_updated.emit(_current_page, ceil(resources.size() / 50.0))
+    data_changed.emit(paged, columns)
+    pagination_changed.emit(current_page, ceil(_all_current_resources.size() / float(page_size)))
 ```
 
 ### The View Layer (UI Only)
-The Views are your `.tscn` and `.gd` files inside the `ui/` folder. They do **not** hold state. They are injected with a ViewModel. They listen to the ViewModel's signals to update labels, and they call functions on the ViewModel when buttons are pressed.
+The Views (`.tscn` and `.gd` inside `ui/`) just observe the ViewModel.
 
-**Example of the Main Window (View):**
+**`VisualResourcesEditorWindow`**: Now acts strictly as the root View initializing the MVVM triad.
 ```gdscript
-# ui/visual_resources_editor_window.gd
 class_name VisualResourcesEditorWindow extends Window
 
 var view_model: VREViewModel
 
-func initialize(vm: VREViewModel) -> void:
-    view_model = vm
+func _ready() -> void:
+    var class_defs = ClassDefinitions.new()
+    var repo = ResourceRepository.new()
+    view_model = VREViewModel.new(repo, class_defs)
     
-    # Bind ViewModel signals to View updates
-    view_model.error_occurred.connect($ErrorDialog.show_error)
-    
-    # Pass the ViewModel down to child views
+    # Distribute the view model
     $ResourceList.initialize(view_model)
     $ClassSelector.initialize(view_model)
+    $BulkEditor.initialize(view_model)
+    
+    view_model.error_occurred.connect($ErrorDialog.show_error)
 ```
 
-**Example of a Child View (`ResourceList`):**
-```gdscript
-# ui/resource_list/resource_list.gd
-class_name ResourceList extends VBoxContainer
+**`ResourceList`**: Listens to `data_changed`, `pagination_changed`, `selection_changed`. It calls `view_model.next_page()`, `view_model.select_resource()`, etc. No direct Godot Editor filesystem or storage logic.
 
-var view_model: VREViewModel
+### Where does `BulkEditor` fit in MVVM?
+The `BulkEditor` interacts directly with Godot's Inspector (`EditorInterface.inspect_object()`). Since it's dealing with Editor UI and presentation, **it is primarily a View**.
+
+It does not need its own specific ViewModel, it can just observe the main `VREViewModel`:
+1. **Initialize:** `BulkEditor` receives `VREViewModel`.
+2. **Observe Selection:** It connects to `view_model.selection_changed`. When selection changes, it reads `view_model.current_class_script`, `view_model.current_class_property_list`, and `view_model.subclasses_property_lists` to construct the proxy dummy object (`_bulk_proxy`).
+3. **Handle Inspector Edits:** When `_inspector.property_edited` fires, the `BulkEditor` (acting as a view) calls `FileOperations.save_resource()` to update the edited resources. (Alternatively, it could call a `view_model.apply_bulk_edit(property, value)` method, moving the saving logic to the ViewModel/Model, which is even strictly cleaner).
+
+```gdscript
+# core/bulk_editor.gd (Now strictly a View component)
+class_name BulkEditor extends Node
+
+var _view_model: VREViewModel
+var _bulk_proxy: Resource
+var _edited_resources: Array[Resource]
 
 func initialize(vm: VREViewModel) -> void:
-    view_model = vm
-    
-    # 1. Listen to ViewModel to update UI
-    view_model.data_updated.connect(_on_data_updated)
-    view_model.pagination_updated.connect(_on_pagination_updated)
-    view_model.selection_updated.connect(_on_selection_updated)
-    
-    # 2. Bind UI actions directly to the ViewModel commands
-    $Toolbar/DeleteSelectedBtn.pressed.connect(view_model.delete_selected)
-    $Toolbar/NextPageBtn.pressed.connect(view_model.next_page)
+    _view_model = vm
+    _view_model.selection_changed.connect(_on_selection_changed)
+    EditorInterface.get_inspector().property_edited.connect(_on_inspector_edited)
 
-func _on_data_updated(resources: Array, columns: Array) -> void:
-    # Use object pooling here to rebuild rows
-    _build_rows(resources, columns)
+func _on_selection_changed(selected: Array[Resource]) -> void:
+    _edited_resources = selected
+    _create_bulk_proxy()
 
-func _on_selection_updated(count: int, can_delete: bool) -> void:
-    $Toolbar/DeleteSelectedBtn.disabled = not can_delete
-    $Toolbar/DeleteSelectedBtn.text = "Delete Selected (%d)" % count
+func _create_bulk_proxy() -> void:
+    # Uses _view_model.current_class_script to generate _bulk_proxy
+    # Uses _view_model.current_class_property_list
+    EditorInterface.inspect_object(_bulk_proxy)
+
+func _on_inspector_edited(property: String) -> void:
+    var new_value = _bulk_proxy.get(property)
+    # View asks Model directly to save, or asks ViewModel to handle it
+    for res in _edited_resources:
+        res.set(property, new_value)
+        FileOperations.save_resource(res, res.resource_path)
+    # The repository will naturally detect the file changes on the next Godot scan
 ```
 
 ### Why MVVM fixes your architecture:
