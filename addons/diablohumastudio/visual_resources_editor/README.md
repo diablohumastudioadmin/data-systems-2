@@ -15,17 +15,17 @@ visual_resources_editor/
 │   │   ├── resource_property.gd        # Typed data model for a single property definition
 │   │   └── class_definition.gd         # Typed data model for a class (name, path, properties)
 │   ├── project_class_scanner.gd        # Static utility: scans project classes, properties, .tres files
-│   ├── state_manager.gd                # VREStateManager: central state (resources, columns, selection, pagination)
+│   ├── state_manager.gd                # VREStateManager: central state (resources, properties, selection, pagination)
 │   ├── state_manager.tscn              # Scene for VREStateManager + DebounceTimer child
 │   └── bulk_editor.gd                  # BulkEditor: proxy-based multi-resource editing via Godot inspector
 ├── ui/
-│   ├── visual_resources_editor_window.gd/.tscn  # Main Window: wires components together
+│   ├── visual_resources_editor_window.gd/.tscn  # Main Window: wires components, owns pagination bar + status label
 │   ├── class_selector/
 │   │   └── class_selector.gd/.tscn     # Dropdown + include-subclasses checkbox
 │   ├── toolbar/
 │   │   └── toolbar.gd/.tscn            # VREToolbar: New/Delete Selected/Refresh + owns SaveResourceDialog & ConfirmDeleteDialog
 │   ├── resource_list/
-│   │   ├── resource_list.gd/.tscn      # Table container: header, scrollable rows, pagination
+│   │   ├── resource_list.gd/.tscn      # Table container: header + scrollable rows only
 │   │   ├── header_row.gd/.tscn         # Column header labels
 │   │   ├── resource_row.gd/.tscn       # One row per resource (Button with toggle_mode, self-contained delete)
 │   │   ├── resource_field_label.gd/.tscn  # Label for a single property cell (owns display/format logic)
@@ -40,13 +40,13 @@ visual_resources_editor/
 
 ## Data Flow
 
-1. **Class scanning**: `ProjectClassScanner` reads `ProjectSettings.get_global_class_list()` to discover all project classes that descend from `Resource`. Results are cached in `VREStateManager` as maps (`global_classes_map`, `class_to_path_map`, `_classes_parent_map`).
+1. **Class scanning**: `ProjectClassScanner` reads `ProjectSettings.get_global_class_list()` to discover all project classes that descend from `Resource`. Results are cached in `VREStateManager` as maps (`global_class_map`, `global_class_to_path_map`, `global_class_to_parent_map`) and the filtered list `global_class_name_list`.
 
 2. **Resource scanning**: When a class is selected, `VREStateManager` uses `ProjectClassScanner.scan_folder_for_classed_tres_paths()` to find all `.tres` files matching the class (and optionally its subclasses). The scanner reads the first line of each `.tres` file via `FileAccess` to extract `script_class=` — it does NOT load the full resource for classification.
 
-3. **State → UI**: `VREStateManager` emits `data_changed(resources, columns)` with only the current page slice. `ResourceList` rebuilds rows from this slice. Pagination is handled entirely in `VREStateManager` (PAGE_SIZE = 50).
+3. **State → UI**: `VREStateManager` emits `data_changed(resources, current_shared_propery_list)` with only the current page slice. `ResourceList` rebuilds rows from this slice. Pagination state is managed by `VREStateManager` (PAGE_SIZE = 50); the pagination bar and status label live in the window scene and are updated via `pagination_changed` signal and the window's `_update_status()` method.
 
-4. **Selection**: `VREStateManager` owns all selection state (`selected_resources`, `_selected_paths`, `_last_anchor`). Supports click, Ctrl/Cmd+click (toggle), and Shift+click (range select across pages). Emits `selection_changed`. The window forwards selection to both `ResourceList` (visual row highlighting) and `VREToolbar` (delete-selected button label).
+4. **Selection**: `VREStateManager` owns all selection state (`selected_resources`, `_selected_paths`, `_selected_resources_last_index`). Supports click, Ctrl/Cmd+click (toggle), and Shift+click (range select across pages). Emits `selection_changed`. The window forwards selection to both `ResourceList` (visual row highlighting) and `VREToolbar` (delete-selected button label).
 
 5. **Bulk editing**: `BulkEditor` creates a proxy resource matching the selected resources' script. For single selection, proxy copies the resource's values. For multi-selection, proxy uses defaults. When the user edits the proxy in Godot's Inspector, `BulkEditor` propagates the change to all selected resources and saves them.
 
@@ -101,7 +101,7 @@ Typed data class wrapping a project Resource class. Replaces passing raw class n
 Properties: `class_name_str: String`, `script_path: String`, `properties: Array[ResourceProperty]`.
 
 ### Signal Signatures
-- `data_changed(resources: Array[Resource], columns: Array[ResourceProperty])`
+- `data_changed(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty])`
 - `project_classes_changed(classes: Array[String])`
 - `selection_changed(resources: Array[Resource])`
 - `pagination_changed(page: int, page_count: int)`

@@ -3,27 +3,17 @@ class_name ResourceList
 extends VBoxContainer
 
 signal row_clicked(resource: Resource, ctrl_held: bool, shift_held: bool)
-signal prev_page_requested
-signal next_page_requested
 
 const RESOURCE_ROW_SCENE: PackedScene = preload("uid://dukcnu4xa4lbd")
 
 var _rows: Array[ResourceRow] = []
 var _resource_to_row: Dictionary = {}  # Resource → ResourceRow
-var _visible_count: int = 0
-
-
-func _ready() -> void:
-	%PrevBtn.pressed.connect(prev_page_requested.emit)
-	%NextBtn.pressed.connect(next_page_requested.emit)
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 func set_data(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty]) -> void:
-	_visible_count = resources.size()
 	_build_rows(resources, current_shared_propery_list)
-	_update_status("%d resource(s)" % _visible_count)
 
 
 func refresh_row(resource_path: String) -> void:
@@ -37,18 +27,6 @@ func update_selection(selected: Array[Resource]) -> void:
 	for row: ResourceRow in _rows:
 		if is_instance_valid(row):
 			row.set_selected(selected.has(row.get_resource()))
-	var count: int = selected.size()
-	if count > 0:
-		_update_status("%d selected" % count)
-	else:
-		_update_status("%d resource(s)" % _visible_count)
-
-
-func update_pagination_bar(page: int, page_count: int) -> void:
-	%PaginationBar.visible = page_count > 1
-	%PageLabel.text = "Page %d / %d" % [page + 1, page_count]
-	%PrevBtn.disabled = page == 0
-	%NextBtn.disabled = page >= page_count - 1
 
 
 # ── Table building ─────────────────────────────────────────────────────────────
@@ -81,9 +59,3 @@ func _clear_rows() -> void:
 
 func _on_resource_row_selected(resource: Resource, ctrl_held: bool, shift_held: bool) -> void:
 	row_clicked.emit(resource, ctrl_held, shift_held)
-
-
-# ── Status ─────────────────────────────────────────────────────────────────────
-
-func _update_status(text: String) -> void:
-	%StatusLabel.text = text
