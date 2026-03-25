@@ -21,6 +21,17 @@ static func get_project_resource_classes(global_classes_map: Array[Dictionary] =
 static func build_global_classes_map() -> Array[Dictionary]:
 	return ProjectSettings.get_global_class_list()
 
+static func build_class_to_path_map(global_classes_map: Array[Dictionary] = []) -> Dictionary[String, String]:
+	if global_classes_map.is_empty(): global_classes_map = build_global_classes_map()
+
+	var class_to_path_map: Dictionary[String, String]
+	for entry: Dictionary in global_classes_map:
+		var cls: String = entry.get("class", "")
+		var path: String = entry.get("path", "")
+		if not cls.is_empty() and not path.is_empty():
+			class_to_path_map[cls] = path
+	return class_to_path_map
+
 static func build_project_classes_parent_map(global_classes_map: Array[Dictionary] = []) -> Dictionary[String, String]:
 	if global_classes_map.is_empty(): global_classes_map = build_global_classes_map()
 

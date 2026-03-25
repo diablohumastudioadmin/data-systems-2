@@ -13,12 +13,11 @@ const PAGE_SIZE: int = 50
 var global_classes_map: Array[Dictionary]
 var class_to_path_map: Dictionary[String, String] = {}
 var _classes_parent_map: Dictionary[String, String]
+var project_resource_classes: Array[String] = []
 
 var _current_class_name: String = ""
 var current_class_names: Array[String] = []
 var _include_subclasses: bool = true
-
-var project_resource_classes: Array[String] = []
 
 var current_class_script: GDScript = null
 var current_class_property_list: Array[ResourceProperty] = []
@@ -37,7 +36,6 @@ func _ready() -> void:
 	if not Engine.is_editor_hint(): return
 
 	_set_maps()
-	project_resource_classes = ProjectClassScanner.get_project_resource_classes(global_classes_map)
 
 	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
 	if efs:
@@ -242,13 +240,8 @@ func _emit_page_data_preserving_page() -> void:
 func _set_maps() -> void:
 	global_classes_map = ProjectClassScanner.build_global_classes_map()
 	_classes_parent_map = ProjectClassScanner.build_project_classes_parent_map(global_classes_map)
-
-	class_to_path_map.clear()
-	for entry: Dictionary in global_classes_map:
-		var cls: String = entry.get("class", "")
-		var path: String = entry.get("path", "")
-		if not cls.is_empty() and not path.is_empty():
-			class_to_path_map[cls] = path
+	class_to_path_map = ProjectClassScanner.build_class_to_path_map(global_classes_map)
+	project_resource_classes = ProjectClassScanner.get_project_resource_classes(global_classes_map)
 
 
 func _on_script_classes_updated() -> void:
