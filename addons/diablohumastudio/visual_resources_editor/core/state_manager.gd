@@ -26,6 +26,7 @@ var current_included_class_property_lists: Dictionary = {}
 var current_shared_propery_list: Array[ResourceProperty] = []
 
 var current_included_classes_resources: Array[Resource] = []
+var _current_classes_resource_mtimes: Dictionary[String, int] = {}
 
 var selected_resources: Array[Resource] = []
 var _selected_paths: Array[String] = []
@@ -34,8 +35,6 @@ var _selected_resources_last_index: int = -1
 var _current_page: int = 0
 
 var _classes_update_pending: bool = false
-
-var _current_classes_resource_mtimes: Dictionary[String, int] = {}
 
 func _ready() -> void:
 	if not Engine.is_editor_hint(): return
