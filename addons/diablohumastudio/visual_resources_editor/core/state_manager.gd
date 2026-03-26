@@ -35,7 +35,7 @@ var _current_page: int = 0
 
 var _classes_update_pending: bool = false
 
-var _known_resource_mtimes: Dictionary[String, int] = {}
+var _current_classes_resource_mtimes: Dictionary[String, int] = {}
 
 func _ready() -> void:
 	if not Engine.is_editor_hint(): return
@@ -168,9 +168,9 @@ func _restore_selection() -> void:
 
 
 func _rebuild_known_mtimes() -> void:
-	_known_resource_mtimes.clear()
+	_current_classes_resource_mtimes.clear()
 	for res: Resource in current_included_classes_resources:
-		_known_resource_mtimes[res.resource_path] = FileAccess.get_modified_time(res.resource_path)
+		_current_classes_resource_mtimes[res.resource_path] = FileAccess.get_modified_time(res.resource_path)
 
 
 func _rescan_resources_only() -> void:
@@ -186,14 +186,14 @@ func _rescan_resources_only() -> void:
 	for path: String in current_paths:
 		var mtime: int = FileAccess.get_modified_time(path)
 		# Is a new resource
-		if not _known_resource_mtimes.has(path):
+		if not _current_classes_resource_mtimes.has(path):
 			# New resource
 			var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
 			if res:
 				current_included_classes_resources.append(res)
 				changed = true
 		# Is a changed resource
-		elif mtime != _known_resource_mtimes[path]:
+		elif mtime != _current_classes_resource_mtimes[path]:
 			# Modified resource — reload in place
 			var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
 			if res:
@@ -204,7 +204,7 @@ func _rescan_resources_only() -> void:
 				changed = true
 
 	# Detect deleted resources
-	var known_paths: Array = _known_resource_mtimes.keys()
+	var known_paths: Array = _current_classes_resource_mtimes.keys()
 	for path: String in known_paths:
 		if not current_paths.has(path):
 			for i: int in current_included_classes_resources.size():
