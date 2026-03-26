@@ -13,7 +13,9 @@ func create_and_add_dialogs() -> void:
 
 
 func connect_components() -> void:
-	%VREStateManager.data_changed.connect(_on_state_data_changed)
+	%VREStateManager.resources_replaced.connect(_on_state_resources_replaced)
+	%VREStateManager.resources_added.connect(_on_state_resources_added)
+	%VREStateManager.resources_removed.connect(_on_state_resources_removed)
 	%VREStateManager.project_classes_changed.connect(_on_project_classes_changed)
 	%VREStateManager.current_class_renamed.connect(%ClassSelector.select_class)
 
@@ -59,11 +61,27 @@ func _on_project_classes_changed(classes: Array[String]) -> void:
 
 # ── State → UI ─────────────────────────────────────────────────────────────────
 
-func _on_state_data_changed(
-		resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty]) -> void:
+func _on_state_resources_replaced(
+			resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty]) -> void:
 	_visible_count = resources.size()
-	%ResourceList.set_data(resources, current_shared_propery_list)
+	%ResourceList.replace_resources(resources, current_shared_propery_list)
 	_update_status("%d resource(s)" % _visible_count)
+
+
+func _on_state_resources_added(resources: Array[Resource]) -> void:
+	%ResourceList.add_resources(resources)
+	%ResourceList.update_selection(%VREStateManager.selected_resources)
+	_visible_count = %ResourceList.get_row_count()
+	if %VREStateManager.selected_resources.is_empty():
+		_update_status("%d resource(s)" % _visible_count)
+
+
+func _on_state_resources_removed(resources: Array[Resource]) -> void:
+	%ResourceList.remove_resources(resources)
+	%ResourceList.update_selection(%VREStateManager.selected_resources)
+	_visible_count = %ResourceList.get_row_count()
+	if %VREStateManager.selected_resources.is_empty():
+		_update_status("%d resource(s)" % _visible_count)
 
 
 # ── Selection & inspection ─────────────────────────────────────────────────────
