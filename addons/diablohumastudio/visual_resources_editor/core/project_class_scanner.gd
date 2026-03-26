@@ -75,7 +75,11 @@ static func get_descendant_classes(
 
 
 static func scan_folder_for_classed_tres_paths(
-	dir: EditorFileSystemDirectory, classes: Array[String]) -> Array[String]:
+	classes: Array[String], dir: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()) -> Array[String]:
+
+	if dir == null or not is_instance_valid(dir):
+		push_warning("ProjectScaner: filesystem directory is not valid, skipping resource scan.")
+		return []
 
 	var results: Array[String]
 	if dir == null or not is_instance_valid(dir):
@@ -93,7 +97,7 @@ static func scan_folder_for_classed_tres_paths(
 			results.append(path)
 
 	for i: int in dir.get_subdir_count():
-		results.append_array(scan_folder_for_classed_tres_paths(dir.get_subdir(i), classes))
+		results.append_array(scan_folder_for_classed_tres_paths(classes, dir.get_subdir(i)))
 
 	return results
 
@@ -172,14 +176,14 @@ static func unite_classes_properties(
 
 
 static func load_classed_resources_from_dir(
-	classes: Array[String], folder: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
+	classes: Array[String], dir: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
 	) -> Array[Resource]:
 
-	if folder == null or not is_instance_valid(folder):
-		push_warning("VREStateManager: filesystem directory is not valid, skipping resource scan.")
+	if dir == null or not is_instance_valid(dir):
+		push_warning("ProjectScaner: filesystem directory is not valid, skipping resource scan.")
 		return []
 
-	var paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(folder, classes)
+	var paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(classes, dir)
 	paths.sort()
 	var resources: Array[Resource] = []
 	for path: String in paths:

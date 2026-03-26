@@ -165,10 +165,8 @@ func _rebuild_known_mtimes() -> void:
 func _rescan_resources_only() -> void:
 	if _current_class_name.is_empty():
 		return
-	var root: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
-	if root == null or not is_instance_valid(root):
-		return
-	var current_paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(root, _current_included_class_names)
+
+	var current_paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(_current_included_class_names)
 	var changed: bool = false
 
 	# Detect new and modified resources
