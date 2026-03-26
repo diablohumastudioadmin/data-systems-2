@@ -134,11 +134,7 @@ func _resolve_current_classes() -> bool:
 
 
 func _scan_properties() -> void:
-	current_included_class_property_lists = {}
-	for cls_name: String in _current_included_class_names:
-		var script_path: String = global_class_to_path_map.get(cls_name, "")
-		if not script_path.is_empty():
-			current_included_class_property_lists[cls_name] = ProjectClassScanner.get_properties_from_script_path(script_path)
+	current_included_class_property_lists = ProjectClassScanner.get_properties_from_script_names(_current_included_class_names)
 
 	var empty_props: Array[ResourceProperty] = []
 	current_class_property_list = current_included_class_property_lists.get(_current_class_name, empty_props)

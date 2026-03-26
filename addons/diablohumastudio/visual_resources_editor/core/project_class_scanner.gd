@@ -110,6 +110,23 @@ static func get_class_from_tres_file(tres_file_path: String) -> String:
 	if end == -1: return ""
 	return first_line.substr(start, end - start)
 
+static func get_properties_from_script_names(cls_names: Array[String], global_class_to_path_map: Dictionary[String, String] = {}) ->Dictionary:
+	var property_lists: Dictionary = {}
+	for cls_name: String in cls_names:
+		property_lists[cls_name] = ProjectClassScanner.get_properties_from_script_name(cls_name)
+	return property_lists
+
+static func get_properties_from_script_name(cls_name: String, global_class_to_path_map: Dictionary[String, String] = {}) -> Array[ResourceProperty]:
+	
+	if global_class_to_path_map.is_empty():
+		global_class_to_path_map = build_class_to_path_map()
+
+	var script_path: String = global_class_to_path_map.get(cls_name, "")
+	if not script_path.is_empty():
+		return ProjectClassScanner.get_properties_from_script_path(script_path)
+	else:
+		push_warning("Script name doesnt correspond to any path. Returning empty properties")
+		return []
 
 static func get_properties_from_script_path(script_path: String) -> Array[ResourceProperty]:
 	var properties: Array[ResourceProperty] = []
