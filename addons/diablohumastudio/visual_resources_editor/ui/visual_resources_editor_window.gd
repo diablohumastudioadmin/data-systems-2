@@ -20,7 +20,7 @@ func connect_components() -> void:
 	%ClassSelector.class_selected.connect(_on_class_selected)
 	%ClassSelector.include_subclasses_toggled.connect(%VREStateManager.set_include_subclasses)
 
-	%ResourceList.row_clicked.connect(%VREStateManager.select)
+	%ResourceList.row_clicked.connect(%VREStateManager.set_selected_resources)
 
 	%PrevBtn.pressed.connect(%VREStateManager.prev_page)
 	%NextBtn.pressed.connect(%VREStateManager.next_page)
@@ -45,7 +45,7 @@ func _unhandled_input(event: InputEvent) -> void:
 # ── Class selector ─────────────────────────────────────────────────────────────
 
 func _on_class_selected(class_name_str: String) -> void:
-	%VREStateManager.set_class(class_name_str)
+	%VREStateManager.set_current_class(class_name_str)
 	%BulkEditor.current_class_name = class_name_str
 	%BulkEditor.current_class_script = %VREStateManager.current_class_script
 	%BulkEditor.current_class_property_list = %VREStateManager.current_class_property_list
