@@ -111,8 +111,9 @@ func prev_page() -> void:
 
 
 func refresh_resource_list_values() -> void:
-	if not _resolve_current_classes():
+	if _current_class_name.is_empty():
 		return
+	_resolve_current_classes()
 	_scan_properties()
 	_scan_resources()
 	_restore_selection()
@@ -122,15 +123,12 @@ func refresh_resource_list_values() -> void:
 
 # ── Private ────────────────────────────────────────────────────────────────────
 
-func _resolve_current_classes() -> bool:
-	if _current_class_name.is_empty():
-		return false
+func _resolve_current_classes() -> void:
 	if _include_subclasses:
 		_current_included_class_names = ProjectClassScanner.get_descendant_classes(_current_class_name, global_class_to_parent_map)
 	else:
 		_current_included_class_names = [_current_class_name]
 	current_class_script = _get_class_script(_current_class_name)
-	return true
 
 
 func _scan_properties() -> void:
