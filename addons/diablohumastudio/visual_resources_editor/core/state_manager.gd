@@ -146,11 +146,7 @@ func _scan_properties() -> void:
 
 
 func _scan_resources() -> void:
-	var root: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
-	if root == null or not is_instance_valid(root):
-		push_warning("VREStateManager: filesystem directory is not valid, skipping resource scan.")
-		return
-	current_included_classes_resources = ProjectClassScanner.load_classed_resources_from_dir(_current_included_class_names, root)
+	current_included_classes_resources = ProjectClassScanner.load_classed_resources_from_dir(_current_included_class_names)
 	_rebuild_known_mtimes()
 
 
@@ -299,11 +295,8 @@ func _resave_orphaned_resources(previous_classes: Array[String]) -> void:
 			removed_classes.append(cls)
 	if removed_classes.is_empty():
 		return
-	var root: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
-	if root == null or not is_instance_valid(root):
-		return
 	var orphaned_resources: Array[Resource] = (
-		ProjectClassScanner.load_classed_resources_from_dir(removed_classes, root)
+		ProjectClassScanner.load_classed_resources_from_dir(removed_classes)
 	)
 	for res: Resource in orphaned_resources:
 		ResourceSaver.save(res, res.resource_path)

@@ -157,6 +157,11 @@ static func unite_classes_properties(
 static func load_classed_resources_from_dir(
 	classes: Array[String], folder: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
 	) -> Array[Resource]:
+
+	if folder == null or not is_instance_valid(folder):
+		push_warning("VREStateManager: filesystem directory is not valid, skipping resource scan.")
+		return []
+
 	var paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(folder, classes)
 	paths.sort()
 	var resources: Array[Resource] = []
