@@ -2,7 +2,9 @@
 class_name VREStateManager
 extends Node
 
-signal data_changed(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty])
+signal resources_replaced(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty])
+signal resources_added(resources: Array[Resource])
+signal resources_removed(resources: Array[Resource])
 signal project_classes_changed(classes: Array[String])
 signal selection_changed(resources: Array[Resource])
 signal pagination_changed(page: int, page_count: int)
@@ -72,30 +74,42 @@ func set_include_subclasses(value: bool) -> void:
 func set_selected_resources(resource: Resource, ctrl_held: bool, shift_held: bool) -> void:
 	var current_idx: int = current_resources.find(resource)
 	if shift_held and _selected_resources_last_index != -1 and current_idx != -1:
-		selected_resources.clear()
-		_selected_paths.clear()
-		var from: int = mini(_selected_resources_last_index, current_idx)
-		var to: int = maxi(_selected_resources_last_index, current_idx)
-		for i: int in (to - from + 1):
-			var res: Resource = current_resources[from + i]
-			selected_resources.append(res)
-			_selected_paths.append(res.resource_path)
-		# anchor stays unchanged on shift+click
+		handle_select_shift(current_idx)
 	elif ctrl_held:
-		if selected_resources.has(resource):
-			selected_resources.erase(resource)
-			_selected_paths.erase(resource.resource_path)
-		else:
-			selected_resources.append(resource)
-			_selected_paths.append(resource.resource_path)
-		_selected_resources_last_index = current_idx
+		handle_select_ctrl(resource, current_idx)
 	else:
-		selected_resources.clear()
-		_selected_paths.clear()
+		handle_select_no_key(resource, current_idx)
+	selection_changed.emit(selected_resources.duplicate())
+
+
+func handle_select_shift(current_idx: int) -> void:
+	selected_resources.clear()
+	_selected_paths.clear()
+	var from: int = mini(_selected_resources_last_index, current_idx)
+	var to: int = maxi(_selected_resources_last_index, current_idx)
+	for i: int in (to - from + 1):
+		var res: Resource = current_resources[from + i]
+		selected_resources.append(res)
+		_selected_paths.append(res.resource_path)
+	# anchor stays unchanged on shift+click
+
+
+func handle_select_ctrl(resource: Resource, current_idx: int) -> void:
+	if selected_resources.has(resource):
+		selected_resources.erase(resource)
+		_selected_paths.erase(resource.resource_path)
+	else:
 		selected_resources.append(resource)
 		_selected_paths.append(resource.resource_path)
-		_selected_resources_last_index = current_idx
-	selection_changed.emit(selected_resources.duplicate())
+	_selected_resources_last_index = current_idx
+
+
+func handle_select_no_key(resource: Resource, current_idx: int) -> void:
+	selected_resources.clear()
+	_selected_paths.clear()
+	selected_resources.append(resource)
+	_selected_paths.append(resource.resource_path)
+	_selected_resources_last_index = current_idx
 
 
 func next_page() -> void:
@@ -115,7 +129,7 @@ func refresh_resource_list_values() -> void:
 		return
 	_resolve_current_classes()
 	_scan_current_properties()
-	_scan_current_resources()
+	_scan_current_resources(true)
 	_restore_selection()
 	_current_page = 0
 	_emit_page_data()
@@ -139,11 +153,6 @@ func _scan_current_properties() -> void:
 	current_shared_propery_list = ProjectClassScanner.unite_classes_properties(_current_included_class_names, global_class_to_path_map)
 
 
-func _scan_current_resources() -> void:
-	current_resources = ProjectClassScanner.load_classed_resources_from_dir(_current_included_class_names)
-	_rebuild_known_mtimes()
-
-
 func _restore_selection() -> void:
 	var prev_paths: Array[String] = _selected_paths.duplicate()
 	selected_resources.clear()
@@ -162,12 +171,20 @@ func _rebuild_known_mtimes() -> void:
 		_current_resource_mtimes[res.resource_path] = FileAccess.get_modified_time(res.resource_path)
 
 
-func _rescan_resources_only() -> void:
+func _scan_current_resources(reseting: bool = false) -> void:
 	if _current_class_name.is_empty():
+		return
+
+	if reseting:
+		current_resources = ProjectClassScanner.load_classed_resources_from_dir(_current_included_class_names)
+		_rebuild_known_mtimes()
 		return
 
 	var current_paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(_current_included_class_names)
 	var changed: bool = false
+	var added_resources: Array[Resource] = []
+	var modified_resources: Array[Resource] = []
+	var removed_resources: Array[Resource] = []
 
 	# Detect new and modified resources
 	for path: String in current_paths:
@@ -178,6 +195,7 @@ func _rescan_resources_only() -> void:
 			var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
 			if res:
 				current_resources.append(res)
+				added_resources.append(res)
 				changed = true
 		# Is a changed resource
 		elif mtime != _current_resource_mtimes[path]:
@@ -188,6 +206,7 @@ func _rescan_resources_only() -> void:
 					if current_resources[i].resource_path == path:
 						current_resources[i] = res
 						break
+				modified_resources.append(res)
 				changed = true
 
 	# Detect deleted resources
@@ -196,6 +215,7 @@ func _rescan_resources_only() -> void:
 		if not current_paths.has(path):
 			for i: int in current_resources.size():
 				if current_resources[i].resource_path == path:
+					removed_resources.append(current_resources[i])
 					current_resources.remove_at(i)
 					break
 			changed = true
@@ -209,6 +229,14 @@ func _rescan_resources_only() -> void:
 	_emit_page_data_preserving_page()
 
 
+	if not added_resources.is_empty():
+		resources_added.emit(added_resources)
+	if not removed_resources.is_empty():
+		resources_removed.emit(removed_resources)
+	if not modified_resources.is_empty():
+		return
+
+
 func _page_count() -> int:
 	if current_resources.is_empty():
 		return 1
@@ -218,7 +246,7 @@ func _page_count() -> int:
 func _emit_page_data() -> void:
 	var start: int = _current_page * PAGE_SIZE
 	var end: int = mini(start + PAGE_SIZE, current_resources.size())
-	data_changed.emit(current_resources.slice(start, end), current_shared_propery_list)
+	resources_replaced.emit(current_resources.slice(start, end), current_shared_propery_list)
 	pagination_changed.emit(_current_page, _page_count())
 
 
@@ -356,7 +384,7 @@ func _clear_view() -> void:
 	_current_page = 0
 	var empty_resources: Array[Resource] = []
 	var empty_current_shared_propery_list: Array[ResourceProperty] = []
-	data_changed.emit(empty_resources, empty_current_shared_propery_list)
+	resources_replaced.emit(empty_resources, empty_current_shared_propery_list)
 	selection_changed.emit(empty_resources)
 	pagination_changed.emit(0, 1)
 
@@ -365,4 +393,4 @@ func _on_filesystem_changed() -> void:
 	print("fs changed ")
 	if _classes_update_pending:
 		return
-	%RescanDebounceTimer.start_debouncing(_rescan_resources_only)
+	%RescanDebounceTimer.start_debouncing(_scan_current_resources)
