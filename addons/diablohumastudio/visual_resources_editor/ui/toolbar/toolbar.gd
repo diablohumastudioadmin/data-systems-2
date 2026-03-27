@@ -8,6 +8,14 @@ signal error_occurred(message: String)
 var _selected_resources: Array[Resource] = []
 
 
+func initialize(state: VREStateManager) -> void:
+	refresh_requested.connect(state.refresh_resource_list_values)
+	state.selection_changed.connect(update_selection)
+	state.resources_replaced.connect(func(_resources: Array[Resource], _props: Array[ResourceProperty]) -> void:
+		set_class_info(state._current_class_name, state.classes_repo.global_class_map)
+	)
+
+
 func set_class_info(class_name_str: String, global_class_map: Array[Dictionary]) -> void:
 	%SaveResourceDialog.current_class_name = class_name_str
 	%SaveResourceDialog.global_class_map = global_class_map

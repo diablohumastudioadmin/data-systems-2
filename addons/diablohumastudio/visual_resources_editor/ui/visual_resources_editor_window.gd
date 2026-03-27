@@ -16,31 +16,29 @@ func create_and_add_dialogs() -> void:
 func initialize(state: VREStateManager) -> void:
 	_state = state
 
-	state.resources_replaced.connect(_on_state_resources_replaced)
-	state.resources_added.connect(_on_state_resources_added)
-	state.resources_modified.connect(_on_state_resources_modified)
-	state.resources_removed.connect(_on_state_resources_removed)
-	state.project_classes_changed.connect(_on_project_classes_changed)
-	state.current_class_renamed.connect(%ClassSelector.select_class)
+	# Children wire themselves to state
+	%ClassSelector.initialize(state)
+	%ResourceList.initialize(state)
+	%Toolbar.initialize(state)
+	%BulkEditor.initialize(state)
 
-	%ClassSelector.class_selected.connect(_on_class_selected)
-	%ClassSelector.include_subclasses_toggled.connect(state.set_include_subclasses)
-
-	%ResourceList.row_clicked.connect(state.set_selected_resources)
-
+	# Window-level: pagination bar
 	%PrevBtn.pressed.connect(state.prev_page)
 	%NextBtn.pressed.connect(state.next_page)
-
-	%Toolbar.refresh_requested.connect(state.refresh_resource_list_values)
-	%Toolbar.error_occurred.connect(error_dialog.show_error)
-
-	state.selection_changed.connect(_on_selection_changed)
 	state.pagination_changed.connect(_on_pagination_changed)
 
-	%BulkEditor.error_occurred.connect(error_dialog.show_error)
-	%BulkEditor.resources_edited.connect(_on_resources_edited)
+	# Window-level: status bar
+	state.resources_replaced.connect(_on_state_resources_replaced)
+	state.resources_added.connect(_on_state_resources_added)
+	state.resources_removed.connect(_on_state_resources_removed)
+	state.selection_changed.connect(_on_selection_changed)
 
-	%ClassSelector.set_classes(state.classes_repo.class_name_list)
+	# Window-level: error dialogs
+	%Toolbar.error_occurred.connect(error_dialog.show_error)
+	%BulkEditor.error_occurred.connect(error_dialog.show_error)
+
+	# Cross-component: bulk editor → resource list row refresh
+	%BulkEditor.resources_edited.connect(_on_resources_edited)
 
 
 func _unhandled_input(event: InputEvent) -> void:

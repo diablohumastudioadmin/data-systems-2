@@ -11,6 +11,24 @@ var _resource_path_to_row: Dictionary[String, ResourceRow] = {}
 var _current_shared_propery_list: Array[ResourceProperty] = []
 
 
+func initialize(state: VREStateManager) -> void:
+	row_clicked.connect(state.set_selected_resources)
+	state.resources_replaced.connect(replace_resources)
+	state.resources_added.connect(func(resources: Array[Resource]) -> void:
+		add_resources(resources)
+		update_selection(state.selected_resources)
+	)
+	state.resources_modified.connect(func(resources: Array[Resource]) -> void:
+		modify_resources(resources)
+		update_selection(state.selected_resources)
+	)
+	state.resources_removed.connect(func(resources: Array[Resource]) -> void:
+		remove_resources(resources)
+		update_selection(state.selected_resources)
+	)
+	state.selection_changed.connect(update_selection)
+
+
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 func replace_resources(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty]) -> void:

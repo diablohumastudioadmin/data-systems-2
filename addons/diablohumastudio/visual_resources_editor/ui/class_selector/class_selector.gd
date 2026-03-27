@@ -13,6 +13,14 @@ func _ready() -> void:
 	set_classes_in_dropdown()
 
 
+func initialize(state: VREStateManager) -> void:
+	class_selected.connect(state.set_current_class)
+	include_subclasses_toggled.connect(state.set_include_subclasses)
+	state.project_classes_changed.connect(set_classes)
+	state.current_class_renamed.connect(select_class)
+	set_classes(state.classes_repo.class_name_list)
+
+
 func set_classes_in_dropdown() -> void:
 	var selected_index: int = %ClassDropdown.selected
 	var selected_text: String = %ClassDropdown.get_item_text(selected_index) if selected_index > 0 else ""
