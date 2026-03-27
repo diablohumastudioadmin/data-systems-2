@@ -18,8 +18,7 @@
   .fn-group td, .fn-group th { border-top: 2px solid #cba6f7; }
   .fn-desc { color: #6c7086; font-size: 10px; }
 
-  /* ── Column background stripes (applied to both th and td) ── */
-  /* Signal columns: col 2-6 */
+  /* Column background stripes */
   .col-signal  { background-color: #1e1525; }
   .col-global  { background-color: #1a2e1f; }
   .col-current { background-color: #1a2230; }
@@ -39,16 +38,15 @@
   th.fn-header.hdr-page    { color: #f9e2af; background-color: #26261a; }
   th.fn-header.hdr-flag    { color: #a6adc8; background-color: #222228; }
 
-  /* ── Cell marker: font color only, no background override ── */
+  /* Cell marker: font color only */
   td.R  { color: #a6e3a1; font-weight: bold; }
   td.W  { color: #89b4fa; font-weight: bold; }
   td.RW { color: #fab387; font-weight: bold; }
   td.E  { color: #f38ba8; font-weight: bold; }
-  td.C  { color: #f9e2af; font-weight: bold; }
 
   tr:hover td { filter: brightness(1.25); }
 
-  /* ── Call graph table ── */
+  /* Call graph table */
   .call-table td { text-align: left; background: #313244; }
   .call-table th { text-align: left; background: #313244; }
 </style>
@@ -71,18 +69,21 @@
   <span><span class="swatch" style="background:#1a2e1f"></span> Global maps</span>
   <span><span class="swatch" style="background:#1a2230"></span> Current class</span>
   <span><span class="swatch" style="background:#221a30"></span> Properties</span>
-  <span><span class="swatch" style="background:#2e221a"></span> Resources</span>
+  <span><span class="swatch" style="background:#2e221a"></span> Class resources</span>
   <span><span class="swatch" style="background:#2e1a22"></span> Selection</span>
-  <span><span class="swatch" style="background:#26261a"></span> Pagination</span>
+  <span><span class="swatch" style="background:#26261a"></span> Page state</span>
   <span><span class="swatch" style="background:#222228"></span> Flags</span>
 </div>
 
 <table>
 <thead>
 <tr>
-  <th style="text-align:left; min-width: 220px; background: #313244;">Function</th>
+  <th style="text-align:left; min-width: 260px; background: #313244;">Function</th>
   <!-- Signals -->
-  <th class="fn-header hdr-signal">data_changed</th>
+  <th class="fn-header hdr-signal">resources_replaced</th>
+  <th class="fn-header hdr-signal">resources_added</th>
+  <th class="fn-header hdr-signal">resources_modified</th>
+  <th class="fn-header hdr-signal">resources_removed</th>
   <th class="fn-header hdr-signal">project_classes_changed</th>
   <th class="fn-header hdr-signal">selection_changed</th>
   <th class="fn-header hdr-signal">pagination_changed</th>
@@ -101,15 +102,17 @@
   <th class="fn-header hdr-props">current_class_property_list</th>
   <th class="fn-header hdr-props">current_included_class_property_lists</th>
   <th class="fn-header hdr-props">current_shared_propery_list</th>
-  <!-- Resources -->
-  <th class="fn-header hdr-res">current_included_classes_resources</th>
-  <th class="fn-header hdr-res">_current_classes_resource_mtimes</th>
+  <!-- Class resources -->
+  <th class="fn-header hdr-res">current_class_resources</th>
+  <th class="fn-header hdr-res">_current_class_resources_mtimes</th>
   <!-- Selection -->
   <th class="fn-header hdr-sel">selected_resources</th>
   <th class="fn-header hdr-sel">_selected_paths</th>
   <th class="fn-header hdr-sel">_selected_resources_last_index</th>
-  <!-- Pagination -->
+  <!-- Page state -->
   <th class="fn-header hdr-page">_current_page</th>
+  <th class="fn-header hdr-page">_current_page_resources</th>
+  <th class="fn-header hdr-page">current_page_resources_mtimes</th>
   <!-- Flags -->
   <th class="fn-header hdr-flag">_classes_update_pending</th>
 </tr>
@@ -118,302 +121,381 @@
 
 <!-- ── Public API ────────────────────────── -->
 <tr class="fn-group">
-  <th class="prop-header">set_class() <span class="fn-desc">— set current class, full refresh</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <th class="prop-header">set_current_class() <span class="fn-desc">— set current class, full refresh</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current W">W</td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 <tr>
   <th class="prop-header">set_include_subclasses() <span class="fn-desc">— toggle subclass filter</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current W">W</td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 <tr>
-  <th class="prop-header">select() <span class="fn-desc">— handle row click (ctrl/shift)</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal E">E</td><td class="col-signal"></td><td class="col-signal"></td>
+  <th class="prop-header">set_selected_resources() <span class="fn-desc">— dispatch click to handler</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal E">E</td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res R">R</td><td class="col-res"></td>
-  <td class="col-sel RW">RW</td><td class="col-sel RW">RW</td><td class="col-sel RW">RW</td>
-  <td class="col-page"></td>
+  <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 <tr>
-  <th class="prop-header">next_page() <span class="fn-desc">— advance page</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <th class="prop-header">handle_select_shift() <span class="fn-desc">— range select from anchor</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
+  <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
+  <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
+  <td class="col-res R">R</td><td class="col-res"></td>
+  <td class="col-sel RW">RW</td><td class="col-sel RW">RW</td><td class="col-sel R">R</td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
+  <td class="col-flag"></td>
+</tr>
+<tr>
+  <th class="prop-header">handle_select_ctrl() <span class="fn-desc">— toggle single selection</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
+  <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
+  <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
+  <td class="col-res"></td><td class="col-res"></td>
+  <td class="col-sel RW">RW</td><td class="col-sel RW">RW</td><td class="col-sel W">W</td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
+  <td class="col-flag"></td>
+</tr>
+<tr>
+  <th class="prop-header">handle_select_no_key() <span class="fn-desc">— single select, clear others</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
+  <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
+  <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
+  <td class="col-res"></td><td class="col-res"></td>
+  <td class="col-sel RW">RW</td><td class="col-sel RW">RW</td><td class="col-sel W">W</td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
+  <td class="col-flag"></td>
+</tr>
+<tr>
+  <th class="prop-header">next_page() / prev_page() <span class="fn-desc">— change page</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page RW">RW</td>
-  <td class="col-flag"></td>
-</tr>
-<tr>
-  <th class="prop-header">prev_page() <span class="fn-desc">— go back a page</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
-  <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
-  <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
-  <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
-  <td class="col-res"></td><td class="col-res"></td>
-  <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page RW">RW</td>
+  <td class="col-page R">R</td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 <tr>
   <th class="prop-header">refresh_resource_list_values() <span class="fn-desc">— full pipeline</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
-  <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
+  <td class="col-current"></td><td class="col-current R">R</td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page W">W</td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 
 <!-- ── Private: resolve & scan ────────────── -->
 <tr class="fn-group">
   <th class="prop-header">_resolve_current_classes() <span class="fn-desc">— resolve class names + script</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global R">R</td><td class="col-global"></td>
   <td class="col-current R">R</td><td class="col-current R">R</td><td class="col-current W">W</td><td class="col-current W">W</td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 <tr>
-  <th class="prop-header">_scan_properties() <span class="fn-desc">— rebuild property lists</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <th class="prop-header">_scan_current_properties() <span class="fn-desc">— rebuild property lists</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global R">R</td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current R">R</td><td class="col-current R">R</td><td class="col-current"></td>
   <td class="col-props W">W</td><td class="col-props W">W</td><td class="col-props W">W</td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
-  <td class="col-flag"></td>
-</tr>
-<tr>
-  <th class="prop-header">_scan_resources() <span class="fn-desc">— load matching .tres files</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
-  <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
-  <td class="col-current"></td><td class="col-current"></td><td class="col-current R">R</td><td class="col-current"></td>
-  <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
-  <td class="col-res W">W</td><td class="col-res"></td>
-  <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 <tr>
   <th class="prop-header">_restore_selection() <span class="fn-desc">— match paths after rescan</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal E">E</td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal E">E</td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res R">R</td><td class="col-res"></td>
   <td class="col-sel RW">RW</td><td class="col-sel RW">RW</td><td class="col-sel W">W</td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
+  <td class="col-flag"></td>
+</tr>
+
+<!-- ── Private: class resources ────────────── -->
+<tr class="fn-group">
+  <th class="prop-header">set_current_class_resources() <span class="fn-desc">— full or incremental load</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
+  <td class="col-current"></td><td class="col-current R">R</td><td class="col-current R">R</td><td class="col-current"></td>
+  <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
+  <td class="col-res W">W</td><td class="col-res"></td>
+  <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 <tr>
-  <th class="prop-header">_rebuild_known_mtimes() <span class="fn-desc">— refresh mtime cache</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <th class="prop-header">_scan_class_resources_for_changes() <span class="fn-desc">— mtime-based incremental diff</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
+  <td class="col-current"></td><td class="col-current"></td><td class="col-current R">R</td><td class="col-current"></td>
+  <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
+  <td class="col-res R">R</td><td class="col-res R">R</td>
+  <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
+  <td class="col-flag"></td>
+</tr>
+<tr>
+  <th class="prop-header">_rebuild_current_class_resource_mtimes() <span class="fn-desc">— refresh class mtime cache</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res R">R</td><td class="col-res W">W</td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 
-<!-- ── Private: incremental rescan ────────── -->
+<!-- ── Private: page resources ────────────── -->
 <tr class="fn-group">
-  <th class="prop-header">_rescan_resources_only() <span class="fn-desc">— mtime-based incremental</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <th class="prop-header">_set_current_page() <span class="fn-desc">— clamp page + update page resources</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal E">E</td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
-  <td class="col-current"></td><td class="col-current R">R</td><td class="col-current R">R</td><td class="col-current"></td>
+  <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
-  <td class="col-res RW">RW</td><td class="col-res R">R</td>
+  <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page W">W</td><td class="col-page"></td><td class="col-page"></td>
+  <td class="col-flag"></td>
+</tr>
+<tr>
+  <th class="prop-header">set_current_page_resources() <span class="fn-desc">— slice page + diff for changes</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
+  <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
+  <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
+  <td class="col-res R">R</td><td class="col-res"></td>
+  <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
+  <td class="col-page R">R</td><td class="col-page W">W</td><td class="col-page R">R</td>
+  <td class="col-flag"></td>
+</tr>
+<tr>
+  <th class="prop-header">_scan_page_resources_for_changes() <span class="fn-desc">— diff prev/current page, emit granular</span></th>
+  <td class="col-signal"></td><td class="col-signal E">E</td><td class="col-signal E">E</td><td class="col-signal E">E</td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
+  <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
+  <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
+  <td class="col-res"></td><td class="col-res"></td>
+  <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
+  <td class="col-page"></td><td class="col-page R">R</td><td class="col-page R">R</td>
+  <td class="col-flag"></td>
+</tr>
+<tr>
+  <th class="prop-header">_rebuild_current_page_resource_mtimes() <span class="fn-desc">— refresh page mtime cache</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
+  <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
+  <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
+  <td class="col-res"></td><td class="col-res"></td>
+  <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
+  <td class="col-page"></td><td class="col-page R">R</td><td class="col-page W">W</td>
   <td class="col-flag"></td>
 </tr>
 
 <!-- ── Private: pagination ────────────────── -->
 <tr class="fn-group">
   <th class="prop-header">_page_count() <span class="fn-desc">— calculate total pages</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res R">R</td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 <tr>
-  <th class="prop-header">_emit_page_data() <span class="fn-desc">— emit page slice + signals</span></th>
-  <td class="col-signal E">E</td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal E">E</td><td class="col-signal"></td>
+  <th class="prop-header">_emit_page_data() <span class="fn-desc">— emit resources_replaced + pagination</span></th>
+  <td class="col-signal E">E</td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal E">E</td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props R">R</td>
-  <td class="col-res R">R</td><td class="col-res"></td>
+  <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page R">R</td>
+  <td class="col-page R">R</td><td class="col-page R">R</td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 <tr>
-  <th class="prop-header">_emit_page_data_preserving_page() <span class="fn-desc">— clamp page then emit</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <th class="prop-header">_emit_page_data_preserving_page() <span class="fn-desc">— clamp page then emit replaced</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page RW">RW</td>
+  <td class="col-page R">R</td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 
 <!-- ── Private: global maps ──────────────── -->
 <tr class="fn-group">
   <th class="prop-header">_set_maps() <span class="fn-desc">— rebuild all global class maps</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global W">W</td><td class="col-global W">W</td><td class="col-global W">W</td><td class="col-global W">W</td>
   <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 
 <!-- ── Private: class update handlers ────── -->
 <tr class="fn-group">
   <th class="prop-header">_on_script_classes_updated() <span class="fn-desc">— EditorFS signal handler</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag W">W</td>
 </tr>
 <tr>
-  <th class="prop-header">_handle_classes_updated() <span class="fn-desc">— process class add/remove/rename</span></th>
-  <td class="col-signal"></td><td class="col-signal E">E</td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal E">E</td>
+  <th class="prop-header">_handle_global_classes_updated() <span class="fn-desc">— process class add/remove/rename</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal E">E</td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal E">E</td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global R">R</td>
   <td class="col-current"></td><td class="col-current RW">RW</td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag W">W</td>
 </tr>
 <tr>
   <th class="prop-header">_resave_orphaned_resources() <span class="fn-desc">— resave .tres for removed classes</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global R">R</td>
   <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 <tr>
   <th class="prop-header">_detect_class_rename() <span class="fn-desc">— find new name by script path</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global R">R</td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current R">R</td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 <tr>
   <th class="prop-header">_handle_property_changes() <span class="fn-desc">— detect + apply prop changes</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current R">R</td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props R">R</td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res R">R</td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 <tr>
   <th class="prop-header">_has_current_class_set_changed() <span class="fn-desc">— check if subclasses changed</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global R">R</td>
   <td class="col-current"></td><td class="col-current"></td><td class="col-current R">R</td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 <tr>
   <th class="prop-header">_get_current_class_props() <span class="fn-desc">— get props for current class</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global R">R</td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current R">R</td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 <tr>
   <th class="prop-header">_get_class_script() <span class="fn-desc">— load GDScript by class name</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global R">R</td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag"></td>
 </tr>
 
 <!-- ── Private: clear & filesystem ────────── -->
 <tr class="fn-group">
   <th class="prop-header">_clear_view() <span class="fn-desc">— reset all state to empty</span></th>
-  <td class="col-signal E">E</td><td class="col-signal"></td><td class="col-signal E">E</td><td class="col-signal E">E</td><td class="col-signal"></td>
+  <td class="col-signal E">E</td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal E">E</td><td class="col-signal E">E</td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current W">W</td><td class="col-current W">W</td><td class="col-current W">W</td>
   <td class="col-props W">W</td><td class="col-props W">W</td><td class="col-props W">W</td>
-  <td class="col-res W">W</td><td class="col-res"></td>
+  <td class="col-res W">W</td><td class="col-res W">W</td>
   <td class="col-sel W">W</td><td class="col-sel W">W</td><td class="col-sel W">W</td>
-  <td class="col-page W">W</td>
+  <td class="col-page W">W</td><td class="col-page W">W</td><td class="col-page W">W</td>
   <td class="col-flag"></td>
 </tr>
 <tr>
   <th class="prop-header">_on_filesystem_changed() <span class="fn-desc">— EditorFS signal handler</span></th>
-  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
   <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
   <td class="col-current"></td><td class="col-current"></td><td class="col-current"></td><td class="col-current"></td>
   <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
   <td class="col-res"></td><td class="col-res"></td>
   <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
-  <td class="col-page"></td>
+  <td class="col-page"></td><td class="col-page"></td><td class="col-page"></td>
   <td class="col-flag R">R</td>
+</tr>
+<tr>
+  <th class="prop-header">_refresh_current_class_resources() <span class="fn-desc">— incremental scan + page update</span></th>
+  <td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td><td class="col-signal"></td>
+  <td class="col-global"></td><td class="col-global"></td><td class="col-global"></td><td class="col-global"></td>
+  <td class="col-current"></td><td class="col-current R">R</td><td class="col-current"></td><td class="col-current"></td>
+  <td class="col-props"></td><td class="col-props"></td><td class="col-props"></td>
+  <td class="col-res"></td><td class="col-res"></td>
+  <td class="col-sel"></td><td class="col-sel"></td><td class="col-sel"></td>
+  <td class="col-page R">R</td><td class="col-page"></td><td class="col-page"></td>
+  <td class="col-flag"></td>
 </tr>
 
 </tbody>
@@ -423,23 +505,29 @@
 <table class="call-table">
 <thead>
 <tr>
-  <th style="min-width:220px">Caller</th>
+  <th style="min-width:260px">Caller</th>
   <th>Calls</th>
 </tr>
 </thead>
 <tbody>
-<tr><td>set_class()</td><td>→ refresh_resource_list_values()</td></tr>
+<tr><td>set_current_class()</td><td>→ refresh_resource_list_values()</td></tr>
 <tr><td>set_include_subclasses()</td><td>→ refresh_resource_list_values()</td></tr>
-<tr><td>next_page() / prev_page()</td><td>→ _page_count(), _emit_page_data()</td></tr>
-<tr><td>refresh_resource_list_values()</td><td>→ _resolve_current_classes() → _scan_properties() → _scan_resources() → _restore_selection() → _emit_page_data()</td></tr>
-<tr><td>_resolve_current_classes()</td><td>→ _get_class_script()</td></tr>
-<tr><td>_scan_resources()</td><td>→ _rebuild_known_mtimes()</td></tr>
-<tr><td>_rescan_resources_only()</td><td>→ _rebuild_known_mtimes(), _restore_selection(), _emit_page_data_preserving_page()</td></tr>
-<tr><td>_emit_page_data_preserving_page()</td><td>→ _page_count(), _emit_page_data()</td></tr>
-<tr><td>_on_script_classes_updated()</td><td>→ debounce → _handle_classes_updated()</td></tr>
-<tr><td>_handle_classes_updated()</td><td>→ _set_maps(), _handle_property_changes(), _resave_orphaned_resources(), _detect_class_rename(), _clear_view(), _has_current_class_set_changed(), refresh_resource_list_values()</td></tr>
-<tr><td>_handle_property_changes()</td><td>→ _get_current_class_props(), _scan_properties(), _restore_selection(), _emit_page_data_preserving_page()</td></tr>
-<tr><td>_on_filesystem_changed()</td><td>→ debounce → _rescan_resources_only()</td></tr>
+<tr><td>set_selected_resources()</td><td>→ handle_select_shift() | handle_select_ctrl() | handle_select_no_key()</td></tr>
+<tr><td>next_page() / prev_page()</td><td>→ _set_current_page()</td></tr>
+<tr><td>refresh_resource_list_values()</td><td>→ _resolve_current_classes() → _scan_current_properties() → set_current_class_resources(true) → _set_current_page(0, true) → _emit_page_data()</td></tr>
+<tr><td>set_current_class_resources(true)</td><td>→ ProjectClassScanner.load_classed_resources_from_dir() → sort → _rebuild_current_class_resource_mtimes() → _restore_selection()</td></tr>
+<tr><td>set_current_class_resources(false)</td><td>→ _scan_class_resources_for_changes() → sort → _rebuild_current_class_resource_mtimes() → _restore_selection()</td></tr>
+<tr><td>_set_current_page()</td><td>→ set_current_page_resources()</td></tr>
+<tr><td>set_current_page_resources(true)</td><td>→ slice → _rebuild_current_page_resource_mtimes()</td></tr>
+<tr><td>set_current_page_resources(false)</td><td>→ slice → _rebuild_current_page_resource_mtimes() → _scan_page_resources_for_changes()</td></tr>
+<tr><td>_scan_page_resources_for_changes()</td><td>→ emits resources_added / resources_removed / resources_modified</td></tr>
+<tr><td>_emit_page_data()</td><td>→ emits resources_replaced + pagination_changed</td></tr>
+<tr><td>_emit_page_data_preserving_page()</td><td>→ _set_current_page(current, true) → _emit_page_data()</td></tr>
+<tr><td>_on_script_classes_updated()</td><td>→ debounce → _handle_global_classes_updated()</td></tr>
+<tr><td>_handle_global_classes_updated()</td><td>→ _set_maps(), _handle_property_changes(), _resave_orphaned_resources(), _detect_class_rename(), _clear_view(), _has_current_class_set_changed(), refresh_resource_list_values()</td></tr>
+<tr><td>_handle_property_changes()</td><td>→ _get_current_class_props(), _scan_current_properties(), _restore_selection(), _emit_page_data_preserving_page()</td></tr>
+<tr><td>_on_filesystem_changed()</td><td>→ debounce → _refresh_current_class_resources()</td></tr>
+<tr><td>_refresh_current_class_resources()</td><td>→ set_current_class_resources(false) → _set_current_page(_current_page)</td></tr>
 </tbody>
 </table>
 

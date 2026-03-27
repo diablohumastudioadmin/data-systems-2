@@ -25,7 +25,7 @@ visual_resources_editor/
 │   ├── toolbar/
 │   │   └── toolbar.gd/.tscn            # VREToolbar: New/Delete Selected/Refresh + owns SaveResourceDialog & ConfirmDeleteDialog
 │   ├── resource_list/
-│   │   ├── resource_list.gd/.tscn      # Table container: header + scrollable rows only
+│   │   ├── resource_list.gd/.tscn      # Table container: header + scrollable rows, supports incremental add/remove/modify
 │   │   ├── header_row.gd/.tscn         # Column header labels
 │   │   ├── resource_row.gd/.tscn       # One row per resource (Button with toggle_mode, self-contained delete)
 │   │   ├── resource_field_label.gd/.tscn  # Label for a single property cell (owns display/format logic)
@@ -42,20 +42,29 @@ visual_resources_editor/
 
 1. **Class scanning**: `ProjectClassScanner` reads `ProjectSettings.get_global_class_list()` to discover all project classes that descend from `Resource`. Results are cached in `VREStateManager` as maps (`global_class_map`, `global_class_to_path_map`, `global_class_to_parent_map`) and the filtered list `global_class_name_list`.
 
-2. **Resource scanning**: When a class is selected, `VREStateManager` uses `ProjectClassScanner.scan_folder_for_classed_tres_paths()` to find all `.tres` files matching the class (and optionally its subclasses). The scanner reads the first line of each `.tres` file via `FileAccess` to extract `script_class=` — it does NOT load the full resource for classification.
+2. **Resource scanning**: When a class is selected via `set_current_class()`, `VREStateManager` uses `set_current_class_resources(reseting: true)` to load all `.tres` files matching the class (and optionally its subclasses) via `ProjectClassScanner.load_classed_resources_from_dir()`. On filesystem changes, `set_current_class_resources(reseting: false)` performs an incremental scan via `_scan_class_resources_for_changes()` using mtime comparison. The scanner reads the first line of each `.tres` file via `FileAccess` to extract `script_class=` — it does NOT load the full resource for classification.
 
-3. **State → UI**: `VREStateManager` emits `data_changed(resources, current_shared_propery_list)` with only the current page slice. `ResourceList` rebuilds rows from this slice. Pagination state is managed by `VREStateManager` (PAGE_SIZE = 50); the pagination bar and status label live in the window scene and are updated via `pagination_changed` signal and the window's `_update_status()` method.
+3. **State → UI (granular signals)**: `VREStateManager` emits different signals depending on the type of change:
+   - `resources_replaced(resources, property_list)` — full page rebuild (class change, refresh, property change). Carries the current page slice + shared property list. `ResourceList.replace_resources()` rebuilds all rows.
+   - `resources_added(resources)` — incremental, new .tres files detected on the current page. `ResourceList.add_resources()` appends rows without rebuilding.
+   - `resources_removed(resources)` — incremental, deleted .tres files detected on the current page. `ResourceList.remove_resources()` removes specific rows.
+   - `resources_modified(resources)` — incremental, modified .tres files detected on the current page. `ResourceList.modify_resources()` updates row display in place.
+   - `pagination_changed(page, page_count)` — always emitted alongside data changes to keep the pagination bar in sync.
 
-4. **Selection**: `VREStateManager` owns all selection state (`selected_resources`, `_selected_paths`, `_selected_resources_last_index`). Supports click, Ctrl/Cmd+click (toggle), and Shift+click (range select across pages). Emits `selection_changed`. The window forwards selection to both `ResourceList` (visual row highlighting) and `VREToolbar` (delete-selected button label).
+4. **Two-tier resource state**: `VREStateManager` maintains two levels of resource state:
+   - `current_class_resources` + `_current_class_resources_mtimes` — all resources matching the selected class (across all pages).
+   - `_current_page_resources` + `current_page_resources_mtimes` — the slice for the current page. `_scan_page_resources_for_changes()` diffs the previous and current page slices to emit granular signals (`resources_added`, `resources_removed`, `resources_modified`).
 
-5. **Bulk editing**: `BulkEditor` creates a proxy resource matching the selected resources' script. For single selection, proxy copies the resource's values. For multi-selection, proxy uses defaults. When the user edits the proxy in Godot's Inspector, `BulkEditor` propagates the change to all selected resources and saves them.
+5. **Selection**: `VREStateManager` owns all selection state (`selected_resources`, `_selected_paths`, `_selected_resources_last_index`). `set_selected_resources()` dispatches to three handlers: `handle_select_shift()` (range select), `handle_select_ctrl()` (toggle), `handle_select_no_key()` (single select). Emits `selection_changed`. The window forwards selection to `ResourceList` (visual row highlighting), `VREToolbar` (delete-selected button label), and `BulkEditor`.
 
-6. **Filesystem reactivity**: Two `EditorFileSystem` signals drive updates:
-   - `script_classes_updated` → rebuild class maps, detect class add/remove/rename, re-scan properties
-   - `filesystem_changed` → incremental mtime-based resource rescan (new/modified/deleted detection without full reload)
+6. **Bulk editing**: `BulkEditor` creates a proxy resource matching the selected resources' script. For single selection, proxy copies the resource's values. For multi-selection, proxy uses defaults. When the user edits the proxy in Godot's Inspector, `BulkEditor` propagates the change to all selected resources and saves them.
+
+7. **Filesystem reactivity**: Two `EditorFileSystem` signals drive updates:
+   - `script_classes_updated` → debounced → `_handle_global_classes_updated()`: rebuilds class maps, detects class add/remove/rename, re-scans properties.
+   - `filesystem_changed` → debounced → `_refresh_current_class_resources()`: calls `set_current_class_resources(false)` for incremental class resource scan, then `_set_current_page()` to diff the current page and emit granular signals.
    Both are debounced through a shared `DebounceTimer` (0.1s).
 
-7. **Delete flow**:
+8. **Delete flow**:
    - **Single row delete**: Each `ResourceRow` owns a `ConfirmDeleteDialog` child. `DeleteBtn.pressed` → shows dialog → `confirmed` → moves file to OS trash. Fully self-contained, no signal bubbling.
    - **Bulk delete**: `VREToolbar` owns a `ConfirmDeleteDialog`. "Delete Selected" button passes selected resource paths to the dialog. Window keeps toolbar's selection in sync via `update_selection()`.
 
@@ -68,10 +77,10 @@ All child node references use `%UniqueNode` directly in code — this is the pro
 Signals are connected via scene (`[connection]` in `.tscn`) when both source and target are in the same scene. Code connections (`.connect()`) are used only for: dynamically created nodes, cross-scene callable forwarding, or direct signal re-emission.
 
 ### No UI Virtualization / Object Pooling
-Pagination (50 items per page) keeps the row count bounded. Full row rebuild on page change is acceptable at this scale. Virtualization/pooling would add complexity without meaningful benefit.
+Pagination (50 items per page) keeps the row count bounded. Full row rebuild on page change via `resources_replaced` is acceptable at this scale. Incremental updates (`resources_added`/`removed`/`modified`) avoid full rebuilds for filesystem changes within the same page. Virtualization/pooling would add complexity without meaningful benefit.
 
-### Incremental Resource Rescan (`_rescan_resources_only`)
-`EditorFileSystem` does not expose which specific files changed in `filesystem_changed`. The plugin maintains `_known_resource_mtimes` and compares against current disk state. `scan_folder_for_classed_tres_paths()` re-reads the first line of each `.tres` file to check the class — this is the best available approach given Godot's EditorFileSystem API limitations.
+### Incremental Resource Rescan (Two-Tier)
+`EditorFileSystem` does not expose which specific files changed in `filesystem_changed`. The plugin maintains mtime dictionaries at two levels: `_current_class_resources_mtimes` (all resources for the class) and `current_page_resources_mtimes` (current page slice). `_scan_class_resources_for_changes()` diffs class-level mtimes, then `_scan_page_resources_for_changes()` diffs the page slice to determine exactly which rows need adding, removing, or updating — emitting granular signals instead of a full rebuild.
 
 ### Dialogs as Script-Only Nodes
 Dialogs (`SaveResourceDialog`, `ConfirmDeleteDialog`, `ErrorDialog`) have no children and are fully configured at runtime. Per project convention, they are script-only nodes (`.gd` extending the dialog base type) added as children in their parent `.tscn` (toolbar, resource row) or programmatically for editor-only types (`ErrorDialog` in window's `create_and_add_dialogs()`).
@@ -101,14 +110,24 @@ Typed data class wrapping a project Resource class. Replaces passing raw class n
 Properties: `class_name_str: String`, `script_path: String`, `properties: Array[ResourceProperty]`.
 
 ### Signal Signatures
-- `data_changed(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty])`
+
+**VREStateManager:**
+- `resources_replaced(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty])` — full page rebuild
+- `resources_added(resources: Array[Resource])` — incremental: new resources on current page
+- `resources_removed(resources: Array[Resource])` — incremental: deleted resources from current page
+- `resources_modified(resources: Array[Resource])` — incremental: modified resources on current page
 - `project_classes_changed(classes: Array[String])`
 - `selection_changed(resources: Array[Resource])`
 - `pagination_changed(page: int, page_count: int)`
+- `current_class_renamed(new_name: String)`
+
+**UI components:**
 - `class_selected(class_name_str: String)`
 - `include_subclasses_toggled(pressed: bool)`
 - `refresh_requested`
 - `error_occurred(message: String)`
+- `row_clicked(resource: Resource, ctrl_held: bool, shift_held: bool)`
+- `resource_row_selected(resource: Resource, ctrl_held: bool, shift_held: bool)`
 
 ## Key Conventions
 - All hardcoded `load()`/`preload()` use UIDs (`uid://...`), not string paths
