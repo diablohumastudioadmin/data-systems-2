@@ -9,7 +9,8 @@
       "Bash(\"/Volumes/Fer/RespaldoFER/Documentos/GODOT/Editor/Executables/Godot_v4.6.1-stable_macos.universal.app/Contents/MacOS/Godot\" --headless --path /Users/fernandobarahona/Documents/DiabloHumaStudio/tools/data-systems --import --quit)",
       "Bash(git status:*)",
       "Bash(git log:*)",
-      "Bash(grep -E \"\\\\.gd$|\\\\.tscn$\")"
+      "Bash(grep -E \"\\\\.gd$|\\\\.tscn$\")",
+      "Bash(git mv:*)"
     ]
   }
 }
