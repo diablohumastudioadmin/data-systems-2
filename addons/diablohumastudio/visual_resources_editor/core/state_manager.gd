@@ -13,20 +13,12 @@ signal current_class_renamed(new_name: String)
 
 const PAGE_SIZE: int = 50
 
-var global_class_map: Array[Dictionary]
-var global_class_to_path_map: Dictionary[String, String] = {}
-var global_class_to_parent_map: Dictionary[String, String]
-var global_class_name_list: Array[String] = []
+var classes_repo: IClassesRepository
 
 var _include_subclasses: bool = true
 
 var _current_class_name: String = ""
 var _current_included_class_names: Array[String] = []
-
-var current_class_script: GDScript = null
-var current_class_property_list: Array[ResourceProperty] = []
-var current_included_class_property_lists: Dictionary = {}
-var current_shared_propery_list: Array[ResourceProperty] = []
 
 var current_class_resources: Array[Resource] = []
 var _current_class_resources_mtimes: Dictionary[String, int] = {}
@@ -44,7 +36,11 @@ var _classes_update_pending: bool = false
 func _ready() -> void:
 	if not Engine.is_editor_hint(): return
 
-	_set_maps()
+	if classes_repo == null:
+		classes_repo = EditorClassesRepository.new()
+	classes_repo.class_list_changed.connect(_on_class_list_changed)
+	classes_repo._property_list_changed.connect(_on_property_list_changed)
+	classes_repo.orphaned_resources_found.connect(_on_orphaned_resources_found)
 
 	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
 	if efs:
@@ -128,30 +124,15 @@ func prev_page() -> void:
 func refresh_resource_list_values() -> void:
 	if _current_class_name.is_empty():
 		return
-	_resolve_current_classes()
-	_scan_current_properties()
+	_current_included_class_names = classes_repo.resolve_included_classes(
+		_current_class_name, _include_subclasses)
+	classes_repo.scan_properties(_current_class_name, _current_included_class_names)
 	set_current_class_resources(true)
 	_set_current_page(0, true)
 	_emit_page_data()
 
 
 # ── Private ────────────────────────────────────────────────────────────────────
-
-func _resolve_current_classes() -> void:
-	if _include_subclasses:
-		_current_included_class_names = ProjectScanner.get_descendant_classes(_current_class_name, global_class_to_parent_map)
-	else:
-		_current_included_class_names = [_current_class_name]
-	current_class_script = _get_class_script(_current_class_name)
-
-
-func _scan_current_properties() -> void:
-	current_included_class_property_lists = ProjectScanner.get_properties_from_script_names(_current_included_class_names)
-
-	var empty_props: Array[ResourceProperty] = []
-	current_class_property_list = current_included_class_property_lists.get(_current_class_name, empty_props)
-	current_shared_propery_list = ProjectScanner.unite_classes_properties(_current_included_class_names, global_class_to_path_map)
-
 
 func _restore_selection() -> void:
 	var prev_paths: Array[String] = _selected_paths.duplicate()
@@ -291,7 +272,7 @@ func _page_count() -> int:
 
 
 func _emit_page_data() -> void:
-	resources_replaced.emit(_current_page_resources, current_shared_propery_list)
+	resources_replaced.emit(_current_page_resources, classes_repo.shared_property_list)
 	pagination_changed.emit(_current_page, _page_count())
 
 
@@ -300,126 +281,107 @@ func _emit_page_data_preserving_page() -> void:
 	_emit_page_data()
 
 
-func _set_maps() -> void:
-	global_class_map = ProjectScanner.build_global_classes_map()
-	global_class_to_parent_map = ProjectScanner.build_project_classes_parent_map(global_class_map)
-	global_class_to_path_map = ProjectScanner.build_class_to_path_map(global_class_map)
-	global_class_name_list = ProjectScanner.get_project_resource_classes(global_class_map)
-
+# ── EditorFileSystem signal handlers ──────────────────────────────────────────
 
 func _on_script_classes_updated() -> void:
-	print("classes updated")
 	_classes_update_pending = true
-	%RescanDebounceTimer.start_debouncing(_handle_global_classes_updated)
+	classes_repo.rebuild()
 
 
-func _handle_global_classes_updated() -> void:
-	_classes_update_pending = false
-
-	var previous_classes: Array[String] = global_class_name_list.duplicate()
-	_set_maps()
-
-	# Class list unchanged — only check for property changes
-	if previous_classes == global_class_name_list:
-		_handle_property_changes()
+func _on_filesystem_changed() -> void:
+	if _classes_update_pending:
+		_classes_update_pending = false
 		return
+	_refresh_current_class_resources()
 
-	# Class list changed
-	_resave_orphaned_resources(previous_classes)
-	project_classes_changed.emit(global_class_name_list)
+
+func _refresh_current_class_resources() -> void:
+	if _current_class_name.is_empty():
+		return
+	set_current_class_resources(false)
+	_set_current_page(_current_page)
+
+
+# ── ClassesRepository signal handlers ─────────────────────────────────────────
+
+func _on_class_list_changed(classes: Array[String]) -> void:
+	project_classes_changed.emit(classes)
 
 	if _current_class_name.is_empty():
 		return
 
-	# Current Class is missing
-	if not global_class_name_list.has(_current_class_name):
+	# Current class is missing
+	if not classes.has(_current_class_name):
 		var new_name: String = _detect_class_rename()
-		# Current Class is deleted
+		# Current class is deleted
 		if new_name.is_empty():
 			_clear_view()
 			return
-		# Current Class is renamed
+		# Current class is renamed
 		_current_class_name = new_name
 		current_class_renamed.emit(new_name)
 		refresh_resource_list_values()
 		return
 
-	if _has_current_class_set_changed(previous_classes):
+	# Check if any class in current included set was added or removed
+	if _has_current_class_set_changed():
 		refresh_resource_list_values()
 		return
 
-	_handle_property_changes()
+	# Class list changed but current set is the same — check property changes
+	_check_and_apply_property_changes()
 
 
-func _resave_orphaned_resources(previous_classes: Array[String]) -> void:
-	var removed_classes: Array[String] = []
-	for cls: String in previous_classes:
-		if not global_class_name_list.has(cls):
-			removed_classes.append(cls)
-	if removed_classes.is_empty():
-		return
-	var orphaned_resources: Array[Resource] = (
-		ProjectScanner.load_classed_resources_from_dir(removed_classes)
-	)
-	for res: Resource in orphaned_resources:
+func _on_property_list_changed() -> void:
+	_check_and_apply_property_changes()
+
+
+func _on_orphaned_resources_found(orphaned: Array[Resource]) -> void:
+	for res: Resource in orphaned:
 		ResourceSaver.save(res, res.resource_path)
 
 
-func _detect_class_rename() -> String:
-	if current_class_script == null:
-		return ""
-	var old_path: String = current_class_script.resource_path
-	if old_path.is_empty():
-		return ""
-	for cls: String in global_class_to_path_map:
-		if global_class_to_path_map[cls] == old_path:
-			return cls
-	return ""
+# ── Private helpers ───────────────────────────────────────────────────────────
 
-
-func _handle_property_changes() -> void:
+func _check_and_apply_property_changes() -> void:
 	if _current_class_name.is_empty():
 		return
-	var new_props: Array[ResourceProperty] = _get_current_class_props()
-	if ResourceProperty.arrays_equal(new_props, current_class_property_list):
+	var old_props: Array[ResourceProperty] = classes_repo.current_class_property_list.duplicate()
+	classes_repo.scan_properties(_current_class_name, _current_included_class_names)
+	if ResourceProperty.arrays_equal(old_props, classes_repo.current_class_property_list):
 		return
-	_scan_current_properties()
 	for res: Resource in current_class_resources:
 		ResourceSaver.save(res, res.resource_path)
 	_restore_selection()
 	_emit_page_data_preserving_page()
 
 
-func _has_current_class_set_changed(previous_classes: Array[String]) -> bool:
+func _has_current_class_set_changed() -> bool:
+	var new_included: Array[String] = classes_repo.resolve_included_classes(
+		_current_class_name, _include_subclasses)
+	if new_included.size() != _current_included_class_names.size():
+		return true
 	for cls: String in _current_included_class_names:
-		if not previous_classes.has(cls) or not global_class_name_list.has(cls):
+		if not new_included.has(cls):
 			return true
 	return false
 
 
-func _get_current_class_props() -> Array[ResourceProperty]:
-	var script_path: String = global_class_to_path_map.get(_current_class_name, "")
-	if not script_path.is_empty():
-		return ProjectScanner.get_properties_from_script_path(script_path)
-	var empty_props: Array[ResourceProperty] = []
-	return empty_props
-
-
-func _get_class_script(class_name_str: String) -> GDScript:
-	var script_path: String = global_class_to_path_map.get(class_name_str, "")
-	if not script_path.is_empty():
-		return load(script_path)
-	return null
+func _detect_class_rename() -> String:
+	if classes_repo.current_class_script == null:
+		return ""
+	var old_path: String = classes_repo.current_class_script.resource_path
+	if old_path.is_empty():
+		return ""
+	for cls: String in classes_repo.class_to_path_map:
+		if classes_repo.class_to_path_map[cls] == old_path:
+			return cls
+	return ""
 
 
 func _clear_view() -> void:
 	_current_class_name = ""
 	_current_included_class_names.clear()
-	current_class_script = null
-	var empty_props: Array[ResourceProperty] = []
-	current_class_property_list = empty_props
-	current_included_class_property_lists.clear()
-	current_shared_propery_list.clear()
 	current_class_resources.clear()
 	_current_class_resources_mtimes.clear()
 	selected_resources.clear()
@@ -429,21 +391,7 @@ func _clear_view() -> void:
 	_current_page_resources.clear()
 	current_page_resources_mtimes.clear()
 	var empty_resources: Array[Resource] = []
-	var empty_current_shared_propery_list: Array[ResourceProperty] = []
-	resources_replaced.emit(empty_resources, empty_current_shared_propery_list)
+	var empty_props: Array[ResourceProperty] = []
+	resources_replaced.emit(empty_resources, empty_props)
 	selection_changed.emit(empty_resources)
 	pagination_changed.emit(0, 1)
-
-
-func _on_filesystem_changed() -> void:
-	print("fs changed ")
-	if _classes_update_pending:
-		return
-	%RescanDebounceTimer.start_debouncing(_refresh_current_class_resources)
-
-
-func _refresh_current_class_resources() -> void:
-	if _current_class_name.is_empty():
-		return
-	set_current_class_resources(false)
-	_set_current_page(_current_page)

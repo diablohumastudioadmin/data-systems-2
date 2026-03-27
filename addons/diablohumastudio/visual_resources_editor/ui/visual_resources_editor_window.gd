@@ -37,7 +37,7 @@ func connect_components() -> void:
 	%BulkEditor.error_occurred.connect(error_dialog.show_error)
 	%BulkEditor.resources_edited.connect(_on_resources_edited)
 
-	%ClassSelector.set_classes(%VREStateManager.global_class_name_list)
+	%ClassSelector.set_classes(%VREStateManager.classes_repo.class_name_list)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -50,10 +50,10 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_class_selected(class_name_str: String) -> void:
 	%VREStateManager.set_current_class(class_name_str)
 	%BulkEditor.current_class_name = class_name_str
-	%BulkEditor.current_class_script = %VREStateManager.current_class_script
-	%BulkEditor.current_class_property_list = %VREStateManager.current_class_property_list
-	%BulkEditor.current_included_class_property_lists = %VREStateManager.current_included_class_property_lists
-	%Toolbar.set_class_info(class_name_str, %VREStateManager.global_class_map)
+	%BulkEditor.current_class_script = %VREStateManager.classes_repo.current_class_script
+	%BulkEditor.current_class_property_list = %VREStateManager.classes_repo.current_class_property_list
+	%BulkEditor.current_included_class_property_lists = %VREStateManager.classes_repo.included_class_property_lists
+	%Toolbar.set_class_info(class_name_str, %VREStateManager.classes_repo.global_class_map)
 
 
 func _on_project_classes_changed(classes: Array[String]) -> void:
