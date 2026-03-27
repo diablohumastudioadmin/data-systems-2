@@ -15,6 +15,7 @@ func create_and_add_dialogs() -> void:
 func connect_components() -> void:
 	%VREStateManager.resources_replaced.connect(_on_state_resources_replaced)
 	%VREStateManager.resources_added.connect(_on_state_resources_added)
+	%VREStateManager.resources_modified.connect(_on_state_resources_modified)
 	%VREStateManager.resources_removed.connect(_on_state_resources_removed)
 	%VREStateManager.project_classes_changed.connect(_on_project_classes_changed)
 	%VREStateManager.current_class_renamed.connect(%ClassSelector.select_class)
@@ -74,6 +75,11 @@ func _on_state_resources_added(resources: Array[Resource]) -> void:
 	_visible_count = %ResourceList.get_row_count()
 	if %VREStateManager.selected_resources.is_empty():
 		_update_status("%d resource(s)" % _visible_count)
+
+
+func _on_state_resources_modified(resources: Array[Resource]) -> void:
+	%ResourceList.modify_resources(resources)
+	%ResourceList.update_selection(%VREStateManager.selected_resources)
 
 
 func _on_state_resources_removed(resources: Array[Resource]) -> void:

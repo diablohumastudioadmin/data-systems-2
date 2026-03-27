@@ -23,6 +23,11 @@ func add_resources(resources: Array[Resource]) -> void:
 	_sort_rows_by_path()
 
 
+func modify_resources(resources: Array[Resource]) -> void:
+	for res: Resource in resources:
+		_update_row_resource(res)
+
+
 func remove_resources(resources: Array[Resource]) -> void:
 	for res: Resource in resources:
 		_remove_row_by_path(res.resource_path)
@@ -62,9 +67,9 @@ func _build_rows(resources: Array[Resource], current_shared_propery_list: Array[
 func _clear_rows() -> void:
 	for row: ResourceRow in _rows:
 		if is_instance_valid(row):
-				if row.resource_row_selected.is_connected(_on_resource_row_selected):
-					row.resource_row_selected.disconnect(_on_resource_row_selected)
-				row.queue_free()
+			if row.resource_row_selected.is_connected(_on_resource_row_selected):
+				row.resource_row_selected.disconnect(_on_resource_row_selected)
+			row.queue_free()
 	_rows.clear()
 	_resource_path_to_row.clear()
 
@@ -91,6 +96,15 @@ func _remove_row_by_path(resource_path: String) -> void:
 		_rows.erase(row)
 		row.queue_free()
 	_resource_path_to_row.erase(resource_path)
+
+
+func _update_row_resource(resource: Resource) -> void:
+	if not _resource_path_to_row.has(resource.resource_path):
+		return
+	var row: ResourceRow = _resource_path_to_row[resource.resource_path]
+	if is_instance_valid(row):
+		row.resource = resource
+		row.update_display()
 
 
 func _sort_rows_by_path() -> void:
