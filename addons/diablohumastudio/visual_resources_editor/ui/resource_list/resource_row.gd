@@ -27,7 +27,7 @@ func _build_field_labels() -> void:
 	_prop_labels.clear()
 
 	# Map which editor-visible properties this resource's script actually declares
-	# Uses the same filter as ProjectClassScanner.get_properties_from_script_path()
+	# Uses the same filter as ProjectScanner.get_properties_from_script_path()
 	var owned: Dictionary = {}
 	if resource and resource.get_script():
 		for p: Dictionary in resource.get_script().get_script_property_list():

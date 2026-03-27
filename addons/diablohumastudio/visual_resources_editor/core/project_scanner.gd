@@ -1,5 +1,5 @@
 @tool
-class_name ProjectClassScanner
+class_name ProjectScanner
 
 static func get_project_resource_classes(global_class_map: Array[Dictionary] = []) -> Array[String]:
 	if global_class_map.is_empty():
@@ -117,7 +117,7 @@ static func get_class_from_tres_file(tres_file_path: String) -> String:
 static func get_properties_from_script_names(cls_names: Array[String], global_class_to_path_map: Dictionary[String, String] = {}) ->Dictionary:
 	var property_lists: Dictionary = {}
 	for cls_name: String in cls_names:
-		property_lists[cls_name] = ProjectClassScanner.get_properties_from_script_name(cls_name)
+		property_lists[cls_name] = ProjectScanner.get_properties_from_script_name(cls_name)
 	return property_lists
 
 static func get_properties_from_script_name(cls_name: String, global_class_to_path_map: Dictionary[String, String] = {}) -> Array[ResourceProperty]:
@@ -127,7 +127,7 @@ static func get_properties_from_script_name(cls_name: String, global_class_to_pa
 
 	var script_path: String = global_class_to_path_map.get(cls_name, "")
 	if not script_path.is_empty():
-		return ProjectClassScanner.get_properties_from_script_path(script_path)
+		return ProjectScanner.get_properties_from_script_path(script_path)
 	else:
 		push_warning("Script name doesnt correspond to any path. Returning empty properties")
 		return []
@@ -183,7 +183,7 @@ static func load_classed_resources_from_dir(
 		push_warning("ProjectScaner: filesystem directory is not valid, skipping resource scan.")
 		return []
 
-	var paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(classes, dir)
+	var paths: Array[String] = ProjectScanner.scan_folder_for_classed_tres_paths(classes, dir)
 	paths.sort()
 	var resources: Array[Resource] = []
 	for path: String in paths:

@@ -139,18 +139,18 @@ func refresh_resource_list_values() -> void:
 
 func _resolve_current_classes() -> void:
 	if _include_subclasses:
-		_current_included_class_names = ProjectClassScanner.get_descendant_classes(_current_class_name, global_class_to_parent_map)
+		_current_included_class_names = ProjectScanner.get_descendant_classes(_current_class_name, global_class_to_parent_map)
 	else:
 		_current_included_class_names = [_current_class_name]
 	current_class_script = _get_class_script(_current_class_name)
 
 
 func _scan_current_properties() -> void:
-	current_included_class_property_lists = ProjectClassScanner.get_properties_from_script_names(_current_included_class_names)
+	current_included_class_property_lists = ProjectScanner.get_properties_from_script_names(_current_included_class_names)
 
 	var empty_props: Array[ResourceProperty] = []
 	current_class_property_list = current_included_class_property_lists.get(_current_class_name, empty_props)
-	current_shared_propery_list = ProjectClassScanner.unite_classes_properties(_current_included_class_names, global_class_to_path_map)
+	current_shared_propery_list = ProjectScanner.unite_classes_properties(_current_included_class_names, global_class_to_path_map)
 
 
 func _restore_selection() -> void:
@@ -182,7 +182,7 @@ func set_current_class_resources(reseting: bool = false) -> void:
 		return
 
 	if reseting:
-		current_class_resources = ProjectClassScanner.load_classed_resources_from_dir(_current_included_class_names)
+		current_class_resources = ProjectScanner.load_classed_resources_from_dir(_current_included_class_names)
 	else:
 		current_class_resources = _scan_class_resources_for_changes()
 
@@ -193,7 +193,7 @@ func set_current_class_resources(reseting: bool = false) -> void:
 
 func _scan_class_resources_for_changes() -> Array[Resource]:
 	var updated_class_resources: Array[Resource] = current_class_resources.duplicate()
-	var current_paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(_current_included_class_names)
+	var current_paths: Array[String] = ProjectScanner.scan_folder_for_classed_tres_paths(_current_included_class_names)
 	var changed: bool = false
 
 	# Detect new and modified resources
@@ -301,10 +301,10 @@ func _emit_page_data_preserving_page() -> void:
 
 
 func _set_maps() -> void:
-	global_class_map = ProjectClassScanner.build_global_classes_map()
-	global_class_to_parent_map = ProjectClassScanner.build_project_classes_parent_map(global_class_map)
-	global_class_to_path_map = ProjectClassScanner.build_class_to_path_map(global_class_map)
-	global_class_name_list = ProjectClassScanner.get_project_resource_classes(global_class_map)
+	global_class_map = ProjectScanner.build_global_classes_map()
+	global_class_to_parent_map = ProjectScanner.build_project_classes_parent_map(global_class_map)
+	global_class_to_path_map = ProjectScanner.build_class_to_path_map(global_class_map)
+	global_class_name_list = ProjectScanner.get_project_resource_classes(global_class_map)
 
 
 func _on_script_classes_updated() -> void:
@@ -359,7 +359,7 @@ func _resave_orphaned_resources(previous_classes: Array[String]) -> void:
 	if removed_classes.is_empty():
 		return
 	var orphaned_resources: Array[Resource] = (
-		ProjectClassScanner.load_classed_resources_from_dir(removed_classes)
+		ProjectScanner.load_classed_resources_from_dir(removed_classes)
 	)
 	for res: Resource in orphaned_resources:
 		ResourceSaver.save(res, res.resource_path)
@@ -400,7 +400,7 @@ func _has_current_class_set_changed(previous_classes: Array[String]) -> bool:
 func _get_current_class_props() -> Array[ResourceProperty]:
 	var script_path: String = global_class_to_path_map.get(_current_class_name, "")
 	if not script_path.is_empty():
-		return ProjectClassScanner.get_properties_from_script_path(script_path)
+		return ProjectScanner.get_properties_from_script_path(script_path)
 	var empty_props: Array[ResourceProperty] = []
 	return empty_props
 
