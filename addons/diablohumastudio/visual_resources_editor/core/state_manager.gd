@@ -1,6 +1,6 @@
 @tool
 class_name VREStateManager
-extends Node
+extends RefCounted
 
 signal resources_replaced(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty])
 signal resources_added(resources: Array[Resource])
@@ -15,6 +15,7 @@ const PAGE_SIZE: int = 50
 
 var classes_repo: IClassesRepository
 var resources_repo: IResourcesRepository
+var _listener: EditorFileSystemListener
 
 var _include_subclasses: bool = true
 
@@ -28,38 +29,31 @@ var _selected_resources_last_index: int = -1
 var _current_page: int = 0
 var _current_page_resources: Array[Resource] = []
 
-var _classes_update_pending: bool = false
 
-func _ready() -> void:
-	if not Engine.is_editor_hint(): return
+func _init(
+		p_classes_repo: IClassesRepository,
+		p_resources_repo: IResourcesRepository,
+		p_listener: EditorFileSystemListener = null) -> void:
+	classes_repo = p_classes_repo
+	resources_repo = p_resources_repo
+	_listener = p_listener
 
-	if classes_repo == null:
-		classes_repo = EditorClassesRepository.new()
+	classes_repo.updated.connect(_on_classes_updated)
 	classes_repo.class_list_changed.connect(_on_class_list_changed)
 	classes_repo._property_list_changed.connect(_on_property_list_changed)
 	classes_repo.orphaned_resources_found.connect(_on_orphaned_resources_found)
-
-	if resources_repo == null:
-		resources_repo = EditorResourcesRepository.new()
 	resources_repo.resources_reset.connect(_on_resources_reset)
 	resources_repo.resources_changed.connect(_on_resources_changed)
 
-	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
-	if efs:
-		if not efs.filesystem_changed.is_connected(_on_filesystem_changed):
-			efs.filesystem_changed.connect(_on_filesystem_changed)
-		if not efs.script_classes_updated.is_connected(_on_script_classes_updated):
-			efs.script_classes_updated.connect(_on_script_classes_updated)
+	if _listener:
+		_listener.classes_changed.connect(classes_repo.rebuild)
+		_listener.filesystem_changed.connect(_on_filesystem_changed)
 
-func _exit_tree() -> void:
-	if not Engine.is_editor_hint(): return
 
-	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
-	if efs:
-		if efs.filesystem_changed.is_connected(_on_filesystem_changed):
-			efs.filesystem_changed.disconnect(_on_filesystem_changed)
-		if efs.script_classes_updated.is_connected(_on_script_classes_updated):
-			efs.script_classes_updated.disconnect(_on_script_classes_updated)
+func shutdown() -> void:
+	classes_repo = null
+	resources_repo = null
+	_listener = null
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -162,17 +156,9 @@ func _emit_page_data() -> void:
 	pagination_changed.emit(_current_page, _page_count())
 
 
-# ── EditorFileSystem signal handlers ──────────────────────────────────────────
-
-func _on_script_classes_updated() -> void:
-	_classes_update_pending = true
-	classes_repo.rebuild()
-
+# ── Listener signal handler ───────────────────────────────────────────────────
 
 func _on_filesystem_changed() -> void:
-	if _classes_update_pending:
-		_classes_update_pending = false
-		return
 	if _current_class_name.is_empty():
 		return
 	resources_repo.scan_for_changes()
@@ -180,6 +166,11 @@ func _on_filesystem_changed() -> void:
 
 
 # ── ClassesRepository signal handlers ─────────────────────────────────────────
+
+func _on_classes_updated() -> void:
+	if _listener:
+		_listener.suppress_next_filesystem_changed()
+
 
 func _on_class_list_changed(classes: Array[String]) -> void:
 	project_classes_changed.emit(classes)
