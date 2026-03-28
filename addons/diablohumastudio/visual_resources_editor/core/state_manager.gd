@@ -10,6 +10,7 @@ signal project_classes_changed(classes: Array[String])
 signal selection_changed(resources: Array[Resource])
 signal pagination_changed(page: int, page_count: int)
 signal current_class_renamed(new_name: String)
+signal resources_edited(resources: Array[Resource])
 
 const PAGE_SIZE: int = 50
 
@@ -66,6 +67,10 @@ func set_current_class(class_name_str: String) -> void:
 func set_include_subclasses(value: bool) -> void:
 	_include_subclasses = value
 	refresh_resource_list_values()
+
+
+func notify_resources_edited(resources: Array[Resource]) -> void:
+	resources_edited.emit(resources)
 
 
 func refresh_resource_list_values() -> void:

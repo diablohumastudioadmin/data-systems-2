@@ -27,6 +27,10 @@ func initialize(state: VREStateManager) -> void:
 		update_selection(state.selected_resources)
 	)
 	state.selection_changed.connect(update_selection)
+	state.resources_edited.connect(func(resources: Array[Resource]) -> void:
+		for res: Resource in resources:
+			refresh_row(res.resource_path)
+	)
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────

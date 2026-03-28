@@ -20,6 +20,7 @@ var _bulk_proxy: Resource = null
 
 
 func initialize(state: VREStateManager) -> void:
+	resources_edited.connect(state.notify_resources_edited)
 	state.selection_changed.connect(func(resources: Array[Resource]) -> void:
 		edited_resources = resources
 	)

@@ -5,6 +5,8 @@
 [ext_resource type="PackedScene" uid="uid://c113p8acip31a" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/resource_list.tscn" id="3_list"]
 [ext_resource type="Script" uid="uid://dmco8u3b2nshv" path="res://addons/diablohumastudio/visual_resources_editor/core/bulk_editor.gd" id="5_mtwm8"]
 [ext_resource type="PackedScene" uid="uid://b37n3eimc2hpq" path="res://addons/diablohumastudio/visual_resources_editor/ui/toolbar/toolbar.tscn" id="6_tb"]
+[ext_resource type="PackedScene" path="res://addons/diablohumastudio/visual_resources_editor/ui/pagination_bar/pagination_bar.tscn" id="7_pg"]
+[ext_resource type="Script" uid="uid://dovkxlvcqmbf4" path="res://addons/diablohumastudio/visual_resources_editor/ui/status_label.gd" id="8_sl"]
 
 [node name="VisualResourcesEditorWindow" type="Window" unique_id=382482314]
 oversampling_override = 1.0
@@ -48,31 +50,15 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="PaginationBar" type="HBoxContainer" parent="MarginContainer/VBox" unique_id=1909455529]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-
-[node name="PrevBtn" type="Button" parent="MarginContainer/VBox/PaginationBar" unique_id=1897646892]
+[node name="PaginationBar" parent="MarginContainer/VBox" unique_id=354728282 instance=ExtResource("7_pg")]
 unique_name_in_owner = true
 layout_mode = 2
-text = "◄"
 
-[node name="PageLabel" type="Label" parent="MarginContainer/VBox/PaginationBar" unique_id=320248977]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-horizontal_alignment = 1
-
-[node name="NextBtn" type="Button" parent="MarginContainer/VBox/PaginationBar" unique_id=19172833]
-unique_name_in_owner = true
-layout_mode = 2
-text = "►"
-
-[node name="StatusLabel" type="Label" parent="MarginContainer/VBox" unique_id=1575160363]
+[node name="StatusLabel" type="Label" parent="MarginContainer/VBox" unique_id=173534081]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Select a class to browse resources"
+script = ExtResource("8_sl")
 
 [node name="BulkEditor" type="Node" parent="." unique_id=1772103226]
 unique_name_in_owner = true
