@@ -16,7 +16,6 @@ const PAGE_SIZE: int = 50
 
 var classes_repo: IClassesRepository
 var resources_repo: IResourcesRepository
-var _listener: EditorFileSystemListener
 
 var _include_subclasses: bool = true
 
@@ -33,12 +32,10 @@ var _current_page_resources: Array[Resource] = []
 
 func _init(
 		p_classes_repo: IClassesRepository,
-		p_resources_repo: IResourcesRepository,
-		p_listener: EditorFileSystemListener = null) -> void:
+		p_resources_repo: IResourcesRepository) -> void:
 
 	classes_repo = p_classes_repo
 	resources_repo = p_resources_repo
-	_listener = p_listener
 
 	classes_repo.class_list_changed.connect(_on_class_list_changed)
 	classes_repo._property_list_changed.connect(_on_property_list_changed)
@@ -47,14 +44,10 @@ func _init(
 	resources_repo.resources_reset.connect(_on_resources_reset)
 	resources_repo.resources_changed.connect(_on_resources_changed)
 
-	_listener.script_classes_updated.connect(classes_repo.rebuild)
-	_listener.filesystem_changed.connect(_on_filesystem_changed)
-
 
 func shutdown() -> void:
 	classes_repo = null
 	resources_repo = null
-	_listener = null
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -159,15 +152,6 @@ func _slice_page() -> void:
 func _emit_page_data() -> void:
 	resources_replaced.emit(_current_page_resources, classes_repo.shared_property_list)
 	pagination_changed.emit(_current_page, _page_count())
-
-
-# ── Listener signal handler ───────────────────────────────────────────────────
-
-func _on_filesystem_changed() -> void:
-	if _current_class_name.is_empty():
-		return
-	resources_repo.scan_for_changes()
-	# resources_repo emits resources_changed → _on_resources_changed handles page filtering
 
 
 # ── ClassesRepository signal handlers ─────────────────────────────────────────

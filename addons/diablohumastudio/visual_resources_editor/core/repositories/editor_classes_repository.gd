@@ -3,7 +3,9 @@ class_name EditorClassesRepository
 extends IClassesRepository
 
 
-func _init() -> void:
+func _init(p_listener: EditorFileSystemListener) -> void:
+	listener = p_listener
+	listener.script_classes_updated.connect(_on_listener_script_classes_updated)
 	_rebuild_maps()
 
 
@@ -64,3 +66,6 @@ func _handle_orphans(previous_classes: Array[String]) -> void:
 	var orphaned: Array[Resource] = ProjectScanner.load_classed_resources_from_dir(removed_classes)
 	if not orphaned.is_empty():
 		orphaned_resources_found.emit(orphaned)
+
+func _on_listener_script_classes_updated():
+	rebuild()

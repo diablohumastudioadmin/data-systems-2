@@ -29,8 +29,8 @@ func open_visual_editor_window():
 
 	# 1. Create infrastructure
 	_listener = EditorFileSystemListener.new()
-	var classes_repo: EditorClassesRepository = EditorClassesRepository.new()
-	var resources_repo: EditorResourcesRepository = EditorResourcesRepository.new()
+	var classes_repo: EditorClassesRepository = EditorClassesRepository.new(_listener)
+	var resources_repo: EditorResourcesRepository = EditorResourcesRepository.new(_listener)
 
 	# 2. Create state manager — wires itself to repos + listener in _init()
 	_state = VREStateManager.new(classes_repo, resources_repo, _listener)

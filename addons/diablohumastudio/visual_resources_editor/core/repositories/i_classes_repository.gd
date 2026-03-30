@@ -7,6 +7,8 @@ signal class_list_changed(classes: Array[String])
 signal _property_list_changed()
 signal orphaned_resources_found(resources: Array[Resource])
 
+var listener: EditorFileSystemListener
+
 var global_class_map: Array[Dictionary] = []
 var class_to_path_map: Dictionary[String, String] = {}
 var class_to_parent_map: Dictionary[String, String] = {}

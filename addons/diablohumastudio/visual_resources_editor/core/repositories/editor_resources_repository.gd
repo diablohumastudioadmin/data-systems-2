@@ -5,6 +5,10 @@ extends IResourcesRepository
 var _current_class_names: Array[String] = []
 var _mtimes: Dictionary[String, int] = {}
 
+func _init(p_listener: EditorFileSystemListener) -> void:
+	listener = p_listener
+	listener.filesystem_changed.connect(_on_listener_filesystem_changed)
+
 
 func load_resources(class_names: Array[String]) -> void:
 	_current_class_names = class_names
@@ -63,6 +67,10 @@ func scan_for_changes() -> void:
 
 
 # ── Private ────────────────────────────────────────────────────────────────────
+
+func _on_listener_filesystem_changed() -> void:
+	#TODO check for current clas name null
+	scan_for_changes()
 
 func _rebuild_mtimes() -> void:
 	_mtimes.clear()

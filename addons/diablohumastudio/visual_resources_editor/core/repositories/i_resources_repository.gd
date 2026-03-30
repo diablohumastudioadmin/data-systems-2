@@ -2,6 +2,8 @@
 class_name IResourcesRepository
 extends RefCounted
 
+var listener: EditorFileSystemListener
+
 signal resources_reset(resources: Array[Resource])
 signal resources_changed(added: Array[Resource], removed: Array[Resource], modified: Array[Resource])
 
