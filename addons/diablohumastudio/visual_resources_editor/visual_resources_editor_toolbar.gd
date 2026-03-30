@@ -33,7 +33,7 @@ func open_visual_editor_window():
 	var resources_repo: EditorResourcesRepository = EditorResourcesRepository.new(_listener)
 
 	# 2. Create state manager — wires itself to repos + listener in _init()
-	_state = VREStateManager.new(classes_repo, resources_repo, _listener)
+	_state = VREStateManager.new(classes_repo, resources_repo)
 
 	# 3. Create window, inject state
 	visual_resources_editor_window = VISUAL_RESOURCES_EDITOR_WINDOW_SCENE.instantiate()
