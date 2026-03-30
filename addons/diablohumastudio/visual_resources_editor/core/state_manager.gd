@@ -35,6 +35,7 @@ func _init(
 		p_classes_repo: IClassesRepository,
 		p_resources_repo: IResourcesRepository,
 		p_listener: EditorFileSystemListener = null) -> void:
+
 	classes_repo = p_classes_repo
 	resources_repo = p_resources_repo
 	_listener = p_listener
@@ -42,12 +43,12 @@ func _init(
 	classes_repo.class_list_changed.connect(_on_class_list_changed)
 	classes_repo._property_list_changed.connect(_on_property_list_changed)
 	classes_repo.orphaned_resources_found.connect(_on_orphaned_resources_found)
+
 	resources_repo.resources_reset.connect(_on_resources_reset)
 	resources_repo.resources_changed.connect(_on_resources_changed)
 
-	if _listener:
-		_listener.script_classes_updated.connect(classes_repo.rebuild)
-		_listener.filesystem_changed.connect(_on_filesystem_changed)
+	_listener.script_classes_updated.connect(classes_repo.rebuild)
+	_listener.filesystem_changed.connect(_on_filesystem_changed)
 
 
 func shutdown() -> void:
