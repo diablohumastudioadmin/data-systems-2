@@ -13,12 +13,11 @@ func rebuild() -> void:
 	var previous_classes: Array[String] = class_name_list.duplicate()
 	_rebuild_maps()
 
-	if previous_classes == class_name_list:
-		_check_property_changes()
-		return
+	if previous_classes != class_name_list:
+		_handle_orphans(previous_classes)
+		class_list_changed.emit(class_name_list)
 
-	_handle_orphans(previous_classes)
-	class_list_changed.emit(class_name_list)
+	_check_property_changes()
 
 
 func resolve_included_classes(base_class: String, include_subclasses: bool) -> Array[String]:
@@ -28,6 +27,8 @@ func resolve_included_classes(base_class: String, include_subclasses: bool) -> A
 
 
 func scan_properties(base_class: String, included_classes: Array[String]) -> void:
+	current_class_name = base_class
+	current_included_classes = included_classes
 	current_class_script = get_class_script(base_class)
 	included_class_property_lists = ProjectScanner.get_properties_from_script_names(included_classes)
 	var empty_props: Array[ResourceProperty] = []
@@ -52,7 +53,15 @@ func _rebuild_maps() -> void:
 
 
 func _check_property_changes() -> void:
-	_property_list_changed.emit()
+	if current_class_name.is_empty():
+		return
+	if not class_name_list.has(current_class_name):
+		return
+	var old_props: Array[ResourceProperty] = current_class_property_list.duplicate()
+	scan_properties(current_class_name, current_included_classes)
+	if ResourceProperty.arrays_equal(old_props, current_class_property_list):
+		return
+	current_property_list_changed.emit()
 
 
 func _handle_orphans(previous_classes: Array[String]) -> void:

@@ -3,7 +3,7 @@ class_name IClassesRepository
 extends RefCounted
 
 signal class_list_changed(classes: Array[String])
-signal _property_list_changed()
+signal current_property_list_changed()
 signal orphaned_resources_found(resources: Array[Resource])
 
 var listener: EditorFileSystemListener
@@ -13,6 +13,8 @@ var class_to_path_map: Dictionary[String, String] = {}
 var class_to_parent_map: Dictionary[String, String] = {}
 var class_name_list: Array[String] = []
 
+var current_class_name: String = ""
+var current_included_classes: Array[String] = []
 var current_class_script: GDScript = null
 var current_class_property_list: Array[ResourceProperty] = []
 var included_class_property_lists: Dictionary = {}

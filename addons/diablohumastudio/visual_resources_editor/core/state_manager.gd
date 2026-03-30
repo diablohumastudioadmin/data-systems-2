@@ -38,7 +38,7 @@ func _init(
 	resources_repo = p_resources_repo
 
 	classes_repo.class_list_changed.connect(_on_class_list_changed)
-	classes_repo._property_list_changed.connect(_on_property_list_changed)
+	classes_repo.current_property_list_changed.connect(_on_property_list_changed)
 	classes_repo.orphaned_resources_found.connect(_on_orphaned_resources_found)
 
 	resources_repo.resources_reset.connect(_on_resources_reset)
@@ -180,12 +180,17 @@ func _on_class_list_changed(classes: Array[String]) -> void:
 		refresh_resource_list_values()
 		return
 
-	# Class list changed but current set is the same — check property changes
-	_check_and_apply_property_changes()
+	# Class list changed but current set is the same
+	# Property changes are handled by the repo's _check_property_changes → _on_property_list_changed
 
 
 func _on_property_list_changed() -> void:
-	_check_and_apply_property_changes()
+	if _current_class_name.is_empty():
+		return
+	for res: Resource in resources_repo.resources:
+		ResourceSaver.save(res, res.resource_path)
+	_restore_selection()
+	_set_current_page(_current_page)
 
 
 func _on_orphaned_resources_found(orphaned: Array[Resource]) -> void:
@@ -243,19 +248,6 @@ func _restore_selection() -> void:
 			_selected_paths.append(res.resource_path)
 	_selected_resources_last_index = resources_repo.resources.find(selected_resources.back()) if not selected_resources.is_empty() else -1
 	selection_changed.emit(selected_resources.duplicate())
-
-
-func _check_and_apply_property_changes() -> void:
-	if _current_class_name.is_empty():
-		return
-	var old_props: Array[ResourceProperty] = classes_repo.current_class_property_list.duplicate()
-	classes_repo.scan_properties(_current_class_name, _current_included_class_names)
-	if ResourceProperty.arrays_equal(old_props, classes_repo.current_class_property_list):
-		return
-	for res: Resource in resources_repo.resources:
-		ResourceSaver.save(res, res.resource_path)
-	_restore_selection()
-	_set_current_page(_current_page)
 
 
 func _has_current_class_set_changed() -> bool:
