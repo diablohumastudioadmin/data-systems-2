@@ -5,8 +5,7 @@ extends RefCounted
 signal classes_changed()
 signal filesystem_changed()
 
-var _suppressed: bool = false
-
+var _prevent_fs_changed: bool = false
 
 func start() -> void:
 	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
@@ -26,16 +25,13 @@ func stop() -> void:
 			efs.filesystem_changed.disconnect(_on_filesystem_changed)
 
 
-func suppress_next_filesystem_changed() -> void:
-	_suppressed = true
-
-
 func _on_script_classes_updated() -> void:
+	_prevent_fs_changed = true
 	classes_changed.emit()
 
 
 func _on_filesystem_changed() -> void:
-	if _suppressed:
-		_suppressed = false
+	if _prevent_fs_changed:
+		_prevent_fs_changed = false
 		return
 	filesystem_changed.emit()

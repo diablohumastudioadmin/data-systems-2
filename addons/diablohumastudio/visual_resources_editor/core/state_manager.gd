@@ -39,7 +39,6 @@ func _init(
 	resources_repo = p_resources_repo
 	_listener = p_listener
 
-	classes_repo.updated.connect(_on_classes_updated)
 	classes_repo.class_list_changed.connect(_on_class_list_changed)
 	classes_repo._property_list_changed.connect(_on_property_list_changed)
 	classes_repo.orphaned_resources_found.connect(_on_orphaned_resources_found)
@@ -171,11 +170,6 @@ func _on_filesystem_changed() -> void:
 
 
 # ── ClassesRepository signal handlers ─────────────────────────────────────────
-
-func _on_classes_updated() -> void:
-	if _listener:
-		_listener.suppress_next_filesystem_changed()
-
 
 func _on_class_list_changed(classes: Array[String]) -> void:
 	project_classes_changed.emit(classes)
