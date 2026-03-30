@@ -32,9 +32,6 @@ func _on_confirmed() -> void:
 		var err: Error = OS.move_to_trash(ProjectSettings.globalize_path(path))
 		if err != OK:
 			failed_paths.append(path)
-	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
-	for path: String in _pending_paths:
-		efs.update_file(path)
 	if not failed_paths.is_empty():
 		error_occurred.emit("Failed to delete:\n%s" % "\n".join(failed_paths))
 	_pending_paths.clear()
