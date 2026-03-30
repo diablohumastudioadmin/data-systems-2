@@ -2,7 +2,6 @@
 class_name IClassesRepository
 extends RefCounted
 
-signal updated()
 signal class_list_changed(classes: Array[String])
 signal _property_list_changed()
 signal orphaned_resources_found(resources: Array[Resource])

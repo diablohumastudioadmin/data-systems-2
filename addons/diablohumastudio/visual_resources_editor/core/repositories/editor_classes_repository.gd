@@ -12,7 +12,6 @@ func _init(p_listener: EditorFileSystemListener) -> void:
 func rebuild() -> void:
 	var previous_classes: Array[String] = class_name_list.duplicate()
 	_rebuild_maps()
-	updated.emit()
 
 	if previous_classes == class_name_list:
 		_check_property_changes()

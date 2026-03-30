@@ -4,7 +4,7 @@ extends IClassesRepository
 
 
 func rebuild() -> void:
-	updated.emit()
+	pass
 
 
 func resolve_included_classes(base_class: String, include_subclasses: bool) -> Array[String]:
