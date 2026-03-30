@@ -2,7 +2,7 @@
 class_name EditorFileSystemListener
 extends RefCounted
 
-signal classes_changed()
+signal script_classes_updated()
 signal filesystem_changed()
 
 var _prevent_fs_changed: bool = false
@@ -27,7 +27,7 @@ func stop() -> void:
 
 func _on_script_classes_updated() -> void:
 	_prevent_fs_changed = true
-	classes_changed.emit()
+	script_classes_updated.emit()
 
 
 func _on_filesystem_changed() -> void:

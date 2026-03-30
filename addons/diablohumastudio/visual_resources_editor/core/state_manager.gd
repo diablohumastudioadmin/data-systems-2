@@ -46,7 +46,7 @@ func _init(
 	resources_repo.resources_changed.connect(_on_resources_changed)
 
 	if _listener:
-		_listener.classes_changed.connect(classes_repo.rebuild)
+		_listener.script_classes_updated.connect(classes_repo.rebuild)
 		_listener.filesystem_changed.connect(_on_filesystem_changed)
 
 
