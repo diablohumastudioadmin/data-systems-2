@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://dukcnu4xa4lbd"]
 
 [ext_resource type="Script" uid="uid://clxxgcsp18f1o" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/resource_row.gd" id="1_row"]
-[ext_resource type="Script" uid="uid://3y48t2sura63" path="res://addons/diablohumastudio/visual_resources_editor/ui/dialogs/confirm_delete_dialog.gd" id="2_oupys"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_normal"]
 
@@ -72,12 +71,11 @@ layout_mode = 2
 text = "X"
 flat = true
 
-[node name="ConfirmDeleteDialog" type="ConfirmationDialog" parent="." unique_id=1564046582]
+[node name="ConfirmDeleteDialog" type="ConfirmationDialog" parent="." unique_id=193847562]
 unique_name_in_owner = true
 title = "Confirm Delete"
 ok_button_text = "Delete"
-script = ExtResource("2_oupys")
-metadata/_custom_type_script = "uid://3y48t2sura63"
 
 [connection signal="pressed" from="." to="." method="_on_pressed"]
 [connection signal="pressed" from="Content/DeleteBtn" to="." method="_on_delete_pressed"]
+[connection signal="confirmed" from="ConfirmDeleteDialog" to="." method="_on_delete_confirmed"]

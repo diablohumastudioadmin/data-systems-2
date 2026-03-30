@@ -27,7 +27,7 @@ func _build_field_labels() -> void:
 	_prop_labels.clear()
 
 	# Map which editor-visible properties this resource's script actually declares
-	# Uses the same filter as ProjectScanner.get_properties_from_script_path()
+	# Uses the same filter as ProjectClassScanner.get_properties_from_script_path()
 	var owned: Dictionary = {}
 	if resource and resource.get_script():
 		for p: Dictionary in resource.get_script().get_script_property_list():
@@ -89,5 +89,19 @@ func _on_pressed() -> void:
 func _on_delete_pressed() -> void:
 	if resource == null:
 		return
-	%ConfirmDeleteDialog.show_delete_dialog(Array([resource.resource_path], TYPE_STRING, "", null))
+	%ConfirmDeleteDialog.dialog_text = "Move to trash?\n\n%s" % resource.resource_path.get_file()
 	%ConfirmDeleteDialog.popup_centered()
+
+
+func _on_delete_confirmed() -> void:
+	if resource == null:
+		return
+	var path: String = resource.resource_path
+	if not path.begins_with("res://"):
+		push_warning("VRE: Skipping delete of path outside project: %s" % path)
+		return
+	var err: Error = OS.move_to_trash(ProjectSettings.globalize_path(path))
+	if err != OK:
+		push_warning("VRE: Failed to delete: %s" % path)
+		return
+	EditorInterface.get_resource_filesystem().update_file(path)
