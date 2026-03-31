@@ -1,19 +1,30 @@
 @tool
 extends Label
 
+var state_manager: VREStateManager = null:
+	set(value):
+		state_manager = value
+		if is_node_ready():
+			_connect_state()
+
 var _visible_count: int = 0
 var _has_selection: bool = false
 
 
-func initialize(state: VREStateManager) -> void:
-	state.resources_replaced.connect(_on_resources_replaced)
-	state.resources_added.connect(_on_resources_added)
-	state.resources_removed.connect(_on_resources_removed)
-	state.selection_changed.connect(_on_selection_changed)
+func _ready() -> void:
+	if state_manager:
+		_connect_state()
+
+
+func _connect_state() -> void:
+	state_manager.resources_replaced.connect(_on_resources_replaced)
+	state_manager.resources_added.connect(_on_resources_added)
+	state_manager.resources_removed.connect(_on_resources_removed)
+	state_manager.selection_changed.connect(_on_selection_changed)
 
 
 func _on_resources_replaced(
-			resources: Array[Resource], _props: Array[ResourceProperty]) -> void:
+		resources: Array[Resource], _props: Array[ResourceProperty]) -> void:
 	_visible_count = resources.size()
 	text = "%d resource(s)" % _visible_count
 

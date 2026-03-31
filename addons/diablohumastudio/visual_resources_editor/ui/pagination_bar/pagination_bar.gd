@@ -1,11 +1,22 @@
 @tool
 extends HBoxContainer
 
+var state_manager: VREStateManager = null:
+	set(value):
+		state_manager = value
+		if is_node_ready():
+			_connect_state()
 
-func initialize(state: VREStateManager) -> void:
-	%PrevBtn.pressed.connect(state.prev_page)
-	%NextBtn.pressed.connect(state.next_page)
-	state.pagination_changed.connect(_on_pagination_changed)
+
+func _ready() -> void:
+	if state_manager:
+		_connect_state()
+
+
+func _connect_state() -> void:
+	%PrevBtn.pressed.connect(state_manager.prev_page)
+	%NextBtn.pressed.connect(state_manager.next_page)
+	state_manager.pagination_changed.connect(_on_pagination_changed)
 
 
 func _on_pagination_changed(page: int, page_count: int) -> void:

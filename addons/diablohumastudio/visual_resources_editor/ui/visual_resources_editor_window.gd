@@ -12,8 +12,8 @@ func _ready() -> void:
 	%ResourceList.state_manager = state
 	%Toolbar.state_manager = state
 	%BulkEditor.state_manager = state
-	%PaginationBar.initialize(state)
-	%StatusLabel.initialize(state)
+	%PaginationBar.state_manager = state
+	%StatusLabel.state_manager = state
 	%Dialogs.state_manager = state
 
 	
