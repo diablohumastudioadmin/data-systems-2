@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://b37n3eimc2hpq" path="res://addons/diablohumastudio/visual_resources_editor/ui/toolbar/toolbar.tscn" id="6_tb"]
 [ext_resource type="PackedScene" path="res://addons/diablohumastudio/visual_resources_editor/ui/pagination_bar/pagination_bar.tscn" id="7_pg"]
 [ext_resource type="Script" uid="uid://dovkxlvcqmbf4" path="res://addons/diablohumastudio/visual_resources_editor/ui/status_label.gd" id="8_sl"]
+[ext_resource type="PackedScene" path="res://addons/diablohumastudio/visual_resources_editor/ui/subclass_filter/subclass_filter.tscn" id="9_sf"]
 
 [node name="VisualResourcesEditorWindow" type="Window" unique_id=382482314]
 oversampling_override = 1.0
@@ -33,6 +34,10 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="ClassSelector" parent="MarginContainer/VBox" unique_id=2133691582 instance=ExtResource("2_cls")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="SubclassFilter" parent="MarginContainer/VBox" instance=ExtResource("9_sf")]
 unique_name_in_owner = true
 layout_mode = 2
 

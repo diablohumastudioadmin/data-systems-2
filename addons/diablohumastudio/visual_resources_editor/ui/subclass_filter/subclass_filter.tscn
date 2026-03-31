@@ -1,0 +1,22 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/diablohumastudio/visual_resources_editor/ui/subclass_filter/subclass_filter.gd" id="1_sf"]
+
+[node name="SubclassFilter" type="VBoxContainer"]
+custom_minimum_size = Vector2(250, 49)
+script = ExtResource("1_sf")
+
+[node name="IncludeSubclassesCheck" type="CheckBox" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Include subclasses"
+
+[node name="SubclassWarningLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.28235295, 0.27058825, 1)
+theme_override_font_sizes/font_size = 10
+text = "Warning: String-path inheritance is not supported."
+
+[connection signal="toggled" from="IncludeSubclassesCheck" to="." method="_on_include_subclasses_check_toggled"]

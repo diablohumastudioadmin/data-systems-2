@@ -15,7 +15,8 @@ func connect_components() -> void:
 	var state: VREStateManager = %VREStateManager
 
 	# Children wire themselves to state
-	%ClassSelector.initialize(state)
+	%ClassSelector.state_manager = state
+	%SubclassFilter.state_manager = state
 	%ResourceList.initialize(state)
 	%Toolbar.initialize(state)
 	%BulkEditor.initialize(state)
