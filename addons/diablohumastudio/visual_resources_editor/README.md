@@ -94,13 +94,16 @@ Dialogs (`SaveResourceDialog`, `ConfirmDeleteDialog`, `ErrorDialog`) have no chi
 Both `ConfirmDeleteDialog` (bulk) and `ResourceRow` (single) use `OS.move_to_trash()` instead of `DirAccess.remove_absolute()`. Files are recoverable from the OS trash/recycle bin. No undo/redo for deletion — version control is the secondary safety net (see CLAUDE.md).
 
 ### Two-Step Window Initialization
-`create_and_add_dialogs()` and `connect_components()` are called separately after instantiation (not in `_ready()`). This is required because Window-inside-Window in `@tool` mode causes errors when Godot reloads with the scene open. The editor plugin toolbar controls this initialization sequence.
+`create_and_add_dialogs()` and `connect_components()` are called separately after instantiation (not in `_ready()`). This is required because Window-inside-Window in `@tool` mode causes errors when Godot reloads with the scene open. The editor plugin toolbar controls this initialization sequence. `connect_components()` assigns `state_manager` to each child component.
 
-### ClassSelector Owns Include-Subclasses
-The "Include subclasses" checkbox and its warning label live inside the `ClassSelector` scene. `ClassSelector` emits `include_subclasses_toggled(pressed)` and manages the warning label visibility internally. The window connects this signal to `VREStateManager.set_include_subclasses`.
+### Children Wire Themselves (MVVM-like)
+Each UI component receives a `state_manager: VREStateManager` property (or `initialize(state)` for components still being migrated). The component connects to the state signals it needs and calls state_manager methods directly — no intermediate signals, no window routing. The window's `connect_components()` just assigns the property and wires error dialogs.
+
+### SubclassFilter as Separate Scene
+The "Include subclasses" checkbox and its warning label are a standalone scene (`ui/subclass_filter/subclass_filter.tscn`), separate from `ClassSelector`. It receives `state_manager` and calls `state_manager.set_include_subclasses()` directly on toggle.
 
 ### VREToolbar as Separate Scene
-The toolbar (New / Delete Selected / Refresh) is its own scene (`ui/toolbar/toolbar.tscn`), separate from `ResourceList`. It owns `SaveResourceDialog` and `ConfirmDeleteDialog` for create and bulk-delete operations. The window passes class info and selection state to the toolbar.
+The toolbar (New / Delete Selected / Refresh) is its own scene (`ui/toolbar/toolbar.tscn`), separate from `ResourceList`. It owns `SaveResourceDialog` and `ConfirmDeleteDialog` for create and bulk-delete operations.
 
 ## Data Models
 
@@ -121,18 +124,17 @@ Properties: `class_name_str: String`, `script_path: String`, `properties: Array[
 - `resources_added(resources: Array[Resource])` — incremental: new resources on current page
 - `resources_removed(resources: Array[Resource])` — incremental: deleted resources from current page
 - `resources_modified(resources: Array[Resource])` — incremental: modified resources on current page
+- `resources_edited(resources: Array[Resource])` — relayed from BulkEditor after inspector edits
 - `project_classes_changed(classes: Array[String])`
 - `selection_changed(resources: Array[Resource])`
 - `pagination_changed(page: int, page_count: int)`
 - `current_class_renamed(new_name: String)`
 
 **UI components:**
-- `class_selected(class_name_str: String)`
-- `include_subclasses_toggled(pressed: bool)`
-- `refresh_requested`
-- `error_occurred(message: String)`
-- `row_clicked(resource: Resource, ctrl_held: bool, shift_held: bool)`
-- `resource_row_selected(resource: Resource, ctrl_held: bool, shift_held: bool)`
+- `refresh_requested` (Toolbar)
+- `error_occurred(message: String)` (Toolbar, BulkEditor)
+- `row_clicked(resource: Resource, ctrl_held: bool, shift_held: bool)` (ResourceList)
+- `resource_row_selected(resource: Resource, ctrl_held: bool, shift_held: bool)` (ResourceRow)
 
 ## Key Conventions
 - All hardcoded `load()`/`preload()` use UIDs (`uid://...`), not string paths
