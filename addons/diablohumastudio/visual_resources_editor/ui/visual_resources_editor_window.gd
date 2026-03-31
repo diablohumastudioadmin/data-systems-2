@@ -17,7 +17,7 @@ func connect_components() -> void:
 	# Children wire themselves to state
 	%ClassSelector.state_manager = state
 	%SubclassFilter.state_manager = state
-	%ResourceList.initialize(state)
+	%ResourceList.state_manager = state
 	%Toolbar.state_manager = state
 	%BulkEditor.state_manager = state
 	%PaginationBar.initialize(state)

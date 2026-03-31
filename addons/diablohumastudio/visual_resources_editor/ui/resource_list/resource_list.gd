@@ -2,78 +2,80 @@
 class_name ResourceList
 extends VBoxContainer
 
-signal row_clicked(resource: Resource, ctrl_held: bool, shift_held: bool)
-
 const RESOURCE_ROW_SCENE: PackedScene = preload("uid://dukcnu4xa4lbd")
+
+var state_manager: VREStateManager = null:
+	set(value):
+		state_manager = value
+		if is_node_ready():
+			_connect_state()
 
 var _rows: Array[ResourceRow] = []
 var _resource_path_to_row: Dictionary[String, ResourceRow] = {}
 var _current_shared_propery_list: Array[ResourceProperty] = []
 
 
-func initialize(state: VREStateManager) -> void:
-	row_clicked.connect(state.set_selected_resources)
-	state.resources_replaced.connect(replace_resources)
-	state.resources_added.connect(func(resources: Array[Resource]) -> void:
-		add_resources(resources)
-		update_selection(state.selected_resources)
-	)
-	state.resources_modified.connect(func(resources: Array[Resource]) -> void:
-		modify_resources(resources)
-		update_selection(state.selected_resources)
-	)
-	state.resources_removed.connect(func(resources: Array[Resource]) -> void:
-		remove_resources(resources)
-		update_selection(state.selected_resources)
-	)
-	state.selection_changed.connect(update_selection)
-	state.resources_edited.connect(func(resources: Array[Resource]) -> void:
-		for res: Resource in resources:
-			refresh_row(res.resource_path)
-	)
+func _ready() -> void:
+	if state_manager:
+		_connect_state()
 
 
-# ── Public API ─────────────────────────────────────────────────────────────────
+func _connect_state() -> void:
+	state_manager.resources_replaced.connect(_on_state_manager_resources_replaced)
 
-func replace_resources(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty]) -> void:
+	state_manager.resources_added.connect(_on_state_manager_resources_added)
+	state_manager.resources_modified.connect(_on_state_manager_resources_modified)
+	state_manager.resources_removed.connect(_on_state_manager_resources_removed)
+
+	state_manager.selection_changed.connect(_on_state_manager_selection_changed)
+	state_manager.resources_edited.connect(_on_state_manager_resources_edited)
+
+# ── State Manager Signal conections handlers ─────────────────────────────────────────────────────────────
+
+func _on_state_manager_resources_added(resources: Array[Resource]):
+	_add_resources(resources)
+	_update_selection(state_manager.selected_resources)
+
+func _on_state_manager_resources_modified(resources: Array[Resource]):
+	_modify_resources(resources)
+	_update_selection(state_manager.selected_resources)
+
+func _on_state_manager_resources_removed(resources: Array[Resource]):
+	_remove_resources(resources)
+	_update_selection(state_manager.selected_resources)
+
+func _on_state_manager_resources_replaced(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty]) -> void:
 	_build_rows(resources, current_shared_propery_list)
 
+func _on_state_manager_selection_changed(selected_resources: Array[Resource]):
+	_update_selection(selected_resources)
 
-func add_resources(resources: Array[Resource]) -> void:
+func _on_state_manager_resources_edited(resources: Array[Resource]):
+	for res: Resource in resources:
+		_refresh_row(res.resource_path)
+
+# ── rows handling ─────────────────────────────────────────────────────────────
+
+func _add_resources(resources: Array[Resource]) -> void:
 	for res: Resource in resources:
 		_add_row(res)
 	_sort_rows_by_path()
 
-
-func modify_resources(resources: Array[Resource]) -> void:
+func _modify_resources(resources: Array[Resource]) -> void:
 	for res: Resource in resources:
 		_update_row_resource(res)
 
-
-func remove_resources(resources: Array[Resource]) -> void:
+func _remove_resources(resources: Array[Resource]) -> void:
 	for res: Resource in resources:
 		_remove_row_by_path(res.resource_path)
 
-
-func get_row_count() -> int:
-	return _rows.size()
-
-
-func refresh_row(resource_path: String) -> void:
+func _refresh_row(resource_path: String) -> void:
 	if not _resource_path_to_row.has(resource_path):
 		return
 	var row: ResourceRow = _resource_path_to_row[resource_path]
 	if is_instance_valid(row):
 		row.update_display()
 
-
-func update_selection(selected: Array[Resource]) -> void:
-	for row: ResourceRow in _rows:
-		if is_instance_valid(row):
-			row.set_selected(selected.has(row.get_resource()))
-
-
-# ── Table building ─────────────────────────────────────────────────────────────
 
 func _build_rows(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty]) -> void:
 	_clear_rows()
@@ -136,8 +138,14 @@ func _sort_rows_by_path() -> void:
 		if is_instance_valid(row):
 			%RowsContainer.move_child(row, i)
 
+# ── slection handling ─────────────────────────────────────────────────────────────
+
+func _update_selection(selected: Array[Resource]) -> void:
+	for row: ResourceRow in _rows:
+		if is_instance_valid(row):
+			row.set_selected(selected.has(row.get_resource()))
 
 # ── Selection (visual only) ────────────────────────────────────────────────────
 
 func _on_resource_row_selected(resource: Resource, ctrl_held: bool, shift_held: bool) -> void:
-	row_clicked.emit(resource, ctrl_held, shift_held)
+	state_manager.set_selected_resources(resource, ctrl_held, shift_held)
