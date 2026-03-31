@@ -11,6 +11,7 @@ signal selection_changed(resources: Array[Resource])
 signal pagination_changed(page: int, page_count: int)
 signal current_class_renamed(new_name: String)
 signal resources_edited(resources: Array[Resource])
+signal error_occurred(message: String)
 
 const PAGE_SIZE: int = 50
 
@@ -22,6 +23,8 @@ var global_class_name_list: Array[String] = []
 var _include_subclasses: bool = true
 
 var _current_class_name: String = ""
+var current_class_name: String:
+	get: return _current_class_name
 var _current_included_class_names: Array[String] = []
 
 var current_class_script: GDScript = null
@@ -77,6 +80,10 @@ func set_include_subclasses(value: bool) -> void:
 
 func notify_resources_edited(resources: Array[Resource]) -> void:
 	resources_edited.emit(resources)
+
+
+func report_error(message: String) -> void:
+	error_occurred.emit(message)
 
 
 func set_selected_resources(resource: Resource, ctrl_held: bool, shift_held: bool) -> void:

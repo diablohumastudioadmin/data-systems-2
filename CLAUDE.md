@@ -30,6 +30,11 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
   - Create those child nodes in code, or
   - Make the parent a scene, add the children there, set `unique_name_in_owner = true`, and reference with `%`.
 
+## MVVM / State-Manager Pattern
+- **Avoid duplicating state that already lives in `VREStateManager`** — if a UI component needs a value that state_manager already owns (e.g. `selected_resources`, `current_class_name`, `global_class_map`), read it directly from `state_manager` at the moment it is needed instead of caching a local copy. Remove any component property whose sole purpose is to mirror state already in the VM.
+- **Example**: toolbar does not need `_selected_resources: Array[Resource]`; `_on_delete_selected_pressed` reads `state_manager.selected_resources` directly.
+- **Signals from components to state_manager**: prefer calling `state_manager.some_method()` directly over emitting an intermediate signal and then connecting it to the state_manager. Intermediate signals are only justified when the component needs to be decoupled from state_manager (e.g. reusable outside VRE).
+
 ## Signal Connection Convention
 - **Always connect signals via scene** (`[connection]` in `.tscn`) when both the signal source and target method are nodes within the same scene.
 - **Connect via code** (`.connect()`) only when:

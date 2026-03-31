@@ -2,7 +2,6 @@
 class_name BulkEditor
 extends Node
 
-signal error_occurred(message: String)
 signal resources_edited(resources: Array[Resource])
 
 const MAX_SAVE_ERROR_PATHS: int = 3
@@ -17,15 +16,17 @@ var edited_resources : Array[Resource] = [] :
 		_create_bulk_proxy()
 var _inspector: EditorInspector
 var _bulk_proxy: Resource = null
+var _state: VREStateManager = null
 
 
 func initialize(state: VREStateManager) -> void:
+	_state = state
 	resources_edited.connect(state.notify_resources_edited)
 	state.selection_changed.connect(func(resources: Array[Resource]) -> void:
 		edited_resources = resources
 	)
 	state.resources_replaced.connect(func(_resources: Array[Resource], _props: Array[ResourceProperty]) -> void:
-		current_class_name = state._current_class_name
+		current_class_name = state.current_class_name
 		current_class_script = state.current_class_script
 		current_class_property_list = state.current_class_property_list
 		current_included_class_property_lists = state.current_included_class_property_lists
@@ -93,7 +94,7 @@ func _on_inspector_property_edited(property: String) -> void:
 			var msg: String = "Failed to save:\n%s" % "\n".join(shown)
 			if failed_paths.size() > MAX_SAVE_ERROR_PATHS:
 				msg += "\n... and %d more" % (failed_paths.size() - MAX_SAVE_ERROR_PATHS)
-			error_occurred.emit(msg)
+			_state.report_error(msg)
 		if not saved.is_empty():
 			resources_edited.emit(saved)
 		EditorInterface.get_resource_filesystem().scan_sources()

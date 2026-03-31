@@ -18,14 +18,12 @@ func connect_components() -> void:
 	%ClassSelector.state_manager = state
 	%SubclassFilter.state_manager = state
 	%ResourceList.initialize(state)
-	%Toolbar.initialize(state)
+	%Toolbar.state_manager = state
 	%BulkEditor.initialize(state)
 	%PaginationBar.initialize(state)
 	%StatusLabel.initialize(state)
 
-	# Error dialogs
-	%Toolbar.error_occurred.connect(error_dialog.show_error)
-	%BulkEditor.error_occurred.connect(error_dialog.show_error)
+	state.error_occurred.connect(error_dialog.show_error)
 
 
 func _unhandled_input(event: InputEvent) -> void:
