@@ -91,8 +91,6 @@ func _build_rows(resources: Array[Resource], current_shared_propery_list: Array[
 func _clear_rows() -> void:
 	for row: ResourceRow in _rows:
 		if is_instance_valid(row):
-			if row.resource_row_selected.is_connected(_on_resource_row_selected):
-				row.resource_row_selected.disconnect(_on_resource_row_selected)
 			row.queue_free()
 	_rows.clear()
 	_resource_path_to_row.clear()
@@ -102,10 +100,10 @@ func _add_row(res: Resource) -> void:
 	if _resource_path_to_row.has(res.resource_path):
 		return
 	var row: ResourceRow = RESOURCE_ROW_SCENE.instantiate()
+	row.state_manager = state_manager
 	row.resource = res
 	row.current_shared_propery_list = _current_shared_propery_list
 	%RowsContainer.add_child(row)
-	row.resource_row_selected.connect(_on_resource_row_selected)
 	_rows.append(row)
 	_resource_path_to_row[res.resource_path] = row
 
@@ -115,8 +113,6 @@ func _remove_row_by_path(resource_path: String) -> void:
 		return
 	var row: ResourceRow = _resource_path_to_row[resource_path]
 	if is_instance_valid(row):
-		if row.resource_row_selected.is_connected(_on_resource_row_selected):
-			row.resource_row_selected.disconnect(_on_resource_row_selected)
 		_rows.erase(row)
 		row.queue_free()
 	_resource_path_to_row.erase(resource_path)
@@ -145,7 +141,3 @@ func _update_selection(selected: Array[Resource]) -> void:
 		if is_instance_valid(row):
 			row.set_selected(selected.has(row.get_resource()))
 
-# ── Selection (visual only) ────────────────────────────────────────────────────
-
-func _on_resource_row_selected(resource: Resource, ctrl_held: bool, shift_held: bool) -> void:
-	state_manager.set_selected_resources(resource, ctrl_held, shift_held)

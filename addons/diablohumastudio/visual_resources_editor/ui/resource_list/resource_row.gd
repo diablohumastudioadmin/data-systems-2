@@ -2,11 +2,10 @@
 class_name ResourceRow
 extends Button
 
-signal resource_row_selected(resource: Resource, ctrl_held: bool, shift_held: bool)
-
 const RESOURCE_FIELD_LABEL_SCENE: PackedScene = preload("uid://uru49vi0kvgxy")
 const FIELD_SEPARATOR_SCENE: PackedScene = preload("uid://y2kj6h91hm8r6")
 
+var state_manager: VREStateManager = null
 var resource: Resource = null
 var current_shared_propery_list: Array[ResourceProperty] = []
 var _prop_labels: Dictionary = {}  # property_name → ResourceFieldLabel (only for properties this resource owns)
@@ -83,7 +82,7 @@ func get_resource_path() -> String:
 func _on_pressed() -> void:
 	var ctrl_held: bool = Input.is_key_pressed(KEY_CTRL) or Input.is_key_pressed(KEY_META)
 	var shift_held: bool = Input.is_key_pressed(KEY_SHIFT)
-	resource_row_selected.emit(resource, ctrl_held, shift_held)
+	state_manager.set_selected_resources(resource, ctrl_held, shift_held)
 
 
 func _on_delete_pressed() -> void:
