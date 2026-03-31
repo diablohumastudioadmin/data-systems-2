@@ -2,41 +2,28 @@
 class_name BulkEditor
 extends Node
 
-signal resources_edited(resources: Array[Resource])
-
 const MAX_SAVE_ERROR_PATHS: int = 3
 
-var current_class_name: String = ""
-var current_class_script: GDScript = null
-var current_class_property_list: Array[ResourceProperty] = []
-var current_included_class_property_lists: Dictionary = {}
-var edited_resources : Array[Resource] = [] :
-	set(new_value):
-		edited_resources = new_value
-		_create_bulk_proxy()
+var state_manager: VREStateManager = null:
+	set(value):
+		state_manager = value
+		if is_node_ready():
+			_connect_state()
+
 var _inspector: EditorInspector
 var _bulk_proxy: Resource = null
-var _state: VREStateManager = null
-
-
-func initialize(state: VREStateManager) -> void:
-	_state = state
-	resources_edited.connect(state.notify_resources_edited)
-	state.selection_changed.connect(func(resources: Array[Resource]) -> void:
-		edited_resources = resources
-	)
-	state.resources_replaced.connect(func(_resources: Array[Resource], _props: Array[ResourceProperty]) -> void:
-		current_class_name = state.current_class_name
-		current_class_script = state.current_class_script
-		current_class_property_list = state.current_class_property_list
-		current_included_class_property_lists = state.current_included_class_property_lists
-	)
 
 
 func _ready() -> void:
 	_inspector = EditorInterface.get_inspector()
 	if not _inspector.property_edited.is_connected(_on_inspector_property_edited):
 		_inspector.property_edited.connect(_on_inspector_property_edited)
+	if state_manager:
+		_connect_state()
+
+
+func _connect_state() -> void:
+	state_manager.selection_changed.connect(_on_selection_changed)
 
 
 func _exit_tree() -> void:
@@ -50,52 +37,56 @@ func _clear_bulk_proxy() -> void:
 	EditorInterface.inspect_object(null)
 
 
+func _on_selection_changed(_resources: Array[Resource]) -> void:
+	_create_bulk_proxy()
+
+
 func _create_bulk_proxy() -> void:
 	_clear_bulk_proxy()
-	if edited_resources.is_empty():
+	if state_manager.selected_resources.is_empty():
 		return
 	var script: GDScript = _get_common_script()
 	if script == null:
 		return
 	_bulk_proxy = script.new()
-	if edited_resources.size() == 1:
+	if state_manager.selected_resources.size() == 1:
 		var res_class: String = script.get_global_name()
-		var props: Array = current_included_class_property_lists.get(res_class, current_class_property_list)
+		var props: Array = state_manager.current_included_class_property_lists.get(
+			res_class, state_manager.current_class_property_list)
 		for prop: ResourceProperty in props:
-			_bulk_proxy.set(prop.name, edited_resources[0].get(prop.name))
+			_bulk_proxy.set(prop.name, state_manager.selected_resources[0].get(prop.name))
 	EditorInterface.inspect_object(_bulk_proxy)
 
 
 func _get_common_script() -> GDScript:
-	var first_script: GDScript = edited_resources[0].get_script()
-	for i: int in edited_resources.size():
-		if edited_resources[i].get_script() != first_script:
-			return current_class_script
+	var first_script: GDScript = state_manager.selected_resources[0].get_script()
+	for i: int in state_manager.selected_resources.size():
+		if state_manager.selected_resources[i].get_script() != first_script:
+			return state_manager.current_class_script
 	return first_script
 
 
 func _on_inspector_property_edited(property: String) -> void:
 	var edited_obj: Object = _inspector.get_edited_object()
-
-	if _bulk_proxy and edited_obj == _bulk_proxy:
-		var new_value: Variant = _bulk_proxy.get(property)
-		var saved: Array[Resource] = []
-		var failed_paths: Array[String] = []
-		for res: Resource in edited_resources:
-			if property not in res: continue
-			res.set(property, new_value)
-			var err: Error = ResourceSaver.save(res, res.resource_path)
-			if err != OK:
-				failed_paths.append(res.resource_path)
-			else:
-				saved.append(res)
-		if not failed_paths.is_empty():
-			var shown: Array[String] = failed_paths.slice(0, MAX_SAVE_ERROR_PATHS)
-			var msg: String = "Failed to save:\n%s" % "\n".join(shown)
-			if failed_paths.size() > MAX_SAVE_ERROR_PATHS:
-				msg += "\n... and %d more" % (failed_paths.size() - MAX_SAVE_ERROR_PATHS)
-			_state.report_error(msg)
-		if not saved.is_empty():
-			resources_edited.emit(saved)
-		EditorInterface.get_resource_filesystem().scan_sources()
+	if not (_bulk_proxy and edited_obj == _bulk_proxy):
 		return
+	var new_value: Variant = _bulk_proxy.get(property)
+	var saved: Array[Resource] = []
+	var failed_paths: Array[String] = []
+	for res: Resource in state_manager.selected_resources:
+		if property not in res: continue
+		res.set(property, new_value)
+		var err: Error = ResourceSaver.save(res, res.resource_path)
+		if err != OK:
+			failed_paths.append(res.resource_path)
+		else:
+			saved.append(res)
+	if not failed_paths.is_empty():
+		var shown: Array[String] = failed_paths.slice(0, MAX_SAVE_ERROR_PATHS)
+		var msg: String = "Failed to save:\n%s" % "\n".join(shown)
+		if failed_paths.size() > MAX_SAVE_ERROR_PATHS:
+			msg += "\n... and %d more" % (failed_paths.size() - MAX_SAVE_ERROR_PATHS)
+		state_manager.report_error(msg)
+	if not saved.is_empty():
+		state_manager.notify_resources_edited(saved)
+	EditorInterface.get_resource_filesystem().scan_sources()

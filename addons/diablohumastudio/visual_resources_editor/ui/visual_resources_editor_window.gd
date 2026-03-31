@@ -19,7 +19,7 @@ func connect_components() -> void:
 	%SubclassFilter.state_manager = state
 	%ResourceList.initialize(state)
 	%Toolbar.state_manager = state
-	%BulkEditor.initialize(state)
+	%BulkEditor.state_manager = state
 	%PaginationBar.initialize(state)
 	%StatusLabel.initialize(state)
 
