@@ -26,11 +26,6 @@ func open_visual_editor_window():
 	visual_resources_editor_window = VISUAL_RESOURCES_EDITOR_WINDOW_SCENE.instantiate()
 	EditorInterface.get_base_control().add_child(visual_resources_editor_window)
 	
-	# This 2 functions are needed for correct functioning as when a Window inside a Window parented
-	# scene that is in @tool mode, will show errors when reloading Godot with this scene opened 
-	visual_resources_editor_window.create_and_add_dialogs()
-	visual_resources_editor_window.connect_components()
-	
 	visual_resources_editor_window.close_requested.connect(func():
 		visual_resources_editor_window = null
 	)
