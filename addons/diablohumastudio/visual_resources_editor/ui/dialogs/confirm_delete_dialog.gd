@@ -6,9 +6,25 @@ signal error_occurred(message: String)
 
 var _pending_paths: Array[String] = []
 
+var state_manager: VREStateManager = null:
+	set(value):
+		state_manager = value
+		if is_node_ready():
+			_connect_state()
+
 
 func _ready() -> void:
+	if state_manager:
+		_connect_state()
 	confirmed.connect(_on_confirmed)
+
+
+func _connect_state():
+	state_manager.delete_selected_requested.connect(on_state_manager_delete_selected_requested)
+
+
+func on_state_manager_delete_selected_requested(paths: Array[String]):
+	show_delete_dialog(paths)
 
 
 func show_delete_dialog(paths: Array[String]) -> void:

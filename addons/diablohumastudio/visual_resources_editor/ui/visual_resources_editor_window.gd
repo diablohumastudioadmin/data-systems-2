@@ -14,7 +14,9 @@ func _ready() -> void:
 	%BulkEditor.state_manager = state
 	%PaginationBar.initialize(state)
 	%StatusLabel.initialize(state)
+	%Dialogs.state_manager = state
 
+	
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):

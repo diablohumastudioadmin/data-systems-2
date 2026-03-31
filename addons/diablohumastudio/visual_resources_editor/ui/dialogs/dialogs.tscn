@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://ctihwyghqdbk4"]
+
+[ext_resource type="Script" uid="uid://hx4fthmuudr4" path="res://addons/diablohumastudio/visual_resources_editor/ui/dialogs/dialogs.gd" id="1_6tb8l"]
+[ext_resource type="Script" uid="uid://crj8o6mkhh13c" path="res://addons/diablohumastudio/visual_resources_editor/ui/dialogs/save_resource_dialog.gd" id="2_l1quv"]
+[ext_resource type="Script" uid="uid://3y48t2sura63" path="res://addons/diablohumastudio/visual_resources_editor/ui/dialogs/confirm_delete_dialog.gd" id="3_u1j1g"]
+[ext_resource type="Script" uid="uid://d4kh8p3auqq3j" path="res://addons/diablohumastudio/visual_resources_editor/ui/dialogs/error_dialog.gd" id="4_i7ehq"]
+
+[node name="Dialogs" type="Control" unique_id=243550216]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_6tb8l")
+
+[node name="SaveResourceDialog" type="EditorFileDialog" parent="." unique_id=687819695]
+unique_name_in_owner = true
+filters = PackedStringArray("*.tres")
+script = ExtResource("2_l1quv")
+metadata/_custom_type_script = "uid://crj8o6mkhh13c"
+
+[node name="ConfirmDeleteDialog" type="ConfirmationDialog" parent="." unique_id=401040771]
+unique_name_in_owner = true
+script = ExtResource("3_u1j1g")
+metadata/_custom_type_script = "uid://3y48t2sura63"
+
+[node name="ErrorDialog" type="AcceptDialog" parent="." unique_id=1605982313]
+unique_name_in_owner = true
+script = ExtResource("4_i7ehq")
+metadata/_custom_type_script = "uid://d4kh8p3auqq3j"

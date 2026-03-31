@@ -140,4 +140,3 @@ func _update_selection(selected: Array[Resource]) -> void:
 	for row: ResourceRow in _rows:
 		if is_instance_valid(row):
 			row.set_selected(selected.has(row.get_resource()))
-

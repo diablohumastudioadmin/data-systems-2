@@ -7,12 +7,27 @@ signal error_occurred(message: String)
 var current_class_name: String = ""
 var global_class_map: Array[Dictionary] = []
 
+var state_manager: VREStateManager = null:
+	set(value):
+		state_manager = value
+		if is_node_ready():
+			_connect_state()
+
 
 func _ready() -> void:
+	if state_manager:
+		_connect_state()
 	filters = PackedStringArray(["*.tres"])
 	file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
 	file_selected.connect(_on_file_selected)
 
+func _connect_state():
+	state_manager.create_new_resource_requested.connect(on_state_manager_create_new_resource_requested)
+
+func on_state_manager_create_new_resource_requested():
+	%SaveResourceDialog.current_class_name = state_manager.current_class_name
+	%SaveResourceDialog.global_class_map = state_manager.global_class_map
+	%SaveResourceDialog.show_create_dialog()
 
 func show_create_dialog() -> void:
 	if current_class_name.is_empty():

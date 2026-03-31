@@ -12,6 +12,8 @@ signal pagination_changed(page: int, page_count: int)
 signal current_class_renamed(new_name: String)
 signal resources_edited(resources: Array[Resource])
 signal error_occurred(message: String)
+signal delete_selected_requested(selected_resources_paths: Array[String])
+signal create_new_resource_requested()
 
 const PAGE_SIZE: int = 50
 
@@ -80,6 +82,14 @@ func set_include_subclasses(value: bool) -> void:
 
 func notify_resources_edited(resources: Array[Resource]) -> void:
 	resources_edited.emit(resources)
+
+
+func request_delete_selected_resources() -> void:
+	delete_selected_requested.emit(_selected_paths)
+
+
+func request_create_new_resouce() -> void:
+	create_new_resource_requested.emit()
 
 
 func report_error(message: String) -> void:
