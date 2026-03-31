@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://qpp7tk62euog" path="res://addons/diablohumastudio/visual_resources_editor/core/state_manager.tscn" id="4_a1n50"]
 [ext_resource type="Script" uid="uid://dmco8u3b2nshv" path="res://addons/diablohumastudio/visual_resources_editor/core/bulk_editor.gd" id="5_mtwm8"]
 [ext_resource type="PackedScene" uid="uid://b37n3eimc2hpq" path="res://addons/diablohumastudio/visual_resources_editor/ui/toolbar/toolbar.tscn" id="6_tb"]
+[ext_resource type="PackedScene" path="res://addons/diablohumastudio/visual_resources_editor/ui/pagination_bar/pagination_bar.tscn" id="7_pg"]
+[ext_resource type="Script" uid="uid://dovkxlvcqmbf4" path="res://addons/diablohumastudio/visual_resources_editor/ui/status_label.gd" id="8_sl"]
 
 [node name="VisualResourcesEditorWindow" type="Window" unique_id=382482314]
 oversampling_override = 1.0
@@ -49,31 +51,15 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="PaginationBar" type="HBoxContainer" parent="MarginContainer/VBox"]
+[node name="PaginationBar" parent="MarginContainer/VBox" unique_id=1239040997 instance=ExtResource("7_pg")]
 unique_name_in_owner = true
 layout_mode = 2
-visible = false
 
-[node name="PrevBtn" type="Button" parent="MarginContainer/VBox/PaginationBar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "◄"
-
-[node name="PageLabel" type="Label" parent="MarginContainer/VBox/PaginationBar"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-horizontal_alignment = 1
-
-[node name="NextBtn" type="Button" parent="MarginContainer/VBox/PaginationBar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "►"
-
-[node name="StatusLabel" type="Label" parent="MarginContainer/VBox"]
+[node name="StatusLabel" type="Label" parent="MarginContainer/VBox" unique_id=1327194317]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Select a class to browse resources"
+script = ExtResource("8_sl")
 
 [node name="VREStateManager" parent="." unique_id=114041271 instance=ExtResource("4_a1n50")]
 unique_name_in_owner = true

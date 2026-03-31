@@ -18,6 +18,20 @@ var edited_resources : Array[Resource] = [] :
 var _inspector: EditorInspector
 var _bulk_proxy: Resource = null
 
+
+func initialize(state: VREStateManager) -> void:
+	resources_edited.connect(state.notify_resources_edited)
+	state.selection_changed.connect(func(resources: Array[Resource]) -> void:
+		edited_resources = resources
+	)
+	state.resources_replaced.connect(func(_resources: Array[Resource], _props: Array[ResourceProperty]) -> void:
+		current_class_name = state._current_class_name
+		current_class_script = state.current_class_script
+		current_class_property_list = state.current_class_property_list
+		current_included_class_property_lists = state.current_included_class_property_lists
+	)
+
+
 func _ready() -> void:
 	_inspector = EditorInterface.get_inspector()
 	if not _inspector.property_edited.is_connected(_on_inspector_property_edited):
