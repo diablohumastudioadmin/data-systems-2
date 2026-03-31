@@ -205,3 +205,64 @@ The `VREStateManager` stays in sync with Godot's native filesystem.
 5. If a new resource was added, it appends it. If one was deleted, it removes it. If changed, it reloads it.
 6. It then fires `data_changed` back to the window while **preserving the user's current pagination page and selection**.
 
+---
+
+## Event Catalog
+
+### A. User Actions (things the user can do)
+
+1. **Open the plugin** — press F3
+2. **Close the plugin** — press Escape or click close
+3. **Select a class** from ClassSelector dropdown
+4. **Toggle "Include Subclasses"** checkbox
+5. **Click a resource row** — single select (no modifier key)
+6. **Ctrl+click a resource row** — toggle in/out of multi-selection
+7. **Shift+click a resource row** — range select from last anchor
+8. **Click "Create New"** — SaveResourceDialog → save a new `.tres`
+9. **Click "Delete Selected"** — ConfirmDeleteDialog → `OS.move_to_trash()`
+10. **Click "Refresh"**
+11. **Click Next/Prev page**
+12. **Edit a property in Godot Inspector** — BulkEditor applies value to all selected resources
+13a. **Create a `.tres` of the current viewed class** outside the plugin
+13b. **Create a `.tres` of a different class** outside the plugin
+14a. **Delete a `.tres` of the current viewed class** outside the plugin
+14b. **Delete a `.tres` of a different class** outside the plugin
+15a. **Modify a `.tres` of the current viewed class** outside the plugin
+15b. **Modify a `.tres` of a different class** outside the plugin
+16a. **Rename/move a `.tres` of the current viewed class** outside the plugin
+16b. **Rename/move a `.tres` of a different class** outside the plugin
+17. **Create a new `.gd` script** with a `class_name` that extends a resource class (includes subclass creation)
+18. **Delete a `.gd` script** (remove a class from the project)
+19. **Rename a class** — change the `class_name` line in a `.gd` script
+20. **Add/remove/change properties** in a `.gd` script (schema change)
+
+### B. Editor-Triggered Events (automatic Godot behavior)
+
+1. **`EditorFileSystem.filesystem_changed`** — fires when Godot detects files added, removed, or modified on disk (after its internal scan completes)
+2. **`EditorFileSystem.script_classes_updated`** — fires when the global class map changes (a `class_name` was added, removed, or the script it points to changed)
+3. **Both fire sequentially** — when a `.gd` script changes, `script_classes_updated` fires first, then `filesystem_changed` fires shortly after (same scan cycle)
+4. **`EditorInspector.property_edited(property)`** — fires when the user changes any property in the Inspector panel; BulkEditor listens to this
+5. **`EditorInterface.inspect_object(obj)`** — focuses the Inspector on the given object; BulkEditor uses this to show/clear the bulk proxy
+6. **`EditorFileSystemDirectory` refresh** — Godot frees and recreates the directory tree on every `efs.scan()`. Cached references become invalid (freed object)
+
+### C. Desired Outcomes (observable things that should happen in the UI)
+
+1. Class names populate in ClassSelector dropdown
+2. New class appears in ClassSelector dropdown
+3. Class disappears from ClassSelector dropdown
+4. ClassSelector follows a renamed class (selection updates to new name)
+5. New row appears in ResourceList
+6. Row disappears from ResourceList
+7. Row values update in ResourceList
+8. Columns update in ResourceList (schema/property change)
+9. Selection highlights update in ResourceList
+10. Selection is preserved after list refresh
+11. PaginationBar shows/hides based on page count
+12. PaginationBar page number updates
+13. StatusLabel shows resource count
+14. StatusLabel shows selection count
+15. BulkEditor proxy appears in Inspector
+16. BulkEditor proxy clears from Inspector
+17. Error dialog appears
+18. View clears (current class deleted, no class selected)
+
