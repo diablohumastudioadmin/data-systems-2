@@ -19,9 +19,11 @@ visual_resources_editor/
 │   ├── state_manager.tscn              # Scene for VREStateManager + DebounceTimer child
 │   └── bulk_editor.gd                  # BulkEditor: proxy-based multi-resource editing via Godot inspector
 ├── ui/
-│   ├── visual_resources_editor_window.gd/.tscn  # Main Window: wires components, owns pagination bar + status label
+│   ├── visual_resources_editor_window.gd/.tscn  # Main Window: assigns state_manager to children, owns error dialog
 │   ├── class_selector/
-│   │   └── class_selector.gd/.tscn     # Dropdown + include-subclasses checkbox
+│   │   └── class_selector.gd/.tscn     # Class dropdown selector
+│   ├── subclass_filter/
+│   │   └── subclass_filter.gd/.tscn    # "Include subclasses" checkbox + warning label
 │   ├── toolbar/
 │   │   └── toolbar.gd/.tscn            # VREToolbar: New/Delete Selected/Refresh + owns SaveResourceDialog & ConfirmDeleteDialog
 │   ├── resource_list/
@@ -31,6 +33,9 @@ visual_resources_editor/
 │   │   ├── resource_field_label.gd/.tscn  # Label for a single property cell (owns display/format logic)
 │   │   ├── header_field_label.tscn      # Label for a single header cell
 │   │   └── field_separator.tscn         # VSeparator between columns
+│   ├── pagination_bar/
+│   │   └── pagination_bar.gd/.tscn     # Prev/Next page buttons + page label
+│   ├── status_label.gd                 # Script-only Label: shows resource count or selection count
 │   └── dialogs/
 │       ├── save_resource_dialog.gd      # EditorFileDialog for creating new resources
 │       ├── confirm_delete_dialog.gd     # ConfirmationDialog for deleting resources (moves to OS trash)
@@ -55,7 +60,7 @@ visual_resources_editor/
    - `current_class_resources` + `_current_class_resources_mtimes` — all resources matching the selected class (across all pages).
    - `_current_page_resources` + `current_page_resources_mtimes` — the slice for the current page. `_scan_page_resources_for_changes()` diffs the previous and current page slices to emit granular signals (`resources_added`, `resources_removed`, `resources_modified`).
 
-5. **Selection**: `VREStateManager` owns all selection state (`selected_resources`, `_selected_paths`, `_selected_resources_last_index`). `set_selected_resources()` dispatches to three handlers: `handle_select_shift()` (range select), `handle_select_ctrl()` (toggle), `handle_select_no_key()` (single select). Emits `selection_changed`. The window forwards selection to `ResourceList` (visual row highlighting), `VREToolbar` (delete-selected button label), and `BulkEditor`.
+5. **Selection**: `VREStateManager` owns all selection state (`selected_resources`, `_selected_paths`, `_selected_resources_last_index`). `set_selected_resources()` dispatches to three handlers: `handle_select_shift()` (range select), `handle_select_ctrl()` (toggle), `handle_select_no_key()` (single select). Emits `selection_changed`, which each component listens to directly via its own state_manager connection.
 
 6. **Bulk editing**: `BulkEditor` creates a proxy resource matching the selected resources' script. For single selection, proxy copies the resource's values. For multi-selection, proxy uses defaults. When the user edits the proxy in Godot's Inspector, `BulkEditor` propagates the change to all selected resources and saves them.
 
