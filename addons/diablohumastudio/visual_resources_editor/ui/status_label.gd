@@ -26,7 +26,12 @@ func _connect_state() -> void:
 func _on_resources_replaced(
 		resources: Array[Resource], _props: Array[ResourceProperty]) -> void:
 	_visible_count = resources.size()
-	text = "%d resource(s)" % _visible_count
+	var selection_count: int = state_manager.selected_resources.size()
+	_has_selection = selection_count > 0
+	if _has_selection:
+		text = "%d selected" % selection_count
+	else:
+		text = "%d resource(s)" % _visible_count
 
 
 func _on_resources_added(resources: Array[Resource]) -> void:

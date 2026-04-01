@@ -29,14 +29,18 @@ func set_selected(
 func restore(all_resources: Array[Resource]) -> void:
 	var prev_paths: Array[String] = get_paths()
 	selected_resources.clear()
+	var restored_paths: Array[String] = []
 	for res: Resource in all_resources:
 		if prev_paths.has(res.resource_path):
 			selected_resources.append(res)
+			restored_paths.append(res.resource_path)
 	_last_index = (
 		all_resources.find(selected_resources.back())
 		if not selected_resources.is_empty()
 		else -1
 	)
+	if prev_paths == restored_paths:
+		return
 	selection_changed.emit(selected_resources.duplicate())
 
 

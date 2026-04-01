@@ -46,6 +46,7 @@ func _on_state_manager_resources_removed(resources: Array[Resource]):
 
 func _on_state_manager_resources_replaced(resources: Array[Resource], current_shared_property_list: Array[ResourceProperty]) -> void:
 	_build_rows(resources, current_shared_property_list)
+	_update_selection(state_manager.selected_resources)
 
 func _on_state_manager_selection_changed(selected_resources: Array[Resource]):
 	_update_selection(selected_resources)

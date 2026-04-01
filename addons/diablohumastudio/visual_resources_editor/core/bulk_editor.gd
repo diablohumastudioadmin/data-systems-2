@@ -12,6 +12,7 @@ var state_manager: VREStateManager = null:
 
 var _inspector: EditorInspector
 var _bulk_proxy: Resource = null
+var _inspected_selection_paths: Array[String] = []
 
 
 func _ready() -> void:
@@ -34,10 +35,15 @@ func _exit_tree() -> void:
 
 func _clear_bulk_proxy() -> void:
 	_bulk_proxy = null
+	_inspected_selection_paths.clear()
 	EditorInterface.inspect_object(null)
 
 
-func _on_selection_changed(_resources: Array[Resource]) -> void:
+func _on_selection_changed(resources: Array[Resource]) -> void:
+	var current_selection_paths: Array[String] = _get_selection_paths(resources)
+	var edited_obj: Object = _inspector.get_edited_object()
+	if _bulk_proxy and edited_obj == _bulk_proxy and current_selection_paths == _inspected_selection_paths:
+		return
 	_create_bulk_proxy()
 
 
@@ -56,6 +62,14 @@ func _create_bulk_proxy() -> void:
 		for prop: ResourceProperty in props:
 			_bulk_proxy.set(prop.name, state_manager.selected_resources[0].get(prop.name))
 	EditorInterface.inspect_object(_bulk_proxy)
+	_inspected_selection_paths = _get_selection_paths(state_manager.selected_resources)
+
+
+func _get_selection_paths(resources: Array[Resource]) -> Array[String]:
+	var paths: Array[String] = []
+	for res: Resource in resources:
+		paths.append(res.resource_path)
+	return paths
 
 
 func _get_common_script() -> GDScript:
