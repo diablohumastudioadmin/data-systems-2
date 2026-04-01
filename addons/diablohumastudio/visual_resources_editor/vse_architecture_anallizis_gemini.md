@@ -287,3 +287,142 @@ func validate_against_new_list(new_items: Array) -> void:
 1. **Testability:** You can now test `SelectionManager` without opening a Godot Editor or creating a `.tres` file. You just pass it arrays of strings/ints.
 2. **Safety:** If Godot's filesystem API changes, you only update `ResourceRepository`. If Godot's reflection API changes, you only update `ClassRepository`. 
 3. **Clarity:** `VRECoordinator` reads like a plain English story. "When classes update -> handle orphans -> check if current class died -> refresh resources." It no longer contains confusing `for` loops or file modification time checks.
+
+---
+---
+
+# Deep Dive: Strict MVVM (Long-term Ideal #2)
+
+You asked how a strict MVVM (Model-View-ViewModel) pattern would look in this context. Currently, your UI components (`ResourceList`, `ResourceRow`) are tightly coupled to Godot's Domain objects (`Resource`, `ResourceProperty`) and your global state (`VREStateManager`). 
+
+If you want to render a property, your UI is directly asking the state manager what properties exist, reading from the resource, and updating the resource directly.
+
+### The Solution: The ViewModel Wrapper
+
+The core rule of MVVM is: **The View (UI) should never know about the Model (Database/Resource).**
+
+Instead, you create a **ViewModel**. A ViewModel is a pure data object that takes the messy domain data and translates it into exactly what the View needs to display. 
+
+### Architectural Diagram
+
+```mermaid
+graph LR
+    subgraph View layer
+        ResList[ResourceList UI]
+        ResRow[ResourceRow UI]
+    end
+
+    subgraph ViewModel layer
+        ListVM[ResourceListViewModel]
+        RowVM[ResourceItemViewModel]
+    end
+
+    subgraph Model layer
+        Res[Godot Resource]
+        Repo[Resource Repository]
+    end
+
+    ResList -->|Observes & Binds| ListVM
+    ResRow -->|Observes & Binds| RowVM
+    
+    ListVM -->|Creates| RowVM
+    RowVM -->|Reads/Writes| Res
+    RowVM -->|Requests Save| Repo
+```
+
+### Detailed Code Implementation
+
+Here is how you separate Godot's UI nodes from Godot's data resources.
+
+#### 1. The ViewModel (The Translator)
+This script holds the data for exactly ONE row in your UI. It is NOT a Control node. It is pure data.
+
+```gdscript
+class_name ResourceItemViewModel extends RefCounted
+
+signal property_updated(property_name: String, new_value: Variant)
+signal save_requested(resource: Resource)
+
+var _resource: Resource
+var _properties_to_display: Array[String] = []
+
+# The UI only knows about this view model, not the underlying resource
+var display_name: String:
+    get: return _resource.resource_path.get_file()
+
+func _init(resource: Resource, properties: Array[String]) -> void:
+    self._resource = resource
+    self._properties_to_display = properties
+
+# The UI calls this to populate its columns
+func get_display_properties() -> Array[String]:
+    return _properties_to_display
+
+func get_property_value(prop_name: String) -> Variant:
+    if prop_name in _resource:
+        return _resource.get(prop_name)
+    return null
+
+# The UI calls this when a user types in a LineEdit
+func update_property(prop_name: String, new_value: Variant) -> void:
+    if _resource.get(prop_name) == new_value:
+        return
+        
+    _resource.set(prop_name, new_value)
+    property_updated.emit(prop_name, new_value)
+    
+    # Notify the repository that this resource needs saving
+    save_requested.emit(_resource)
+```
+
+#### 2. The View (The UI Node)
+This replaces `ResourceRow.gd`. Notice how it has **no idea** what a Godot `Resource` is. It only takes a `ResourceItemViewModel`. It has no reference to `VREStateManager`.
+
+```gdscript
+@tool
+class_name ResourceRowView extends HBoxContainer
+
+# The View only knows about the ViewModel
+var view_model: ResourceItemViewModel:
+    set = set_view_model
+
+func set_view_model(vm: ResourceItemViewModel) -> void:
+    if view_model:
+        view_model.property_updated.disconnect(_on_vm_property_updated)
+        
+    view_model = vm
+    view_model.property_updated.connect(_on_vm_property_updated)
+    
+    _build_ui()
+
+func _build_ui() -> void:
+    # Clear old children...
+    
+    # 1. Setup the label
+    var title = Label.new()
+    title.text = view_model.display_name
+    add_child(title)
+    
+    # 2. Setup the columns based entirely on the ViewModel
+    for prop_name in view_model.get_display_properties():
+        var val = view_model.get_property_value(prop_name)
+        
+        var input = LineEdit.new()
+        input.text = str(val)
+        
+        # When user types, tell the ViewModel
+        input.text_submitted.connect(func(new_text):
+            view_model.update_property(prop_name, new_text)
+        )
+        add_child(input)
+
+# When the ViewModel updates (maybe from a Bulk Edit!), the UI updates automatically
+func _on_vm_property_updated(prop_name: String, new_value: Variant) -> void:
+    # Find the corresponding LineEdit and update its text
+    pass
+```
+
+### Why this is the "Dream" state:
+1. **Total Decoupling:** If you decide to change how your plugin saves files, or how it scans for properties, `ResourceRow.gd` doesn't change a single line of code. It only cares about `ResourceItemViewModel`.
+2. **Bulk Editing is Trivial:** If your `BulkEditor` modifies 50 `Resource` objects, the `ResourceItemViewModel` for each of those resources can detect the change and emit `property_updated`. The `ResourceRowView` will instantly update on screen, without you needing to manually refresh the whole `ResourceList`.
+3. **Mocking UI:** You can instantiate `ResourceRowView` and pass it a fake `ResourceItemViewModel` that doesn't even have a real `.tres` file attached to it, making UI testing instantly possible without touching the file system.
