@@ -84,8 +84,8 @@ func notify_resources_edited(resources: Array[Resource]) -> void:
 	resources_edited.emit(resources)
 
 
-func request_delete_selected_resources() -> void:
-	delete_selected_requested.emit(_selected_paths)
+func request_delete_selected_resources(resource_paths: Array[String]) -> void:
+	delete_selected_requested.emit(resource_paths)
 
 
 func request_create_new_resouce() -> void:

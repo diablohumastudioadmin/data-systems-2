@@ -86,10 +86,7 @@ func _on_pressed() -> void:
 
 
 func _on_delete_pressed() -> void:
-	if resource == null:
-		return
-	%ConfirmDeleteDialog.dialog_text = "Move to trash?\n\n%s" % resource.resource_path.get_file()
-	%ConfirmDeleteDialog.popup_centered()
+	state_manager.request_delete_selected_resources([resource.resource_path])
 
 
 func _on_delete_confirmed() -> void:

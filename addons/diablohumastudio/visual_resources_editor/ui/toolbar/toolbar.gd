@@ -28,7 +28,7 @@ func _on_create_btn_pressed() -> void:
 
 
 func _on_delete_selected_pressed() -> void:
-	state_manager.request_delete_selected_resources()
+	state_manager.request_delete_selected_resources(state_manager._selected_paths)
 
 
 func _on_refresh_btn_pressed() -> void:
