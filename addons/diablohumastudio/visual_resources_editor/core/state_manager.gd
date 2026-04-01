@@ -27,8 +27,6 @@ var _fs_listener: EditorFileSystemListener
 var _current_class_name: String = ""
 var _include_subclasses: bool = true
 var _current_included_class_names: Array[String] = []
-var _classes_update_pending: bool = false
-
 # Properties read by BulkEditor — owned here because they span ClassRegistry
 # data and the current UI selection context.
 var current_class_script: GDScript = null
@@ -215,12 +213,10 @@ func _on_classes_changed(previous: Array[String], current: Array[String]) -> voi
 # ── Filesystem / script class event handlers ───────────────────────────────────
 
 func _on_script_classes_updated() -> void:
-	_classes_update_pending = true
 	%RescanDebounceTimer.start_debouncing(_handle_script_classes_updated)
 
 
 func _handle_script_classes_updated() -> void:
-	_classes_update_pending = false
 	var list_changed: bool = _class_registry.rebuild()
 	if not list_changed:
 		# Class list unchanged — check for property schema changes only.
@@ -229,8 +225,6 @@ func _handle_script_classes_updated() -> void:
 
 
 func _on_filesystem_changed() -> void:
-	if _classes_update_pending:
-		return
 	%RescanDebounceTimer.start_debouncing(_refresh_current_class_resources)
 
 
