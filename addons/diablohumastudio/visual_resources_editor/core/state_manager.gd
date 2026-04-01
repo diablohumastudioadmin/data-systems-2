@@ -1,6 +1,6 @@
 @tool
 class_name VREStateManager
-extends Node
+extends RefCounted
 
 # ── Signals (public API — unchanged) ──────────────────────────────────────────
 signal resources_replaced(resources: Array[Resource], current_shared_property_list: Array[ResourceProperty])
@@ -27,6 +27,7 @@ var _fs_listener: EditorFileSystemListener
 var _current_class_name: String = ""
 var _include_subclasses: bool = true
 var _current_included_class_names: Array[String] = []
+
 # Properties read by BulkEditor — owned here because they span ClassRegistry
 # data and the current UI selection context.
 var current_class_script: GDScript = null
@@ -57,7 +58,7 @@ var current_class_resources: Array[Resource]:
 	get: return _resource_repo.current_class_resources
 
 
-func _ready() -> void:
+func start() -> void:
 	if not Engine.is_editor_hint(): return
 
 	_class_registry = ClassRegistry.new()
@@ -81,7 +82,7 @@ func _ready() -> void:
 	project_classes_changed.emit(_class_registry.global_class_name_list)
 
 
-func _exit_tree() -> void:
+func stop() -> void:
 	if not Engine.is_editor_hint(): return
 	_fs_listener.stop()
 
@@ -213,7 +214,7 @@ func _on_classes_changed(previous: Array[String], current: Array[String]) -> voi
 # ── Filesystem / script class event handlers ───────────────────────────────────
 
 func _on_script_classes_updated() -> void:
-	%RescanDebounceTimer.start_debouncing(_handle_script_classes_updated)
+	_handle_script_classes_updated()
 
 
 func _handle_script_classes_updated() -> void:
@@ -225,7 +226,7 @@ func _handle_script_classes_updated() -> void:
 
 
 func _on_filesystem_changed() -> void:
-	%RescanDebounceTimer.start_debouncing(_refresh_current_class_resources)
+	_refresh_current_class_resources()
 
 
 func _refresh_current_class_resources() -> void:

@@ -3,7 +3,6 @@
 [ext_resource type="Script" uid="uid://dxrryiiulb1v7" path="res://addons/diablohumastudio/visual_resources_editor/ui/visual_resources_editor_window.gd" id="1_w7ie3"]
 [ext_resource type="PackedScene" uid="uid://bkuj0fqxrjoj8" path="res://addons/diablohumastudio/visual_resources_editor/ui/class_selector/class_selector.tscn" id="2_cls"]
 [ext_resource type="PackedScene" uid="uid://c113p8acip31a" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/resource_list.tscn" id="3_list"]
-[ext_resource type="PackedScene" uid="uid://qpp7tk62euog" path="res://addons/diablohumastudio/visual_resources_editor/core/state_manager.tscn" id="4_a1n50"]
 [ext_resource type="Script" uid="uid://dmco8u3b2nshv" path="res://addons/diablohumastudio/visual_resources_editor/core/bulk_editor.gd" id="5_mtwm8"]
 [ext_resource type="PackedScene" uid="uid://b37n3eimc2hpq" path="res://addons/diablohumastudio/visual_resources_editor/ui/toolbar/toolbar.tscn" id="6_tb"]
 [ext_resource type="PackedScene" path="res://addons/diablohumastudio/visual_resources_editor/ui/pagination_bar/pagination_bar.tscn" id="7_pg"]
@@ -81,9 +80,6 @@ offset_right = 1192.0
 offset_bottom = 692.0
 grow_horizontal = 1
 grow_vertical = 1
-
-[node name="VREStateManager" parent="." unique_id=114041271 instance=ExtResource("4_a1n50")]
-unique_name_in_owner = true
 
 [node name="BulkEditor" type="Node" parent="." unique_id=1772103226]
 unique_name_in_owner = true
