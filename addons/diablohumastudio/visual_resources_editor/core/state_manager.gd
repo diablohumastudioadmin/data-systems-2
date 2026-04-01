@@ -38,7 +38,13 @@ var current_class_resources: Array[Resource] = []
 var _current_class_resources_mtimes: Dictionary[String, int] = {}
 
 var selected_resources: Array[Resource] = []
-var _selected_paths: Array[String] = []
+var _selected_paths: Array[String] = [] :
+	get():
+		var returned_value: Array[String] 
+		returned_value.assign(selected_resources.map(func(r: Resource) -> String: return r.resource_path))
+		return returned_value
+	set(new_value):
+		push_warning("_selected_paths should be set values it is derived from selected_resources value")
 var _selected_resources_last_index: int = -1
 
 var _current_page: int = 0
@@ -109,31 +115,25 @@ func set_selected_resources(resource: Resource, ctrl_held: bool, shift_held: boo
 
 func handle_select_shift(current_idx: int) -> void:
 	selected_resources.clear()
-	_selected_paths.clear()
 	var from: int = mini(_selected_resources_last_index, current_idx)
 	var to: int = maxi(_selected_resources_last_index, current_idx)
 	for i: int in (to - from + 1):
 		var res: Resource = current_class_resources[from + i]
 		selected_resources.append(res)
-		_selected_paths.append(res.resource_path)
 	# anchor stays unchanged on shift+click
 
 
 func handle_select_ctrl(resource: Resource, current_idx: int) -> void:
 	if selected_resources.has(resource):
 		selected_resources.erase(resource)
-		_selected_paths.erase(resource.resource_path)
 	else:
 		selected_resources.append(resource)
-		_selected_paths.append(resource.resource_path)
 	_selected_resources_last_index = current_idx
 
 
 func handle_select_no_key(resource: Resource, current_idx: int) -> void:
 	selected_resources.clear()
-	_selected_paths.clear()
 	selected_resources.append(resource)
-	_selected_paths.append(resource.resource_path)
 	_selected_resources_last_index = current_idx
 
 
@@ -178,11 +178,9 @@ func _scan_current_properties() -> void:
 func _restore_selection() -> void:
 	var prev_paths: Array[String] = _selected_paths.duplicate()
 	selected_resources.clear()
-	_selected_paths.clear()
 	for res: Resource in current_class_resources:
 		if prev_paths.has(res.resource_path):
 			selected_resources.append(res)
-			_selected_paths.append(res.resource_path)
 	_selected_resources_last_index = current_class_resources.find(selected_resources.back()) if not selected_resources.is_empty() else -1
 	selection_changed.emit(selected_resources.duplicate())
 
@@ -445,7 +443,6 @@ func _clear_view() -> void:
 	current_class_resources.clear()
 	_current_class_resources_mtimes.clear()
 	selected_resources.clear()
-	_selected_paths.clear()
 	_selected_resources_last_index = -1
 	_current_page = 0
 	_current_page_resources.clear()
