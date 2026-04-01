@@ -89,4 +89,3 @@ func _on_inspector_property_edited(property: String) -> void:
 		state_manager.report_error(msg)
 	if not saved.is_empty():
 		state_manager.notify_resources_edited(saved)
-	EditorInterface.get_resource_filesystem().scan_sources()
