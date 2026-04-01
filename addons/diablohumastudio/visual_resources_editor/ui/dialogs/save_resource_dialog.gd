@@ -4,9 +4,6 @@ extends EditorFileDialog
 
 signal error_occurred(message: String)
 
-var current_class_name: String = ""
-var global_class_map: Array[Dictionary] = []
-
 var state_manager: VREStateManager = null:
 	set(value):
 		state_manager = value
@@ -25,28 +22,26 @@ func _connect_state():
 	state_manager.create_new_resource_requested.connect(on_state_manager_create_new_resource_requested)
 
 func on_state_manager_create_new_resource_requested():
-	%SaveResourceDialog.current_class_name = state_manager.current_class_name
-	%SaveResourceDialog.global_class_map = state_manager.global_class_map
-	%SaveResourceDialog.show_create_dialog()
+	show_create_dialog()
 
 func show_create_dialog() -> void:
-	if current_class_name.is_empty():
+	if state_manager.current_class_name.is_empty():
 		return
-	if _get_class_script_path(current_class_name).is_empty():
+	if _get_class_script_path(state_manager.current_class_name).is_empty():
 		return
-	title = "Save New %s" % current_class_name
+	title = "Save New %s" % state_manager.current_class_name
 	popup_centered(Vector2i(800, 500))
 
 
 func _on_file_selected(path: String) -> void:
-	var script_path: String = _get_class_script_path(current_class_name)
+	var script_path: String = _get_class_script_path(state_manager.current_class_name)
 	var script: GDScript = load(script_path)
 	if script == null:
-		error_occurred.emit("Failed to load script for %s." % current_class_name)
+		error_occurred.emit("Failed to load script for %s." % state_manager.current_class_name)
 		return
 	if not script.can_instantiate():
 		error_occurred.emit(
-			"Can't instantiate %s.\nCheck its constructor." % current_class_name)
+			"Can't instantiate %s.\nCheck its constructor." % state_manager.current_class_name)
 		return
 	var instance: Resource = script.new()
 	var err: Error = ResourceSaver.save(instance, path)
@@ -56,7 +51,7 @@ func _on_file_selected(path: String) -> void:
 
 
 func _get_class_script_path(class_name_str: String) -> String:
-	for entry: Dictionary in global_class_map:
+	for entry: Dictionary in state_manager.global_class_map:
 		if entry.get("class", "") == class_name_str:
 			return entry.get("path", "")
 	return ""
