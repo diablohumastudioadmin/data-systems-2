@@ -2,7 +2,7 @@
 class_name VREStateManager
 extends Node
 
-signal resources_replaced(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty])
+signal resources_replaced(resources: Array[Resource], current_shared_property_list: Array[ResourceProperty])
 signal resources_added(resources: Array[Resource])
 signal resources_modified(resources: Array[Resource])
 signal resources_removed(resources: Array[Resource])
@@ -32,7 +32,7 @@ var _current_included_class_names: Array[String] = []
 var current_class_script: GDScript = null
 var current_class_property_list: Array[ResourceProperty] = []
 var current_included_class_property_lists: Dictionary = {}
-var current_shared_propery_list: Array[ResourceProperty] = []
+var current_shared_property_list: Array[ResourceProperty] = []
 
 var current_class_resources: Array[Resource] = []
 var _current_class_resources_mtimes: Dictionary[String, int] = {}
@@ -168,11 +168,11 @@ func _resolve_current_classes() -> void:
 
 
 func _scan_current_properties() -> void:
-	current_included_class_property_lists = ProjectClassScanner.get_properties_from_script_names(_current_included_class_names)
+	current_included_class_property_lists = ProjectClassScanner.get_properties_from_script_names(_current_included_class_names, global_class_to_path_map)
 
 	var empty_props: Array[ResourceProperty] = []
 	current_class_property_list = current_included_class_property_lists.get(_current_class_name, empty_props)
-	current_shared_propery_list = ProjectClassScanner.unite_classes_properties(_current_included_class_names, global_class_to_path_map)
+	current_shared_property_list = ProjectClassScanner.unite_classes_properties(_current_included_class_names, global_class_to_path_map)
 
 
 func _restore_selection() -> void:
@@ -311,7 +311,7 @@ func _page_count() -> int:
 
 
 func _emit_page_data() -> void:
-	resources_replaced.emit(_current_page_resources, current_shared_propery_list)
+	resources_replaced.emit(_current_page_resources, current_shared_property_list)
 	pagination_changed.emit(_current_page, _page_count())
 
 
@@ -439,7 +439,7 @@ func _clear_view() -> void:
 	var empty_props: Array[ResourceProperty] = []
 	current_class_property_list = empty_props
 	current_included_class_property_lists.clear()
-	current_shared_propery_list.clear()
+	current_shared_property_list.clear()
 	current_class_resources.clear()
 	_current_class_resources_mtimes.clear()
 	selected_resources.clear()
@@ -448,8 +448,8 @@ func _clear_view() -> void:
 	_current_page_resources.clear()
 	current_page_resources_mtimes.clear()
 	var empty_resources: Array[Resource] = []
-	var empty_current_shared_propery_list: Array[ResourceProperty] = []
-	resources_replaced.emit(empty_resources, empty_current_shared_propery_list)
+	var empty_current_shared_property_list: Array[ResourceProperty] = []
+	resources_replaced.emit(empty_resources, empty_current_shared_property_list)
 	selection_changed.emit(empty_resources)
 	pagination_changed.emit(0, 1)
 

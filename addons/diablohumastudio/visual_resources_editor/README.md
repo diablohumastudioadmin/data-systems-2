@@ -143,3 +143,8 @@ Properties: `class_name_str: String`, `script_path: String`, `properties: Array[
 - Constants are uppercase with explicit types
 - `EditorFileSystemDirectory` references are never cached (freed on rescan)
 - Signal connections via scene when possible; code connections only when necessary (see CLAUDE.md)
+
+## Notes
+
+- `get_class_from_tres_file()` uses `first_line.find("script_class=\"")` intentionally. The alternative is loading the resource, which is far more expensive.
+- Undo/redo support for bulk edits is not a goal for this plugin.

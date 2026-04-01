@@ -117,7 +117,7 @@ static func get_class_from_tres_file(tres_file_path: String) -> String:
 static func get_properties_from_script_names(cls_names: Array[String], global_class_to_path_map: Dictionary[String, String] = {}) ->Dictionary:
 	var property_lists: Dictionary = {}
 	for cls_name: String in cls_names:
-		property_lists[cls_name] = ProjectClassScanner.get_properties_from_script_name(cls_name)
+		property_lists[cls_name] = ProjectClassScanner.get_properties_from_script_name(cls_name, global_class_to_path_map)
 	return property_lists
 
 static func get_properties_from_script_name(cls_name: String, global_class_to_path_map: Dictionary[String, String] = {}) -> Array[ResourceProperty]:

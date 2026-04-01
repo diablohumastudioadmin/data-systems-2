@@ -12,7 +12,7 @@ var state_manager: VREStateManager = null:
 
 var _rows: Array[ResourceRow] = []
 var _resource_path_to_row: Dictionary[String, ResourceRow] = {}
-var _current_shared_propery_list: Array[ResourceProperty] = []
+var _current_shared_property_list: Array[ResourceProperty] = []
 
 
 func _ready() -> void:
@@ -44,8 +44,8 @@ func _on_state_manager_resources_removed(resources: Array[Resource]):
 	_remove_resources(resources)
 	_update_selection(state_manager.selected_resources)
 
-func _on_state_manager_resources_replaced(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty]) -> void:
-	_build_rows(resources, current_shared_propery_list)
+func _on_state_manager_resources_replaced(resources: Array[Resource], current_shared_property_list: Array[ResourceProperty]) -> void:
+	_build_rows(resources, current_shared_property_list)
 
 func _on_state_manager_selection_changed(selected_resources: Array[Resource]):
 	_update_selection(selected_resources)
@@ -77,10 +77,10 @@ func _refresh_row(resource_path: String) -> void:
 		row.update_display()
 
 
-func _build_rows(resources: Array[Resource], current_shared_propery_list: Array[ResourceProperty]) -> void:
+func _build_rows(resources: Array[Resource], current_shared_property_list: Array[ResourceProperty]) -> void:
 	_clear_rows()
-	_current_shared_propery_list = current_shared_propery_list
-	%HeaderRow.current_shared_propery_list = current_shared_propery_list
+	_current_shared_property_list = current_shared_property_list
+	%HeaderRow.current_shared_property_list = current_shared_property_list
 
 	for res: Resource in resources:
 		_add_row(res)
@@ -102,7 +102,7 @@ func _add_row(res: Resource) -> void:
 	var row: ResourceRow = RESOURCE_ROW_SCENE.instantiate()
 	row.state_manager = state_manager
 	row.resource = res
-	row.current_shared_propery_list = _current_shared_propery_list
+	row.current_shared_property_list = _current_shared_property_list
 	%RowsContainer.add_child(row)
 	_rows.append(row)
 	_resource_path_to_row[res.resource_path] = row
