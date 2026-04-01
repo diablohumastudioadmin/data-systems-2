@@ -2,8 +2,6 @@
 class_name ConfirmDeleteDialog
 extends ConfirmationDialog
 
-signal error_occurred(message: String)
-
 var _pending_paths: Array[String] = []
 
 var state_manager: VREStateManager = null:
@@ -52,5 +50,5 @@ func _on_confirmed() -> void:
 	for path: String in _pending_paths:
 		efs.update_file(path)
 	if not failed_paths.is_empty():
-		error_occurred.emit("Failed to delete:\n%s" % "\n".join(failed_paths))
+		state_manager.report_error("Failed to delete:\n%s" % "\n".join(failed_paths))
 	_pending_paths.clear()

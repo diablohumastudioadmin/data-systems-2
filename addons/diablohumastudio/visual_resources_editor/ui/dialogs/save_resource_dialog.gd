@@ -2,8 +2,6 @@
 class_name SaveResourceDialog
 extends EditorFileDialog
 
-signal error_occurred(message: String)
-
 var state_manager: VREStateManager = null:
 	set(value):
 		state_manager = value
@@ -37,16 +35,16 @@ func _on_file_selected(path: String) -> void:
 	var script_path: String = _get_class_script_path(state_manager.current_class_name)
 	var script: GDScript = load(script_path)
 	if script == null:
-		error_occurred.emit("Failed to load script for %s." % state_manager.current_class_name)
+		state_manager.report_error("Failed to load script for %s." % state_manager.current_class_name)
 		return
 	if not script.can_instantiate():
-		error_occurred.emit(
+		state_manager.report_error(
 			"Can't instantiate %s.\nCheck its constructor." % state_manager.current_class_name)
 		return
 	var instance: Resource = script.new()
 	var err: Error = ResourceSaver.save(instance, path)
 	if err != OK:
-		error_occurred.emit("Failed to save resource:\n%s" % path)
+		state_manager.report_error("Failed to save resource:\n%s" % path)
 		return
 
 
