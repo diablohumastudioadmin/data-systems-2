@@ -2,6 +2,7 @@
 class_name VREStateManager
 extends Node
 
+# ── Signals (public API — unchanged) ──────────────────────────────────────────
 signal resources_replaced(resources: Array[Resource], current_shared_property_list: Array[ResourceProperty])
 signal resources_added(resources: Array[Resource])
 signal resources_modified(resources: Array[Resource])
@@ -15,66 +16,79 @@ signal error_occurred(message: String)
 signal delete_selected_requested(selected_resources_paths: Array[String])
 signal create_new_resource_requested()
 
-const PAGE_SIZE: int = 50
+# ── Sub-managers ───────────────────────────────────────────────────────────────
+var _class_registry: ClassRegistry
+var _resource_repo: ResourceRepository
+var _selection: SelectionManager
+var _pagination: PaginationManager
+var _fs_listener: EditorFileSystemListener
 
-var global_class_map: Array[Dictionary]
-var global_class_to_path_map: Dictionary[String, String] = {}
-var global_class_to_parent_map: Dictionary[String, String]
-var global_class_name_list: Array[String] = []
-
-var _include_subclasses: bool = true
-
+# ── Coordinator-only state ────────────────────────────────────────────────────
 var _current_class_name: String = ""
-var current_class_name: String:
-	get: return _current_class_name
+var _include_subclasses: bool = true
 var _current_included_class_names: Array[String] = []
+var _classes_update_pending: bool = false
 
+# Properties read by BulkEditor — owned here because they span ClassRegistry
+# data and the current UI selection context.
 var current_class_script: GDScript = null
 var current_class_property_list: Array[ResourceProperty] = []
 var current_included_class_property_lists: Dictionary = {}
 var current_shared_property_list: Array[ResourceProperty] = []
 
-var current_class_resources: Array[Resource] = []
-var _current_class_resources_mtimes: Dictionary[String, int] = {}
+# ── Public read-only accessors (same API as before) ───────────────────────────
+var current_class_name: String:
+	get: return _current_class_name
 
-var selected_resources: Array[Resource] = []
-var _selected_paths: Array[String] = [] :
-	get():
-		var returned_value: Array[String] 
-		returned_value.assign(selected_resources.map(func(r: Resource) -> String: return r.resource_path))
-		return returned_value
-	set(new_value):
-		push_warning("_selected_paths should be set values it is derived from selected_resources value")
-var _selected_resources_last_index: int = -1
+var selected_resources: Array[Resource]:
+	get: return _selection.selected_resources
 
-var _current_page: int = 0
-var _current_page_resources: Array[Resource] = []
-var current_page_resources_mtimes: Dictionary[String, int] = {}
+var _selected_paths: Array[String]:
+	get: return _selection.get_paths()
 
-var _classes_update_pending: bool = false
+var global_class_map: Array[Dictionary]:
+	get: return _class_registry.global_class_map
+
+var global_class_name_list: Array[String]:
+	get: return _class_registry.global_class_name_list
+
+var global_class_to_path_map: Dictionary[String, String]:
+	get: return _class_registry.global_class_to_path_map
+
+var current_class_resources: Array[Resource]:
+	get: return _resource_repo.current_class_resources
+
 
 func _ready() -> void:
 	if not Engine.is_editor_hint(): return
 
-	_set_maps()
+	_class_registry = ClassRegistry.new()
+	_resource_repo = ResourceRepository.new()
+	_selection = SelectionManager.new()
+	_pagination = PaginationManager.new()
+	_fs_listener = EditorFileSystemListener.new()
 
-	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
-	if efs:
-		if not efs.filesystem_changed.is_connected(_on_filesystem_changed):
-			efs.filesystem_changed.connect(_on_filesystem_changed)
-		if not efs.script_classes_updated.is_connected(_on_script_classes_updated):
-			efs.script_classes_updated.connect(_on_script_classes_updated)
+	_class_registry.classes_changed.connect(_on_classes_changed)
+	_resource_repo.resources_reset.connect(_on_resources_reset)
+	_resource_repo.resources_delta.connect(_on_resources_delta)
+	_selection.selection_changed.connect(selection_changed.emit)
+	_pagination.page_replaced.connect(_on_page_replaced)
+	_pagination.page_delta.connect(_on_page_delta)
+	_pagination.pagination_changed.connect(pagination_changed.emit)
+	_fs_listener.filesystem_changed.connect(_on_filesystem_changed)
+	_fs_listener.script_classes_updated.connect(_on_script_classes_updated)
+
+	_fs_listener.start()
+	_class_registry.rebuild()
+	project_classes_changed.emit(_class_registry.global_class_name_list)
+
 
 func _exit_tree() -> void:
 	if not Engine.is_editor_hint(): return
+	_fs_listener.stop()
 
-	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
-	if efs:
-		if efs.filesystem_changed.is_connected(_on_filesystem_changed):
-			efs.filesystem_changed.disconnect(_on_filesystem_changed)
-		if efs.script_classes_updated.is_connected(_on_script_classes_updated):
-			efs.script_classes_updated.disconnect(_on_script_classes_updated)
 
+# ── Public API (unchanged) ─────────────────────────────────────────────────────
 
 func set_current_class(class_name_str: String) -> void:
 	_current_class_name = class_name_str
@@ -103,48 +117,15 @@ func report_error(message: String) -> void:
 
 
 func set_selected_resources(resource: Resource, ctrl_held: bool, shift_held: bool) -> void:
-	var current_idx: int = current_class_resources.find(resource)
-	if shift_held and _selected_resources_last_index != -1 and current_idx != -1:
-		handle_select_shift(current_idx)
-	elif ctrl_held:
-		handle_select_ctrl(resource, current_idx)
-	else:
-		handle_select_no_key(resource, current_idx)
-	selection_changed.emit(selected_resources.duplicate())
-
-
-func handle_select_shift(current_idx: int) -> void:
-	selected_resources.clear()
-	var from: int = mini(_selected_resources_last_index, current_idx)
-	var to: int = maxi(_selected_resources_last_index, current_idx)
-	for i: int in (to - from + 1):
-		var res: Resource = current_class_resources[from + i]
-		selected_resources.append(res)
-	# anchor stays unchanged on shift+click
-
-
-func handle_select_ctrl(resource: Resource, current_idx: int) -> void:
-	if selected_resources.has(resource):
-		selected_resources.erase(resource)
-	else:
-		selected_resources.append(resource)
-	_selected_resources_last_index = current_idx
-
-
-func handle_select_no_key(resource: Resource, current_idx: int) -> void:
-	selected_resources.clear()
-	selected_resources.append(resource)
-	_selected_resources_last_index = current_idx
+	_selection.set_selected(resource, ctrl_held, shift_held, _resource_repo.current_class_resources)
 
 
 func next_page() -> void:
-	if _current_page < _page_count() - 1:
-		_set_current_page(_current_page + 1)
+	_pagination.next(_resource_repo.current_class_resources)
 
 
 func prev_page() -> void:
-	if _current_page > 0:
-		_set_current_page(_current_page - 1)
+	_pagination.prev(_resource_repo.current_class_resources)
 
 
 func refresh_resource_list_values() -> void:
@@ -152,310 +133,102 @@ func refresh_resource_list_values() -> void:
 		return
 	_resolve_current_classes()
 	_scan_current_properties()
-	set_current_class_resources(true)
-	_set_current_page(0, true)
-	_emit_page_data()
+	_resource_repo.load_resources(_current_included_class_names)
+	# resources_reset fires → _on_resources_reset → selection.restore + pagination.reset
 
 
-# ── Private ────────────────────────────────────────────────────────────────────
+# ── Private coordinator logic ──────────────────────────────────────────────────
 
 func _resolve_current_classes() -> void:
-	if _include_subclasses:
-		_current_included_class_names = ProjectClassScanner.get_descendant_classes(_current_class_name, global_class_to_parent_map)
-	else:
-		_current_included_class_names = [_current_class_name]
-	current_class_script = _get_class_script(_current_class_name)
+	_current_included_class_names = _class_registry.get_included_classes(
+		_current_class_name, _include_subclasses)
+	current_class_script = _class_registry.get_class_script(_current_class_name)
 
 
 func _scan_current_properties() -> void:
-	current_included_class_property_lists = ProjectClassScanner.get_properties_from_script_names(_current_included_class_names, global_class_to_path_map)
-
+	current_included_class_property_lists = ProjectClassScanner.get_properties_from_script_names(
+		_current_included_class_names, _class_registry.global_class_to_path_map)
 	var empty_props: Array[ResourceProperty] = []
-	current_class_property_list = current_included_class_property_lists.get(_current_class_name, empty_props)
-	current_shared_property_list = ProjectClassScanner.unite_classes_properties(_current_included_class_names, global_class_to_path_map)
+	current_class_property_list = current_included_class_property_lists.get(
+		_current_class_name, empty_props)
+	current_shared_property_list = ProjectClassScanner.unite_classes_properties(
+		_current_included_class_names, _class_registry.global_class_to_path_map)
 
 
-func _restore_selection() -> void:
-	var prev_paths: Array[String] = _selected_paths.duplicate()
-	selected_resources.clear()
-	for res: Resource in current_class_resources:
-		if prev_paths.has(res.resource_path):
-			selected_resources.append(res)
-	_selected_resources_last_index = current_class_resources.find(selected_resources.back()) if not selected_resources.is_empty() else -1
-	selection_changed.emit(selected_resources.duplicate())
+# ── ResourceRepository signal handlers ────────────────────────────────────────
+
+func _on_resources_reset(resources: Array[Resource]) -> void:
+	_selection.restore(resources)
+	_pagination.reset(resources)
+	# pagination.reset emits page_replaced → _on_page_replaced → resources_replaced
 
 
-func _rebuild_current_class_resource_mtimes() -> void:
-	_current_class_resources_mtimes.clear()
-	for res: Resource in current_class_resources:
-		_current_class_resources_mtimes[res.resource_path] = FileAccess.get_modified_time(res.resource_path)
+func _on_resources_delta(
+	added: Array[Resource], removed: Array[Resource], modified: Array[Resource]
+) -> void:
+	_selection.restore(_resource_repo.current_class_resources)
+	# Re-slice the current page; pagination emits page_delta → _on_page_delta → granular signals
+	_pagination.set_page(_pagination.current_page(), _resource_repo.current_class_resources)
 
 
-func _rebuild_current_page_resource_mtimes() -> void:
-	current_page_resources_mtimes.clear()
-	for res: Resource in _current_page_resources:
-		current_page_resources_mtimes[res.resource_path] = FileAccess.get_modified_time(res.resource_path)
+# ── PaginationManager signal handlers ─────────────────────────────────────────
+
+func _on_page_replaced(resources: Array[Resource]) -> void:
+	resources_replaced.emit(resources, current_shared_property_list)
 
 
-func set_current_class_resources(reseting: bool = false) -> void:
-	if _current_class_name.is_empty():
-		return
-
-	if reseting:
-		current_class_resources = ProjectClassScanner.load_classed_resources_from_dir(_current_included_class_names)
-	else:
-		current_class_resources = _scan_class_resources_for_changes()
-
-	current_class_resources.sort_custom(func(a: Resource, b: Resource) -> bool: return a.resource_path < b.resource_path)
-	_rebuild_current_class_resource_mtimes()
-	_restore_selection()
+func _on_page_delta(
+	added: Array[Resource], removed: Array[Resource], modified: Array[Resource]
+) -> void:
+	if not removed.is_empty(): resources_removed.emit(removed)
+	if not added.is_empty(): resources_added.emit(added)
+	if not modified.is_empty(): resources_modified.emit(modified)
 
 
-func _scan_class_resources_for_changes() -> Array[Resource]:
-	var updated_class_resources: Array[Resource] = current_class_resources.duplicate()
-	var current_paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(_current_included_class_names)
-	var changed: bool = false
+# ── ClassRegistry signal handlers ─────────────────────────────────────────────
 
-	# Detect new and modified resources
-	for path: String in current_paths:
-		var mtime: int = FileAccess.get_modified_time(path)
-		if not _current_class_resources_mtimes.has(path):
-			var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
-			if res:
-				updated_class_resources.append(res)
-				changed = true
-		elif mtime != _current_class_resources_mtimes[path]:
-			var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
-			if res:
-				for i: int in updated_class_resources.size():
-					if updated_class_resources[i].resource_path == path:
-						updated_class_resources[i] = res
-						break
-				changed = true
-
-	# Detect deleted resources
-	var known_paths: Array = _current_class_resources_mtimes.keys()
-	for path: String in known_paths:
-		if not current_paths.has(path):
-			for i: int in updated_class_resources.size():
-				if updated_class_resources[i].resource_path == path:
-					updated_class_resources.remove_at(i)
-					break
-			changed = true
-
-	if not changed:
-		return current_class_resources
-	return updated_class_resources
-
-
-func _set_current_page(page: int, reseting: bool = false) -> void:
-	var max_page: int = _page_count() - 1
-	_current_page = clampi(page, 0, max_page)
-	set_current_page_resources(reseting)
-	if not reseting:
-		pagination_changed.emit(_current_page, _page_count())
-
-
-func set_current_page_resources(reseting: bool = false) -> void:
-	var previous_page_resources: Array[Resource] = _current_page_resources.duplicate()
-	var previous_page_resources_mtimes: Dictionary[String, int] = current_page_resources_mtimes.duplicate()
-	var start: int = _current_page * PAGE_SIZE
-	var end: int = mini(start + PAGE_SIZE, current_class_resources.size())
-	_current_page_resources = current_class_resources.slice(start, end)
-	_rebuild_current_page_resource_mtimes()
-	if reseting:
-		return
-	_scan_page_resources_for_changes(previous_page_resources, previous_page_resources_mtimes)
-
-
-func _scan_page_resources_for_changes(
-		previous_page_resources: Array[Resource],
-		previous_page_resources_mtimes: Dictionary[String, int]) -> void:
-	var previous_page_resources_map: Dictionary[String, Resource] = {}
-	for res: Resource in previous_page_resources:
-		previous_page_resources_map[res.resource_path] = res
-
-	var current_page_resources_map: Dictionary[String, Resource] = {}
-	for res: Resource in _current_page_resources:
-		current_page_resources_map[res.resource_path] = res
-
-	var removed_resources: Array[Resource] = []
-	for path: String in previous_page_resources_map:
-		if not current_page_resources_map.has(path):
-			removed_resources.append(previous_page_resources_map[path])
-
-	var added_resources: Array[Resource] = []
-	for path: String in current_page_resources_map:
-		if not previous_page_resources_map.has(path):
-			added_resources.append(current_page_resources_map[path])
-
-	var modified_resources: Array[Resource] = []
-	for path: String in current_page_resources_map:
-		if not previous_page_resources_map.has(path):
-			continue
-		if previous_page_resources_mtimes.get(path, -1) != current_page_resources_mtimes.get(path, -1):
-			modified_resources.append(current_page_resources_map[path])
-
-	if not removed_resources.is_empty():
-		resources_removed.emit(removed_resources)
-	if not added_resources.is_empty():
-		resources_added.emit(added_resources)
-	if not modified_resources.is_empty():
-		resources_modified.emit(modified_resources)
-
-
-func _page_count() -> int:
-	if current_class_resources.is_empty():
-		return 1
-	return ceili(float(current_class_resources.size()) / float(PAGE_SIZE))
-
-
-func _emit_page_data() -> void:
-	resources_replaced.emit(_current_page_resources, current_shared_property_list)
-	pagination_changed.emit(_current_page, _page_count())
-
-
-func _emit_page_data_preserving_page() -> void:
-	_set_current_page(_current_page, true)
-	_emit_page_data()
-
-
-func _set_maps() -> void:
-	global_class_map = ProjectClassScanner.build_global_classes_map()
-	global_class_to_parent_map = ProjectClassScanner.build_project_classes_parent_map(global_class_map)
-	global_class_to_path_map = ProjectClassScanner.build_class_to_path_map(global_class_map)
-	global_class_name_list = ProjectClassScanner.get_project_resource_classes(global_class_map)
-
-
-func _on_script_classes_updated() -> void:
-	print("classes updated")
-	_classes_update_pending = true
-	%RescanDebounceTimer.start_debouncing(_handle_global_classes_updated)
-
-
-func _handle_global_classes_updated() -> void:
-	_classes_update_pending = false
-
-	var previous_classes: Array[String] = global_class_name_list.duplicate()
-	_set_maps()
-
-	# Class list unchanged — only check for property changes
-	if previous_classes == global_class_name_list:
-		_handle_property_changes()
-		return
-
-	# Class list changed
-	_resave_orphaned_resources(previous_classes)
-	project_classes_changed.emit(global_class_name_list)
+func _on_classes_changed(previous: Array[String], current: Array[String]) -> void:
+	_resave_orphaned_resources(previous, current)
+	project_classes_changed.emit(current)
 
 	if _current_class_name.is_empty():
 		return
 
-	# Current Class is missing
-	if not global_class_name_list.has(_current_class_name):
-		var new_name: String = _detect_class_rename()
-		# Current Class is deleted
+	if not current.has(_current_class_name):
+		var old_path: String = current_class_script.resource_path if current_class_script else ""
+		var new_name: String = _class_registry.detect_rename(old_path)
 		if new_name.is_empty():
 			_clear_view()
-			return
-		# Current Class is renamed
-		_current_class_name = new_name
-		current_class_renamed.emit(new_name)
-		refresh_resource_list_values()
+		else:
+			_current_class_name = new_name
+			current_class_renamed.emit(new_name)
+			refresh_resource_list_values()
 		return
 
-	if _has_current_class_set_changed(previous_classes):
+	if _class_registry.has_class_set_changed(previous, _current_included_class_names):
 		refresh_resource_list_values()
 		return
 
 	_handle_property_changes()
 
 
-func _resave_orphaned_resources(previous_classes: Array[String]) -> void:
-	var removed_classes: Array[String] = []
-	for cls: String in previous_classes:
-		if not global_class_name_list.has(cls):
-			removed_classes.append(cls)
-	if removed_classes.is_empty():
-		return
-	var orphaned_resources: Array[Resource] = (
-		ProjectClassScanner.load_classed_resources_from_dir(removed_classes)
-	)
-	for res: Resource in orphaned_resources:
-		ResourceSaver.save(res, res.resource_path)
+# ── Filesystem / script class event handlers ───────────────────────────────────
+
+func _on_script_classes_updated() -> void:
+	_classes_update_pending = true
+	%RescanDebounceTimer.start_debouncing(_handle_script_classes_updated)
 
 
-func _detect_class_rename() -> String:
-	if current_class_script == null:
-		return ""
-	var old_path: String = current_class_script.resource_path
-	if old_path.is_empty():
-		return ""
-	for cls: String in global_class_to_path_map:
-		if global_class_to_path_map[cls] == old_path:
-			return cls
-	return ""
-
-
-func _handle_property_changes() -> void:
-	if _current_class_name.is_empty():
-		return
-	var new_props: Array[ResourceProperty] = _get_current_class_props()
-	if ResourceProperty.arrays_equal(new_props, current_class_property_list):
-		return
-	_scan_current_properties()
-	for res: Resource in current_class_resources:
-		ResourceSaver.save(res, res.resource_path)
-	_restore_selection()
-	_emit_page_data_preserving_page()
-
-
-func _has_current_class_set_changed(previous_classes: Array[String]) -> bool:
-	for cls: String in _current_included_class_names:
-		if not previous_classes.has(cls) or not global_class_name_list.has(cls):
-			return true
-	return false
-
-
-func _get_current_class_props() -> Array[ResourceProperty]:
-	var script_path: String = global_class_to_path_map.get(_current_class_name, "")
-	if not script_path.is_empty():
-		return ProjectClassScanner.get_properties_from_script_path(script_path)
-	var empty_props: Array[ResourceProperty] = []
-	return empty_props
-
-
-func _get_class_script(class_name_str: String) -> GDScript:
-	var script_path: String = global_class_to_path_map.get(class_name_str, "")
-	if not script_path.is_empty():
-		return load(script_path)
-	return null
-
-
-func _clear_view() -> void:
-	_current_class_name = ""
-	_current_included_class_names.clear()
-	current_class_script = null
-	var empty_props: Array[ResourceProperty] = []
-	current_class_property_list = empty_props
-	current_included_class_property_lists.clear()
-	current_shared_property_list.clear()
-	current_class_resources.clear()
-	_current_class_resources_mtimes.clear()
-	selected_resources.clear()
-	_selected_resources_last_index = -1
-	_current_page = 0
-	_current_page_resources.clear()
-	current_page_resources_mtimes.clear()
-	var empty_resources: Array[Resource] = []
-	var empty_current_shared_property_list: Array[ResourceProperty] = []
-	resources_replaced.emit(empty_resources, empty_current_shared_property_list)
-	selection_changed.emit(empty_resources)
-	pagination_changed.emit(0, 1)
+func _handle_script_classes_updated() -> void:
+	_classes_update_pending = false
+	var list_changed: bool = _class_registry.rebuild()
+	if not list_changed:
+		# Class list unchanged — check for property schema changes only.
+		# If list changed, _on_classes_changed fires automatically via ClassRegistry signal.
+		_handle_property_changes()
 
 
 func _on_filesystem_changed() -> void:
-	print("fs changed ")
 	if _classes_update_pending:
 		return
 	%RescanDebounceTimer.start_debouncing(_refresh_current_class_resources)
@@ -464,5 +237,51 @@ func _on_filesystem_changed() -> void:
 func _refresh_current_class_resources() -> void:
 	if _current_class_name.is_empty():
 		return
-	set_current_class_resources(false)
-	_set_current_page(_current_page)
+	_resource_repo.scan_for_changes(_current_included_class_names)
+	# resources_delta fires → _on_resources_delta
+
+
+# ── Internal state helpers ─────────────────────────────────────────────────────
+
+func _resave_orphaned_resources(previous: Array[String], current: Array[String]) -> void:
+	var removed_classes: Array[String] = []
+	for cls: String in previous:
+		if not current.has(cls):
+			removed_classes.append(cls)
+	if removed_classes.is_empty():
+		return
+	var orphaned: Array[Resource] = ProjectClassScanner.load_classed_resources_from_dir(removed_classes)
+	_resource_repo.resave_resources(orphaned)
+
+
+func _handle_property_changes() -> void:
+	if _current_class_name.is_empty():
+		return
+	var new_props: Array[ResourceProperty] = _class_registry.get_properties(_current_class_name)
+	if ResourceProperty.arrays_equal(new_props, current_class_property_list):
+		return
+	_scan_current_properties()
+	_resource_repo.resave_all()
+	_selection.restore(_resource_repo.current_class_resources)
+	# Re-slice silently — schema changed, emit full resources_replaced (not a delta).
+	_pagination.refresh_silent(_resource_repo.current_class_resources)
+	resources_replaced.emit(_pagination.current_page_resources, current_shared_property_list)
+	pagination_changed.emit(
+		_pagination.current_page(),
+		_pagination.page_count(_resource_repo.current_class_resources.size())
+	)
+
+
+func _clear_view() -> void:
+	_current_class_name = ""
+	_current_included_class_names.clear()
+	current_class_script = null
+	current_class_property_list = []
+	current_included_class_property_lists.clear()
+	current_shared_property_list.clear()
+	_resource_repo.clear()
+	_selection.clear()
+	var empty_resources: Array[Resource] = []
+	var empty_props: Array[ResourceProperty] = []
+	resources_replaced.emit(empty_resources, empty_props)
+	pagination_changed.emit(0, 1)
