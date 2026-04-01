@@ -27,6 +27,7 @@ func open_visual_editor_window():
 	EditorInterface.get_base_control().add_child(visual_resources_editor_window)
 	
 	visual_resources_editor_window.close_requested.connect(func():
+		visual_resources_editor_window.queue_free()
 		visual_resources_editor_window = null
 	)
 	visual_resources_editor_window.popup_centered()
