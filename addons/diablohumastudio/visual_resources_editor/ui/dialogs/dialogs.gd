@@ -17,12 +17,3 @@ func _ready() -> void:
 func _connect_state() -> void:
 	%ConfirmDeleteDialog.state_manager = state_manager
 	%SaveResourceDialog.state_manager = state_manager
-	state_manager.create_new_resource_requested.connect(on_state_manager_create_new_resource_requested)
-
-func on_state_manager_create_new_resource_requested():
-	%SaveResourceDialog.current_class_name = state_manager.current_class_name
-	%SaveResourceDialog.global_class_map = state_manager.global_class_map
-	%SaveResourceDialog.show_create_dialog()
-
-func on_state_manager_error_occurred(message: String):
-	%ErrorDialog.show_error(message)
