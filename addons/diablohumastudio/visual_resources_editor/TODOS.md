@@ -1,21 +1,6 @@
-# VRE New Architecture — Fixes & Open Issues
+# VRE New Architecture — Open Issues & TODOs
 
 Consolidated list from Claude, Codex, and Gemini analyses. Items that appear in multiple analyses are merged.
-
----
-
-## Items
-
----
-
-### 1. God-Object `VREStateManager` (internal split)
-
-**Proposed by:** Claude, Codex, Gemini
-**Status:** ✅ Solved
-
-**Problem:** `VREStateManager` handled class maps, resource scanning, mtime caching, pagination arithmetic, multi-select logic, filesystem event routing, class rename detection, orphaned resource resaving, property change detection, and 12 signals — at least 6 distinct responsibilities in one file.
-
-**Fix:** Split into focused `RefCounted` sub-managers (`ClassRegistry`, `ResourceRepository`, `SelectionManager`, `PaginationManager`, `EditorFileSystemListener`). `VREStateManager` is now a thin coordinator (~170 LOC) that wires them together and exposes the same public API to UI.
 
 ---
 
@@ -42,17 +27,6 @@ func save_resources(resources: Array[Resource]) -> Array[String]:
 ```
 
 **Claude counter-proposal:** The `FilesystemRefreshManager` is over-engineering — we already have `EditorFileSystemListener`. The simpler fix: add `acknowledge_saves(resources: Array[Resource])` to `ResourceRepository` (updates `_mtimes` for saved paths) and call it from `VREStateManager.notify_resources_edited()`. `resave_all()` and `resave_resources()` call `_rebuild_mtimes()` after saving. No new class needed. `BulkEditor` keeps calling `ResourceSaver.save()` directly for now — what matters is that `_mtimes` is updated before the next `scan_for_changes()` runs.
-
----
-
-### 3. `EditorFileSystemListener` Decoupling
-
-**Proposed by:** Claude (Worth No.1)
-**Status:** ✅ Solved
-
-**Problem:** Despite having a `core/editor_filesystem_listener.gd`, the old `VREStateManager` still connected directly to `EditorInterface.get_resource_filesystem()` signals in `_ready()`.
-
-**Fix:** All filesystem signal handling now routes through `EditorFileSystemListener`. It emits `filesystem_changed` and `script_classes_updated`. `VREStateManager` subscribes to those, decoupling the data layer from the Godot editor interface.
 
 ---
 
@@ -153,8 +127,6 @@ func _ready() -> void:
 
 | # | Item | Proposed by | Status | Effort | Impact |
 |---|------|-------------|--------|--------|--------|
-| 1 | ~~Split StateManager internally~~ | Claude / Codex / Gemini | ✅ Done | High | Critical |
-| 2 | ~~EditorFilesystemListener decoupling~~ | Claude | ✅ Done | Low | Medium |
 | 3 | Centralize saves + acknowledge mtimes | Claude / Codex | ❌ Open | Medium | High — fixes inspector reset on save |
 | 4 | Narrow state_manager injection | Claude / Gemini | ❌ Open | Medium | Medium — testability, clean deps |
 | 5 | Manual window lifecycle | Codex / Gemini | ❌ Open | Medium | Medium — stability |
