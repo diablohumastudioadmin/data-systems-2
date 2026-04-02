@@ -4,7 +4,7 @@ Consolidated list from Claude, Codex, and Gemini analyses. Items that appear in 
 
 ---
 
-### 2. Scattered Resource Saving + Filesystem Bounce Loop
+### 1. Scattered Resource Saving + Filesystem Bounce Loop
 
 **Proposed by:** Claude (Critical No.2), Codex (No.5 / Phase 2)
 **Status:** ❌ Not solved
@@ -30,7 +30,7 @@ func save_resources(resources: Array[Resource]) -> Array[String]:
 
 ---
 
-### 4. Narrow State Manager Injection
+### 2. Narrow State Manager Injection
 
 **Proposed by:** Claude (Worth No.2), Gemini (No.1)
 **Status:** ❌ Not solved
@@ -58,7 +58,7 @@ func _ready() -> void:
 
 ---
 
-### 5. Rigid UI Coupling via `%UniqueNames`
+### 3. Rigid UI Coupling via `%UniqueNames`
 
 **Proposed by:** Codex (No.4), Gemini (No.4)
 **Status:** ❌ Not solved (intentional for now)
@@ -73,7 +73,7 @@ func _ready() -> void:
 
 ---
 
-### 6. Synchronous Scanning Bottlenecks
+### 4. Synchronous Scanning Bottlenecks
 
 **Proposed by:** Codex (No.2), Gemini (No.2)
 **Status:** ❌ Not solved
@@ -88,7 +88,7 @@ func _ready() -> void:
 
 ---
 
-### 7. Manual Window Lifecycle Management
+### 5. Manual Window Lifecycle Management
 
 **Proposed by:** Codex (No.3), Gemini (No.3)
 **Status:** ❌ Not solved
@@ -99,7 +99,7 @@ func _ready() -> void:
 
 ---
 
-### 8. O(N) Linear Scan in Change Detection
+### 6. O(N) Linear Scan in Change Detection
 
 **Proposed by:** Claude (Ugly No.1)
 **Status:** ❌ Not solved (intentional — low priority)
@@ -112,7 +112,7 @@ func _ready() -> void:
 
 ---
 
-### 9. Strict MVVM (ViewModel Layer)
+### 7. Strict MVVM (ViewModel Layer)
 
 **Proposed by:** Claude (Ugly No.2)
 **Status:** ❌ Not solved (intentional — too much work)
@@ -127,10 +127,10 @@ func _ready() -> void:
 
 | # | Item | Proposed by | Status | Effort | Impact |
 |---|------|-------------|--------|--------|--------|
-| 3 | Centralize saves + acknowledge mtimes | Claude / Codex | ❌ Open | Medium | High — fixes inspector reset on save |
-| 4 | Narrow state_manager injection | Claude / Gemini | ❌ Open | Medium | Medium — testability, clean deps |
-| 5 | Manual window lifecycle | Codex / Gemini | ❌ Open | Medium | Medium — stability |
-| 6 | Synchronous scanning bottlenecks | Codex / Gemini | ❌ Open | High | Medium — profile first |
-| 7 | Rigid %UniqueName coupling | Codex / Gemini | ❌ Disagree | Low | Low |
-| 8 | O(N) linear scan | Claude | ❌ Open | Low | Low — only at scale |
-| 9 | Strict MVVM | Claude | ❌ Skip | Very high | Low for current scope |
+| 1 | Centralize saves + acknowledge mtimes | Claude / Codex | ❌ Open | Medium | High — fixes inspector reset on save |
+| 2 | Narrow state_manager injection | Claude / Gemini | ❌ Open | Medium | Medium — testability, clean deps |
+| 3 | Manual window lifecycle | Codex / Gemini | ❌ Open | Medium | Medium — stability |
+| 4 | Synchronous scanning bottlenecks | Codex / Gemini | ❌ Open | High | Medium — profile first |
+| 5 | Rigid %UniqueName coupling | Codex / Gemini | ❌ Disagree | Low | Low |
+| 6 | O(N) linear scan | Claude | ❌ Open | Low | Low — only at scale |
+| 7 | Strict MVVM | Claude | ❌ Skip | Very high | Low for current scope |

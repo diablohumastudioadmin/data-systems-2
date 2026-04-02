@@ -19,5 +19,4 @@ The Visual Resources Editor is a Godot 4 `@tool` editor plugin designed for visu
 *(Not implemented yet as we don't have screen captures)*
 
 ## Architecture
-For a deep dive into the plugin's internal design, data flow, component hierarchy, and signal structures, please refer to the [Architecture Documentation](ARCHITECTURE.md).
-
+For a deep dive into the plugin's internal design, data flow, component hierarchy, and signal structures, please refer to the [Architecture Documentation](docs/ARCHITECTURE.md).

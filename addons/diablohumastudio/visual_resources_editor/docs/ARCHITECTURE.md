@@ -93,6 +93,8 @@ Both `ConfirmDeleteDialog` and `ResourceRow` use `OS.move_to_trash()`. No undo/r
 
 The plugin currently uses a **"Hub and Spoke" / Facade pattern**. The `VisualResourcesEditorWindow` is a pure **dependency injector**: its only job in `_ready()` is to hand the `VREStateManager` reference to every child component. After that, components talk directly to the state manager facade.
 
+The [Property × Function Matrix](props_to_funcs_table.html) lays out how each VREStateManager property (columns) relates to the public methods and signals (rows) summarized in these diagrams.
+
 *(Note: We are planning a refactor to break this Dependency Injection into specialized stores.)*
 
 ### 1. Window Subdivision (Component Hierarchy)
