@@ -285,12 +285,17 @@ sequenceDiagram
 
 ---
 
-## Event Catalog
+## Design Criteria
 
-### A. User Actions
+This section reframes the editor in product terms rather than current
+`VREStateManager` calls and signals. If we move toward a real MVVM design,
+these are the view-facing needs and change drivers the ViewModels
+should satisfy.
 
-| # | Action | Where |
-|---|--------|--------|
+### A. User and Environment Inputs
+
+| # | Input | Where / Source |
+|---|-------|----------------|
 | 1 | Open the plugin (F3 / menu) | VisualResourcesEditorToolbar menu |
 | 2 | Close the plugin (Escape / ✕) | Window title bar or keyboard |
 | 3 | Select a class | ClassSelector dropdown |
@@ -302,7 +307,7 @@ sequenceDiagram
 | 9 | Click "Delete Selected" | VREToolbar |
 | 10 | Click a row's own Delete button | ResourceRow |
 | 11 | Click "Refresh" | VREToolbar |
-| 12 | Click Next page / Prev page | PaginationBar |
+| 12 | Change page | PaginationBar |
 | 13 | Edit a property in Godot Inspector (bulk edit) | Godot EditorInspector |
 | 14a | Create a `.tres` of the viewed class externally | File system |
 | 14b | Create a `.tres` of a different class externally | File system |
@@ -314,18 +319,341 @@ sequenceDiagram
 | 18 | Delete a `.gd` script (remove class) | File system |
 | 19 | Rename a class (`class_name` line changes) | File system |
 | 20 | Add/remove/change `@export` properties in a `.gd` script | File system |
+| 21 | Change resource ordering | Resource list controls |
+| 22 | Change resource search filter | Resource list controls |
+| 23 | Change page size | Window |
 
-### B. Editor-Triggered Events (automatic Godot behavior)
+### B. View Data and Change Drivers
 
-| # | Event | Notes |
-|---|-------|-------|
-| 1 | `EditorFileSystem.filesystem_changed` | Fires after Godot's internal scan detects any file add/remove/modify |
-| 2 | `EditorFileSystem.script_classes_updated` | Fires when the global class map changes |
-| 3 | Both fire sequentially on `.gd` change | `script_classes_updated` first, then `filesystem_changed` in the same scan cycle |
-| 4 | `EditorInspector.property_edited(property)` | Fires when user changes any Inspector value; BulkEditor listens |
-| 5 | `EditorFileSystemDirectory` refresh | Godot frees and recreates the directory tree on every scan — never cache these references |
+This list is intentionally phrased as "what the user sees" instead of
+"which current code property feeds it".
 
-### C. Desired Outcomes
+- `ClassSelector`
+  Data shown:
+  - browsable resource classes
+    - sources:
+      - `(M)` `Project Resource Classes`
+    - changes:
+      - browsable resource classes are added (17)
+        - `(M)` Source: `Project Resource Classes` are added
+      - browsable resource classes are removed (18)
+        - `(M)` Source: `Project Resource Classes` are removed
+  - selected class
+    - sources:
+      - `(VM)` `Selected Class`
+    - changes:
+      - the selected class changes (3)
+        - `(VM)` Source: `Selected Class` is changed
+      - the selected class is renamed (19)
+        - `(M)` Source: `Project Resource Classes` rename the `Selected Class`
+      - the selected class becomes invalid (18)
+        - `(M)` Source: `Project Resource Classes` remove the `Selected Class`
+
+- `SubclassFilter`
+  Data shown:
+  - are subclasses included
+    - sources:
+      - `(VM)` `Include Subclasses`
+    - changes:
+      - subclass inclusion is toggled (4)
+        - `(VM)` Source: `Include Subclasses` is changed
+
+- `Toolbar`
+  Data shown:
+  - available actions
+    - sources:
+      - `(VM)` `Available Actions`
+    - changes:
+      - the selected class changes in a way that affects which actions are available (3)
+        - `(VM)` Source: `Selected Class` is changed
+  - selected count
+    - sources:
+      - `(VM)` `Selected Count`
+    - changes:
+      - the selection changes (5, 6, 7)
+        - `(VM)` Source: `Selected Resources` change
+
+- `ResourceList`
+  Data shown:
+  - visible resources
+    - sources:
+      - `(VM)` `Current Page Resources`
+    - changes:
+      - the selected class changes (3)
+        - `(VM)` Source: `Selected Class` is changed
+      - subclass inclusion changes (4)
+        - `(VM)` Source: `Include Subclasses` is changed
+      - `CurrentClass Resources` are created (8, 14a)
+        - `(M)` Source: `CurrentClass Resources` are created
+      - `CurrentClass Resources` are deleted (9, 10, 15a)
+        - `(M)` Source: `CurrentClass Resources` are deleted
+      - resource ordering changes (21)
+        - `(VM)` Source: `Resource Sort Order` is changed
+      - resource search changes (22)
+        - `(VM)` Source: `Search Filter` is changed
+      - the current page changes (12)
+        - `(VM)` Source: `Current Page` is changed
+  - visible columns
+    - sources:
+      - `(VM)` `Visible Columns`
+    - changes:
+      - the selected class changes (3)
+        - `(VM)` Source: `Selected Class` is changed
+      - subclass inclusion changes (4)
+        - `(VM)` Source: `Include Subclasses` is changed
+      - class properties are added (20)
+        - `(M)` Source: `Class Properties` are added
+      - class properties are removed (20)
+        - `(M)` Source: `Class Properties` are removed
+      - class properties are changed (20)
+        - `(M)` Source: `Class Properties` are changed
+  - row values
+    - sources:
+      - `(VM)` `Current Page Resources`
+    - changes:
+      - `CurrentClass Resources` are edited (13, 16a)
+        - `(M)` Source: `CurrentClass Resources` are edited
+      - class properties are added (20)
+        - `(M)` Source: `Class Properties` are added
+      - class properties are removed (20)
+        - `(M)` Source: `Class Properties` are removed
+      - class properties are changed (20)
+        - `(M)` Source: `Class Properties` are changed
+  - row selection state
+    - sources:
+      - `(VM)` `Selected Resources`
+    - changes:
+      - the selection changes (5, 6, 7)
+        - `(VM)` Source: `Selected Resources` change
+
+- `PaginationBar`
+  Data shown:
+  - current page
+    - sources:
+      - `(VM)` `Current Page`
+    - changes:
+      - the current page changes (12)
+        - `(VM)` Source: `Current Page` is changed
+  - total pages
+    - sources:
+      - `(VM)` `Total Pages`
+    - changes:
+      - the selected class changes (3)
+        - `(VM)` Source: `Selected Class` is changed
+      - subclass inclusion changes (4)
+        - `(VM)` Source: `Include Subclasses` is changed
+      - the number of `CurrentClass Resources` changes (8, 9, 10, 14a, 15a, 22)
+        - `(M)` Source: `CurrentClass Resources` are created
+        - `(M)` Source: `CurrentClass Resources` are deleted
+      - the page size changes (23)
+        - `(VM)` Source: `Page Size` is changed
+
+- `StatusLabel`
+  Data shown:
+  - visible resource count
+    - sources:
+      - `(VM)` `Visible Resource Count`
+    - changes:
+      - the selected class changes (3)
+        - `(VM)` Source: `Selected Class` is changed
+      - subclass inclusion changes (4)
+        - `(VM)` Source: `Include Subclasses` is changed
+      - the current page changes (12)
+        - `(VM)` Source: `Current Page` is changed
+      - the number of `CurrentClass Resources` changes (8, 9, 10, 14a, 15a, 22)
+        - `(M)` Source: `CurrentClass Resources` are created
+        - `(M)` Source: `CurrentClass Resources` are deleted
+  - selected resource count
+    - sources:
+      - `(VM)` `Selected Resource Count`
+    - changes:
+      - the selection changes (5, 6, 7)
+        - `(VM)` Source: `Selected Resources` change
+
+- `Inspector / Bulk Edit Surface`
+  Data shown:
+  - editable properties for the current selection
+    - sources:
+      - `(VM)` `Editable Selection Properties`
+    - changes:
+      - the selection changes (5, 6, 7)
+        - `(VM)` Source: `Selected Resources` change
+      - the selected class changes and clears / replaces the current selection (3)
+        - `(VM)` Source: `Selected Class` is changed
+      - class properties are added (20)
+        - `(M)` Source: `Class Properties` are added
+      - class properties are removed (20)
+        - `(M)` Source: `Class Properties` are removed
+      - class properties are changed (20)
+        - `(M)` Source: `Class Properties` are changed
+
+- `SaveResourceDialog`
+  Data shown:
+  - class to create
+    - sources:
+      - `(VM)` `Class To Create`
+    - changes:
+      - the selected class changes (3)
+        - `(VM)` Source: `Selected Class` is changed
+
+- `ConfirmDeleteDialog`
+  Data shown:
+  - resources pending deletion
+    - sources:
+      - `(VM)` `Pending Delete Resources`
+    - changes:
+      - pending resources change (9, 10)
+        - `(VM)` Source: `Pending Delete Resources` are changed
+
+- `ErrorDialog`
+  Data shown:
+  - the latest user-visible error message
+    - sources:
+      - `(VM)` `Current Error Message`
+    - changes:
+      - the current error state changes (8, 9, 10, 11, 13, 14a, 15a, 16a, 17, 18, 19, 20)
+        - `(M)` Source: `Create Operations` fail
+        - `(M)` Source: `Save Operations` fail
+        - `(M)` Source: `Delete Operations` fail
+        - `(M)` Source: `Load Operations` fail
+        - `(M)` Source: `Validation` rejects an action
+
+### C. Model Data and Change Drivers
+
+This section mirrors the view-side list, but from the domain side.
+These are the project/editor concepts that exist independently of how the
+window chooses to present them.
+
+- `Project Resource Classes`
+  Internal data:
+  - class identity
+    - sources:
+      - `(M)` `Resource Script Files`
+    - changes:
+      - a resource class is declared (17)
+        - `(M)` Source: `Resource Script Files` add a resource `class_name`
+      - a resource class is removed (18)
+        - `(M)` Source: `Resource Script Files` remove a resource `class_name`
+      - a resource class is renamed (19)
+        - `(M)` Source: `Resource Script Files` rename a resource `class_name`
+  - script path
+    - sources:
+      - `(M)` `Resource Script Files`
+    - changes:
+      - a resource class is declared (17)
+        - `(M)` Source: `Resource Script Files` add a script path
+      - a resource class is removed (18)
+        - `(M)` Source: `Resource Script Files` remove a script path
+  - exported properties
+    - sources:
+      - `(M)` `Resource Script Files`
+    - changes:
+      - exported properties are added (20)
+        - `(M)` Source: `Resource Script Files` add exported properties
+      - exported properties are removed (20)
+        - `(M)` Source: `Resource Script Files` remove exported properties
+      - exported properties are changed (20)
+        - `(M)` Source: `Resource Script Files` change exported properties
+
+- `Project Resource Files`
+  Internal data:
+  - resource file identity
+    - sources:
+      - `(M)` `Resource Files on Disk`
+    - changes:
+      - a resource file is created from the editor (8)
+        - `(VM)` Source: `Create Resource Command` is executed
+      - a resource file is created externally (14a, 14b)
+        - `(M)` Source: `Resource Files on Disk` add a resource file
+      - a resource file is deleted from the editor (9, 10)
+        - `(VM)` Source: `Delete Resources Command` is executed
+      - a resource file is deleted externally (15a, 15b)
+        - `(M)` Source: `Resource Files on Disk` remove a resource file
+  - resource class reference
+    - sources:
+      - `(M)` `Resource Files on Disk`
+    - changes:
+      - a resource file is created from the editor (8)
+        - `(VM)` Source: `Create Resource Command` creates a resource file with a class reference
+      - a resource file is created externally (14a, 14b)
+        - `(M)` Source: `Resource Files on Disk` add a resource file with a class reference
+      - a resource file is modified externally (16a, 16b)
+        - `(M)` Source: `Resource Files on Disk` change a resource class reference
+      - the referenced class is renamed or removed (18, 19)
+        - `(M)` Source: `Project Resource Classes` change
+  - serialized property values
+    - sources:
+      - `(M)` `Resource Files on Disk`
+    - changes:
+      - a resource is edited from the editor (13)
+        - `(VM)` Source: `Edit Resource Values Command` is executed
+      - a resource file is modified externally (16a, 16b)
+        - `(M)` Source: `Resource Files on Disk` change serialized property values
+      - the class property schema changes and the file is resaved (20)
+        - `(M)` Source: `Project Resource Classes` change exported properties
+
+- `Loaded Resource Objects`
+  Internal data:
+  - loaded resource identity
+    - sources:
+      - `(M)` `Project Resource Files`
+    - changes:
+      - resources are loaded or refreshed (3, 4, 11)
+        - `(VM)` Source: `Load / Refresh Resources Command` is executed
+      - resource files are created or deleted (8, 9, 10, 14a, 14b, 15a, 15b)
+        - `(M)` Source: `Project Resource Files` change
+  - loaded class reference
+    - sources:
+      - `(M)` `Project Resource Files`
+      - `(M)` `Project Resource Classes`
+    - changes:
+      - resources are loaded or refreshed (3, 4, 11)
+        - `(VM)` Source: `Load / Refresh Resources Command` is executed
+      - resource files change their class reference (16a, 16b)
+        - `(M)` Source: `Project Resource Files` change
+      - project resource classes are renamed or removed (18, 19)
+        - `(M)` Source: `Project Resource Classes` change
+  - live property values
+    - sources:
+      - `(M)` `Project Resource Files`
+    - changes:
+      - a resource is edited from the editor (13)
+        - `(VM)` Source: `Edit Resource Values Command` is executed
+      - resources are loaded or refreshed (3, 4, 11)
+        - `(VM)` Source: `Load / Refresh Resources Command` is executed
+      - resource files are modified externally (16a, 16b)
+        - `(M)` Source: `Project Resource Files` change
+
+### D. Shared Change Drivers Across Views
+
+Not every view update corresponds to a domain-data mutation. Some changes
+mutate the underlying resource/class state, while others only change how the
+same data is projected to the user.
+
+| Change Driver | Changes Underlying Data? | Can Be Presentation-Only? | Views Affected |
+|---|---|---|---|
+| Selected class changed | Yes | No | ClassSelector, Toolbar, ResourceList, PaginationBar, StatusLabel, Inspector / Bulk Edit Surface, SaveResourceDialog |
+| `Include Subclasses` changed | Yes | No | SubclassFilter, ResourceList, PaginationBar, StatusLabel |
+| Project class catalog changed (class added/removed/renamed) | Yes | No | ClassSelector, ResourceList, Inspector / Bulk Edit Surface, SaveResourceDialog, sometimes SubclassFilter and PaginationBar through selected-class invalidation |
+| `CurrentClass Resources` collection changed (create/delete/external discovery) | Yes | No | ResourceList, PaginationBar, StatusLabel, Inspector / Bulk Edit Surface if selection validity changes |
+| Resource values changed | Yes | No | ResourceList, Inspector / Bulk Edit Surface, sometimes ErrorDialog if the edit/save fails |
+| Resource schema changed (properties added/removed/changed) | Yes | No | ResourceList, Inspector / Bulk Edit Surface, SaveResourceDialog |
+| Selection changed | No | Yes | ResourceList, Toolbar, StatusLabel, Inspector / Bulk Edit Surface |
+| Visible slice changed (pagination, resource sorting, resource searching) | No | Yes | ResourceList, PaginationBar, StatusLabel |
+| Command intent changed (create requested / delete requested) | No | Yes | SaveResourceDialog, ConfirmDeleteDialog |
+| Error state changed | No | Yes | ErrorDialog |
+
+The main MVVM takeaway is that several views move together around the same
+conceptual drivers:
+
+- Changing the selected class is the broadest driver. It reshapes the list, schema, pagination, status, creation context, and bulk-edit context at the same time.
+- Changing `Include Subclasses` is a narrower driver. It changes which resources belong to the current list, which then affects list contents, pagination, and counts.
+- Selection changes are a separate cross-view driver. They do not change the resource dataset, but they do change row highlights, toolbar affordances, status text, and the inspector surface.
+- Resource-collection changes and schema changes are different drivers. Collection changes mostly affect list/pagination/counts, while schema changes affect any view that renders fields/properties.
+- Presentation-only projection changes such as pagination, sorting, and filtering should not be modeled the same way as domain mutations. They change what part of the data the view is showing, not the underlying resources themselves.
+- Dialog visibility is another separate concern. "Create requested", "delete requested", and "error occurred" are UI-state changes, not resource-list changes.
+
+### E. Desired Outcomes
 
 | # | Observable result |
 |---|-------------------|
@@ -347,110 +675,3 @@ sequenceDiagram
 | 16 | Inspector clears when selection is empty or cross-class |
 | 17 | Error dialog appears on save/delete failures |
 | 18 | View clears when current class is deleted and not renamed |
-
----
-
-### D. User Action → Call Chain → state_manager
-
-| User Action | Component | Handler | Intermediate steps | state_manager method |
-|-------------|-----------|---------|-------------------|---------------------|
-| Open plugin (F3 / menu) | VisualResourcesEditorToolbar | `_on_menu_id_pressed(0)` | `open_visual_editor_window()` → instantiate window → `_ready()` sets all `.state_manager` properties | — (no direct call; setup only) |
-| Close plugin (Esc / ✕) | VisualResourcesEditorWindow | `_unhandled_input()` | `close_requested.emit()` → `_on_close_requested()` → `queue_free()` | — |
-| Select a class | ClassSelector | `_on_class_dropdown_item_selected(idx)` | — | `set_current_class(name)` |
-| Toggle Include Subclasses | SubclassFilter | `_on_include_subclasses_check_toggled(pressed)` | — | `set_include_subclasses(pressed)` |
-| Click row (no modifier) | ResourceRow | `_on_pressed()` | reads `Input.is_key_pressed()` | `set_selected_resources(res, false, false)` |
-| Ctrl+click row | ResourceRow | `_on_pressed()` | reads `Input.is_key_pressed(KEY_CTRL/META)` | `set_selected_resources(res, true, false)` |
-| Shift+click row | ResourceRow | `_on_pressed()` | reads `Input.is_key_pressed(KEY_SHIFT)` | `set_selected_resources(res, false, true)` |
-| Click "Create New" | VREToolbar | `_on_create_btn_pressed()` | — | `request_create_new_resouce()` → emits `create_new_resource_requested` → SaveResourceDialog shows → after user picks path: `ResourceSaver.save()` → filesystem event |
-| Click "Delete Selected" | VREToolbar | `_on_delete_selected_pressed()` | reads `state_manager._selected_paths` | `request_delete_selected_resources(paths)` → emits `delete_selected_requested` → ConfirmDeleteDialog shows → after confirm: `OS.move_to_trash()` + `efs.update_file()` → filesystem event |
-| Click row's Delete button | ResourceRow | `_on_delete_pressed()` | — | `request_delete_selected_resources([resource.resource_path])` → same dialog flow as above |
-| Click "Refresh" | VREToolbar | `_on_refresh_btn_pressed()` | — | `refresh_resource_list_values()` |
-| Click Next page | PaginationBar | `%NextBtn.pressed` connected | — | `next_page()` |
-| Click Prev page | PaginationBar | `%PrevBtn.pressed` connected | — | `prev_page()` |
-| Edit property in Inspector | Godot EditorInspector | `property_edited` signal | BulkEditor `_on_inspector_property_edited()` → `res.set()` + `ResourceSaver.save()` per resource | `notify_resources_edited(saved)` and/or `report_error(msg)` |
-
----
-
-### E. state_manager Method → Desired Outcomes
-
-| state_manager method | What it does internally | Signals emitted | Outcomes |
-|----------------------|------------------------|----------------|---------|
-| `set_current_class(name)` | Calls `refresh_resource_list_values()` | `resources_replaced`, `pagination_changed` | ResourceList rebuilds all rows; PaginationBar resets to page 0; StatusLabel updates count |
-| `set_include_subclasses(value)` | Calls `refresh_resource_list_values()` | `resources_replaced`, `pagination_changed` | Same as above |
-| `refresh_resource_list_values()` | Resolves classes, scans properties, loads resources, resets page, restores selection | `resources_replaced`, `pagination_changed`, `selection_changed` | Full list rebuild; columns update; selection preserved |
-| `set_selected_resources(res, ctrl, shift)` | Shift=range, Ctrl=toggle, none=single; updates `selected_resources` | `selection_changed` | Row highlights update; toolbar count updates; BulkEditor creates/clears inspector proxy |
-| `request_create_new_resouce()` | Emits signal only; dialog + filesystem do the rest | `create_new_resource_requested` | SaveResourceDialog opens |
-| `request_delete_selected_resources(paths)` | Emits signal only; dialog + filesystem do the rest | `delete_selected_requested` | ConfirmDeleteDialog opens |
-| `next_page()` / `prev_page()` | Clamps page, slices new page window, diffs against previous | `resources_added`, `resources_removed`, `resources_modified`, `pagination_changed` | ResourceList adds/removes/updates rows for the new page; PaginationBar updates |
-| `notify_resources_edited(resources)` | Emits signal only | `resources_edited` | ResourceList refreshes display values in affected rows (no rebuild) |
-| `report_error(message)` | Emits signal only | `error_occurred` | ErrorDialog shows the message |
-| `_on_filesystem_changed()` (auto) | Debounces → `_scan_class_resources_for_changes()` → mtime diff → restores selection | `resources_added`, `resources_removed`, `resources_modified`, `pagination_changed`, `selection_changed` | New/deleted/modified rows update in place; selection restored by path |
-| `_handle_global_classes_updated()` (auto) | Rebuilds class maps; detects renames, deletions, subclass-set changes, schema changes | `project_classes_changed`, `current_class_renamed`, `resources_replaced`, `pagination_changed` | Dropdown updates; class rename followed; view clears or refreshes |
-
----
-
-## Diagrams: User Actions → state_manager → Outcomes
-
-### User Actions → state_manager calls
-
-```mermaid
-flowchart TD
-    classDef action fill:#2b4c7e,stroke:#4a7ebf,color:#fff
-    classDef sm fill:#38a169,stroke:#2f855a,color:#fff
-
-    A1([Select class]):::action --> SM1[set_current_class]:::sm
-    A2([Toggle subclasses]):::action --> SM2[set_include_subclasses]:::sm
-    A3([Click row]):::action --> SM3[set_selected_resources]:::sm
-    A4([Ctrl+click row]):::action --> SM3
-    A5([Shift+click row]):::action --> SM3
-    A6([Click Refresh]):::action --> SM4[refresh_resource_list_values]:::sm
-    A7([Click Create New]):::action --> SM5[request_create_new_resouce]:::sm
-    A8([Click Delete Selected]):::action --> SM6[request_delete_selected_resources]:::sm
-    A9([Click row Delete btn]):::action --> SM6
-    A10([Click Next page]):::action --> SM7[next_page]:::sm
-    A11([Click Prev page]):::action --> SM8[prev_page]:::sm
-    A12([Edit in Inspector]):::action --> SM9[notify_resources_edited]:::sm
-    A12 -.->|on error| SM10[report_error]:::sm
-
-    SM1 --> SM4
-    SM2 --> SM4
-```
-
-### state_manager signals → UI outcomes
-
-```mermaid
-flowchart LR
-    classDef sm fill:#38a169,stroke:#2f855a,color:#fff
-    classDef sig fill:#744210,stroke:#b7791f,color:#fff
-    classDef out fill:#2d3748,stroke:#718096,color:#fff
-
-    SM_replace[resources_replaced]:::sig
-    SM_add[resources_added]:::sig
-    SM_rem[resources_removed]:::sig
-    SM_mod[resources_modified]:::sig
-    SM_edit[resources_edited]:::sig
-    SM_sel[selection_changed]:::sig
-    SM_pag[pagination_changed]:::sig
-    SM_cls[project_classes_changed]:::sig
-    SM_ren[current_class_renamed]:::sig
-    SM_create[create_new_resource_requested]:::sig
-    SM_del[delete_selected_requested]:::sig
-    SM_err[error_occurred]:::sig
-
-    SM_replace --> O1[ResourceList rebuilds all rows]:::out
-    SM_replace --> O2[StatusLabel shows count]:::out
-    SM_add --> O3[ResourceList adds rows]:::out
-    SM_rem --> O4[ResourceList removes rows]:::out
-    SM_mod --> O5[ResourceList updates row values]:::out
-    SM_edit --> O5
-    SM_sel --> O6[ResourceList updates highlights]:::out
-    SM_sel --> O7[Toolbar updates Delete count]:::out
-    SM_sel --> O8[BulkEditor creates/clears proxy]:::out
-    SM_sel --> O9[StatusLabel shows selection count]:::out
-    SM_pag --> O10[PaginationBar updates page label & buttons]:::out
-    SM_cls --> O11[ClassSelector rebuilds dropdown]:::out
-    SM_ren --> O12[ClassSelector follows renamed class]:::out
-    SM_create --> O13[SaveResourceDialog opens]:::out
-    SM_del --> O14[ConfirmDeleteDialog opens]:::out
-    SM_err --> O15[ErrorDialog shows message]:::out
-```
