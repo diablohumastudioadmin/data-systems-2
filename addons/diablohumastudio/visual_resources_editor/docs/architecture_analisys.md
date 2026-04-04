@@ -715,7 +715,46 @@ define what each ViewModel must hold and what can change it.
       - create, delete, edit, or refresh operations fail
         - `(M)` Source: operation failure updates `Current Error Message`
 
-### G. VM Property Index
+### G. VM-VM dependencies
+
+- `ClassSelector` VM depends on:
+  - _(no VM-to-VM dependencies)_
+
+- `SubclassFilter` VM depends on:
+  - _(no VM-to-VM dependencies)_
+
+- `Toolbar` VM depends on:
+  - `ClassSelector` VM → `Selected Class` (for Available Actions)
+  - `ResourceList` VM → `Selected Resources` (for Selected Resource Count)
+
+- `ResourceList` VM depends on:
+  - `ClassSelector` VM → `Selected Class` (for Current Page Resources and Visible Columns)
+  - `SubclassFilter` VM → `Include Subclasses` (for Current Page Resources and Visible Columns)
+  - `PaginationBar` VM → `Current Page` (for Current Page Resources)
+
+- `PaginationBar` VM depends on:
+  - `ResourceList` VM → `Current Page Resources` (for Total Pages)
+  - `ClassSelector` VM → `Selected Class` (for Total Pages)
+  - `SubclassFilter` VM → `Include Subclasses` (for Total Pages)
+
+- `StatusLabel` VM depends on:
+  - `ResourceList` VM → `Current Page Resources` (for Visible Resource Count)
+  - `ResourceList` VM → `Selected Resources` (for Selected Resource Count)
+
+- `Bulk Edit` VM depends on:
+  - `ResourceList` VM → `Selected Resources` (for Editable Selection Properties)
+  - `ClassSelector` VM → `Selected Class` (for Editable Properties)
+
+- `SaveResourceDialog` VM depends on:
+  - `ClassSelector` VM → `Selected Class` (for determine what class to create).
+
+- `ConfirmDeleteDialog` VM depends on:
+  - `ResourceList` VM → `Selected Resources`.
+
+- `ErrorDialog` VM depends on:
+  - _(no VM-to-VM dependencies)_
+
+### H. VM Property Index
 
 1. `Browsable Resource Classes` | ClassSelector VM
 2. `Selected Class` | ClassSelector VM
