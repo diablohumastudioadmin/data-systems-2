@@ -656,38 +656,54 @@ flowchart LR
     classDef vm fill:#fef3c7,stroke:#d97706,color:#111827,font-size:17px;
     classDef view fill:#dcfce7,stroke:#16a34a,color:#111827,font-size:17px;
 
-    AUTO_SCRIPTS["Automatic Source<br/>Resource Script Changes<br/>A17-A20, A24-A25"]
-    AUTO_FILES["Automatic Source<br/>External Resource File Changes<br/>A14-A16"]
+    subgraph COL_AUTO[" "]
+        direction TB
+        AUTO_SCRIPTS["Automatic Source<br/>Resource Script Changes<br/>A17-A20, A24-A25"]
+        AUTO_FILES["Automatic Source<br/>External Resource File Changes<br/>A14-A16"]
+    end
 
-    M_CLASSES["Model<br/>Project Resource Classes<br/>- class_name<br/>- script file path<br/>- parent class<br/>- exported properties"]
-    M_INSTANCES["Model<br/>Resource Instances<br/>- resource file path<br/>- resource class reference<br/>- property values<br/>- available properties"]
+    subgraph COL_MODEL[" "]
+        direction TB
+        M_CLASSES["Model<br/>Project Resource Classes<br/>- class_name<br/>- script file path<br/>- parent class<br/>- exported properties"]
+        M_INSTANCES["Model<br/>Resource Instances<br/>- resource file path<br/>- resource class reference<br/>- property values<br/>- available properties"]
+    end
 
-    VM_CLASS["ViewModel<br/>ClassSelector VM<br/>- Project Resource Classes<br/>- Selected Class"]
-    VM_SUB["ViewModel<br/>SubclassFilter VM<br/>- Include Subclasses"]
-    VM_TOOLBAR["ViewModel<br/>Toolbar VM<br/>- Available Actions<br/>- Selected Resource Count<br/>- Create Resource Command<br/>- Delete Resources Command<br/>- Load / Refresh Resources Command"]
-    VM_LIST["ViewModel<br/>ResourceList VM<br/>- Current Page Resources<br/>- Visible Columns<br/>- Selected Resources<br/>- Resource Sort Order<br/>- Search Filter"]
-    VM_PAGE["ViewModel<br/>PaginationBar VM<br/>- Current Page<br/>- Total Pages"]
-    VM_STATUS["ViewModel<br/>StatusLabel VM<br/>- Visible Resource Count<br/>- Selected Resource Count"]
-    VM_BULK["ViewModel<br/>Bulk Edit VM<br/>- Editable Selection Properties<br/>- Edit Resource Values Command"]
-    VM_SAVE["ViewModel<br/>SaveResourceDialog VM<br/>- Class To Create<br/>- Create Resource Command"]
-    VM_DELETE["ViewModel<br/>ConfirmDeleteDialog VM<br/>- Pending Delete Resources<br/>- Delete Resources Command"]
-    VM_ERROR["ViewModel<br/>ErrorDialog VM<br/>- Current Error Message"]
+    subgraph COL_VM[" "]
+        direction TB
+        VM_CLASS["ViewModel<br/>ClassSelector VM<br/>- [1] Project Resource Classes<br/>- [2] Selected Class"]
+        VM_SUB["ViewModel<br/>SubclassFilter VM<br/>- [3] Include Subclasses"]
+        VM_TOOLBAR["ViewModel<br/>Toolbar VM<br/>- [4] Available Actions<br/>- [5] Selected Resource Count<br/>- [6] Create Resource Command<br/>- [7] Delete Resources Command<br/>- [8] Load / Refresh Resources Command"]
+        VM_LIST["ViewModel<br/>ResourceList VM<br/>- [9] Current Page Resources<br/>- [10] Visible Columns<br/>- [11] Selected Resources<br/>- [12] Resource Sort Order<br/>- [13] Search Filter"]
+        VM_PAGE["ViewModel<br/>PaginationBar VM<br/>- [14] Current Page<br/>- [15] Total Pages"]
+        VM_STATUS["ViewModel<br/>StatusLabel VM<br/>- [16] Visible Resource Count<br/>- [5] Selected Resource Count"]
+        VM_BULK["ViewModel<br/>Bulk Edit VM<br/>- [17] Editable Selection Properties<br/>- [18] Edit Resource Values Command"]
+        VM_SAVE["ViewModel<br/>SaveResourceDialog VM<br/>- [19] Class To Create<br/>- [6] Create Resource Command"]
+        VM_DELETE["ViewModel<br/>ConfirmDeleteDialog VM<br/>- [20] Pending Delete Resources<br/>- [7] Delete Resources Command"]
+        VM_ERROR["ViewModel<br/>ErrorDialog VM<br/>- [21] Current Error Message"]
+    end
 
-    V_CLASS["View<br/>ClassSelector<br/>Data: browsable resource classes, selected class<br/>Actions: select a class"]
-    V_SUB["View<br/>SubclassFilter<br/>Data: are subclasses included<br/>Actions: toggle subclass inclusion"]
-    V_TOOLBAR["View<br/>Toolbar<br/>Data: available actions, selected resource count<br/>Actions: create, delete, refresh"]
-    V_LIST["View<br/>ResourceList<br/>Data: visible resources, visible columns, selected resources<br/>Actions: select, delete one, sort, search"]
-    V_PAGE["View<br/>PaginationBar<br/>Data: current page, total pages<br/>Actions: change page"]
-    V_STATUS["View<br/>StatusLabel<br/>Data: visible resource count, selected resource count<br/>Actions: none"]
-    V_BULK["View<br/>Inspector / Bulk Edit Surface<br/>Data: editable selection properties<br/>Actions: edit selected resource values"]
-    V_SAVE["View<br/>SaveResourceDialog<br/>Data: class to create<br/>Actions: choose where to create the resource"]
-    V_DELETE["View<br/>ConfirmDeleteDialog<br/>Data: pending delete resources<br/>Actions: confirm deletion"]
-    V_ERROR["View<br/>ErrorDialog<br/>Data: current error message<br/>Actions: none"]
+    subgraph COL_VIEW[" "]
+        direction TB
+        V_CLASS["View<br/>ClassSelector<br/>Data: browsable resource classes, selected class<br/>Actions: select a class"]
+        V_SUB["View<br/>SubclassFilter<br/>Data: are subclasses included<br/>Actions: toggle subclass inclusion"]
+        V_TOOLBAR["View<br/>Toolbar<br/>Data: available actions, selected resource count<br/>Actions: create, delete, refresh"]
+        V_LIST["View<br/>ResourceList<br/>Data: visible resources, visible columns, selected resources<br/>Actions: select, delete one, sort, search"]
+        V_PAGE["View<br/>PaginationBar<br/>Data: current page, total pages<br/>Actions: change page"]
+        V_STATUS["View<br/>StatusLabel<br/>Data: visible resource count, selected resource count<br/>Actions: none"]
+        V_BULK["View<br/>Inspector / Bulk Edit Surface<br/>Data: editable selection properties<br/>Actions: edit selected resource values"]
+        V_SAVE["View<br/>SaveResourceDialog<br/>Data: class to create<br/>Actions: choose where to create the resource"]
+        V_DELETE["View<br/>ConfirmDeleteDialog<br/>Data: pending delete resources<br/>Actions: confirm deletion"]
+        V_ERROR["View<br/>ErrorDialog<br/>Data: current error message<br/>Actions: none"]
+    end
 
     class AUTO_SCRIPTS,AUTO_FILES auto
     class M_CLASSES,M_INSTANCES model
     class VM_CLASS,VM_SUB,VM_TOOLBAR,VM_LIST,VM_PAGE,VM_STATUS,VM_BULK,VM_SAVE,VM_DELETE,VM_ERROR vm
     class V_CLASS,V_SUB,V_TOOLBAR,V_LIST,V_PAGE,V_STATUS,V_BULK,V_SAVE,V_DELETE,V_ERROR view
+
+    COL_AUTO --- COL_MODEL
+    COL_MODEL --- COL_VM
+    COL_VM --- COL_VIEW
 
     AUTO_SCRIPTS --> M_CLASSES
     AUTO_FILES --> M_INSTANCES
@@ -698,30 +714,6 @@ flowchart LR
     M_CLASSES --> VM_BULK
     M_CLASSES --> VM_SAVE
     M_INSTANCES --> VM_BULK
-
-    VM_CLASS --> VM_TOOLBAR
-    VM_CLASS --> VM_LIST
-    VM_CLASS --> VM_PAGE
-    VM_CLASS --> VM_STATUS
-    VM_CLASS --> VM_BULK
-    VM_CLASS --> VM_SAVE
-
-    VM_SUB --> VM_LIST
-    VM_SUB --> VM_PAGE
-    VM_SUB --> VM_STATUS
-
-    VM_LIST --> VM_TOOLBAR
-    VM_LIST --> VM_PAGE
-    VM_LIST --> VM_STATUS
-    VM_LIST --> VM_BULK
-    VM_LIST --> VM_DELETE
-
-    VM_TOOLBAR --> VM_SAVE
-    VM_TOOLBAR --> VM_DELETE
-    VM_TOOLBAR --> VM_ERROR
-    VM_BULK --> VM_ERROR
-    VM_SAVE --> VM_ERROR
-    VM_DELETE --> VM_ERROR
 
     VM_CLASS --> V_CLASS
     VM_SUB --> V_SUB
@@ -750,6 +742,30 @@ flowchart LR
 ```
 
 Every item inside the VM boxes is taken directly from sections B/C, so no extra `*` markers were needed.
+
+### VM Property Index
+
+1. `Project Resource Classes` | ClassSelector VM
+2. `Selected Class` | ClassSelector VM
+3. `Include Subclasses` | SubclassFilter VM
+4. `Available Actions` | Toolbar VM
+5. `Selected Resource Count` | Toolbar VM, StatusLabel VM
+6. `Create Resource Command` | Toolbar VM, SaveResourceDialog VM
+7. `Delete Resources Command` | Toolbar VM, ConfirmDeleteDialog VM
+8. `Load / Refresh Resources Command` | Toolbar VM
+9. `Current Page Resources` | ResourceList VM
+10. `Visible Columns` | ResourceList VM
+11. `Selected Resources` | ResourceList VM
+12. `Resource Sort Order` | ResourceList VM
+13. `Search Filter` | ResourceList VM
+14. `Current Page` | PaginationBar VM
+15. `Total Pages` | PaginationBar VM
+16. `Visible Resource Count` | StatusLabel VM
+17. `Editable Selection Properties` | Bulk Edit VM
+18. `Edit Resource Values Command` | Bulk Edit VM
+19. `Class To Create` | SaveResourceDialog VM
+20. `Pending Delete Resources` | ConfirmDeleteDialog VM
+21. `Current Error Message` | ErrorDialog VM
 
 ### D. Shared Change Drivers Across Views
 
