@@ -294,34 +294,38 @@ should satisfy.
 
 ### A. User and Environment Inputs
 
-| # | Input | Where / Source |
-|---|-------|----------------|
-| 1 | Open the plugin (F3 / menu) | VisualResourcesEditorToolbar menu |
-| 2 | Close the plugin (Escape / ✕) | Window title bar or keyboard |
-| 3 | Select a class | ClassSelector dropdown |
-| 4 | Toggle "Include Subclasses" | SubclassFilter checkbox |
-| 5 | Click a resource row — single select | ResourceRow button |
-| 6 | Ctrl+click a resource row — toggle | ResourceRow button |
-| 7 | Shift+click a resource row — range select | ResourceRow button |
-| 8 | Click "Create New" | VREToolbar |
-| 9 | Click "Delete Selected" | VREToolbar |
-| 10 | Click a row's own Delete button | ResourceRow |
-| 11 | Click "Refresh" | VREToolbar |
-| 12 | Change page | PaginationBar |
-| 13 | Edit a property in Godot Inspector (bulk edit) | Godot EditorInspector |
-| 14a | Create a `.tres` of the viewed class externally | File system |
-| 14b | Create a `.tres` of a different class externally | File system |
-| 15a | Delete a `.tres` of the viewed class externally | File system |
-| 15b | Delete a `.tres` of a different class externally | File system |
-| 16a | Modify a `.tres` of the viewed class externally | File system |
-| 16b | Modify a `.tres` of a different class externally | File system |
-| 17 | Create a new `.gd` script with `class_name` extending Resource | File system |
-| 18 | Delete a `.gd` script (remove class) | File system |
-| 19 | Rename a class (`class_name` line changes) | File system |
-| 20 | Add/remove/change `@export` properties in a `.gd` script | File system |
-| 21 | Change resource ordering | Resource list controls |
-| 22 | Change resource search filter | Resource list controls |
-| 23 | Change page size | Window |
+| # | Type | Input | Where / Source |
+|---|---|-------|----------------|
+| 1 | U | Open the plugin (F3 / menu) | VisualResourcesEditorToolbar menu |
+| 2 | U | Close the plugin (Escape / ✕) | Window title bar or keyboard |
+| 3 | U | Select a class | ClassSelector dropdown |
+| 4 | U | Toggle "Include Subclasses" | SubclassFilter checkbox |
+| 5 | U | Click a resource row — single select | ResourceRow button |
+| 6 | U | Ctrl+click a resource row — toggle | ResourceRow button |
+| 7 | U | Shift+click a resource row — range select | ResourceRow button |
+| 8 | U | Click "Create New" | VREToolbar |
+| 9 | U | Click "Delete Selected" | VREToolbar |
+| 10 | U | Click a row's own Delete button | ResourceRow |
+| 11 | U | Click "Refresh" | VREToolbar |
+| 12 | U | Change page | PaginationBar |
+| 13 | U | Edit a property in Godot Inspector (bulk edit) | Godot EditorInspector |
+| 14a | A | Create a `.tres` of the viewed class externally | File system |
+| 14b | A | Create a `.tres` of a different class externally | File system |
+| 15a | A | Delete a `.tres` of the viewed class externally | File system |
+| 15b | A | Delete a `.tres` of a different class externally | File system |
+| 16a | A | Modify a `.tres` of the viewed class externally | File system |
+| 16b | A | Modify a `.tres` of a different class externally | File system |
+| 17 | A | Create a new `.gd` script with `class_name` extending Resource | File system |
+| 18 | A | Delete a `.gd` script (remove class) | File system |
+| 19 | A | Rename a class (`class_name` line changes) | File system |
+| 20 | A | Add/remove/change `@export` properties in a `.gd` script | File system |
+| 21 | U | Change resource ordering | Resource list controls |
+| 22 | U | Change resource search filter | Resource list controls |
+| 23 | U | Change page size | Window |
+| 24 | A | Move a resource class `.gd` script | File system |
+| 25 | A | Change what a resource class inherits from | File system |
+| 26 | U | Choose where to create the new resource | SaveResourceDialog |
+| 27 | U | Confirm deletion of pending resources | ConfirmDeleteDialog |
 
 ### B. View Data and Change Drivers
 
@@ -334,20 +338,23 @@ This list is intentionally phrased as "what the user sees" instead of
     - sources:
       - `(M)` `Project Resource Classes`
     - changes:
-      - browsable resource classes are added (17)
+      - browsable resource classes are added (17) `A`
         - `(M)` Source: `Project Resource Classes` are added
-      - browsable resource classes are removed (18)
+      - browsable resource classes are removed (18) `A`
         - `(M)` Source: `Project Resource Classes` are removed
   - selected class
     - sources:
       - `(VM)` `Selected Class`
     - changes:
-      - the selected class changes (3)
+      - the selected class changes (3) `U`
         - `(VM)` Source: `Selected Class` is changed
-      - the selected class is renamed (19)
+      - the selected class is renamed (19) `A`
         - `(M)` Source: `Project Resource Classes` rename the `Selected Class`
-      - the selected class becomes invalid (18)
+      - the selected class becomes invalid (18) `A`
         - `(M)` Source: `Project Resource Classes` remove the `Selected Class`
+  User Actions:
+  - select a class from the dropdown (3) `U`
+    - `(VM)` Source: `Selected Class` is changed
 
 - `SubclassFilter`
   Data shown:
@@ -355,8 +362,11 @@ This list is intentionally phrased as "what the user sees" instead of
     - sources:
       - `(VM)` `Include Subclasses`
     - changes:
-      - subclass inclusion is toggled (4)
+      - subclass inclusion is toggled (4) `U`
         - `(VM)` Source: `Include Subclasses` is changed
+  User Actions:
+  - toggle subclass inclusion (4) `U`
+    - `(VM)` Source: `Include Subclasses` is changed
 
 - `Toolbar`
   Data shown:
@@ -364,14 +374,21 @@ This list is intentionally phrased as "what the user sees" instead of
     - sources:
       - `(VM)` `Available Actions`
     - changes:
-      - the selected class changes in a way that affects which actions are available (3)
+      - the selected class changes in a way that affects which actions are available (3) `U`
         - `(VM)` Source: `Selected Class` is changed
   - selected count
     - sources:
       - `(VM)` `Selected Count`
     - changes:
-      - the selection changes (5, 6, 7)
+      - the selection changes (5) `U`, (6) `U`, (7) `U`
         - `(VM)` Source: `Selected Resources` change
+  User Actions:
+  - request creation of a new resource (8) `U`
+    - `(VM)` Source: `Create Resource Command` is requested
+  - request deletion of the selected resources (9) `U`
+    - `(VM)` Source: `Pending Delete Resources` are changed
+  - request a refresh of the current resources (11) `U`
+    - `(VM)` Source: `Load / Refresh Resources Command` is executed
 
 - `ResourceList`
   Data shown:
@@ -379,52 +396,65 @@ This list is intentionally phrased as "what the user sees" instead of
     - sources:
       - `(VM)` `Current Page Resources`
     - changes:
-      - the selected class changes (3)
+      - the selected class changes (3) `U`
         - `(VM)` Source: `Selected Class` is changed
-      - subclass inclusion changes (4)
+      - subclass inclusion changes (4) `U`
         - `(VM)` Source: `Include Subclasses` is changed
-      - `CurrentClass Resources` are created (8, 14a)
+      - `CurrentClass Resources` are created (8) `U`, (14a) `A`
         - `(M)` Source: `CurrentClass Resources` are created
-      - `CurrentClass Resources` are deleted (9, 10, 15a)
+      - `CurrentClass Resources` are deleted (9) `U`, (10) `U`, (15a) `A`
         - `(M)` Source: `CurrentClass Resources` are deleted
-      - resource ordering changes (21)
+      - resource ordering changes (21) `U`
         - `(VM)` Source: `Resource Sort Order` is changed
-      - resource search changes (22)
+      - resource search changes (22) `U`
         - `(VM)` Source: `Search Filter` is changed
-      - the current page changes (12)
+      - the current page changes (12) `U`
         - `(VM)` Source: `Current Page` is changed
   - visible columns
     - sources:
       - `(VM)` `Visible Columns`
     - changes:
-      - the selected class changes (3)
+      - the selected class changes (3) `U`
         - `(VM)` Source: `Selected Class` is changed
-      - subclass inclusion changes (4)
+      - subclass inclusion changes (4) `U`
         - `(VM)` Source: `Include Subclasses` is changed
-      - class properties are added (20)
+      - class properties are added (20) `A`
         - `(M)` Source: `Class Properties` are added
-      - class properties are removed (20)
+      - class properties are removed (20) `A`
         - `(M)` Source: `Class Properties` are removed
-      - class properties are changed (20)
+      - class properties are changed (20) `A`
         - `(M)` Source: `Class Properties` are changed
   - row values
     - sources:
       - `(VM)` `Current Page Resources`
     - changes:
-      - `CurrentClass Resources` are edited (13, 16a)
+      - `CurrentClass Resources` are edited (13) `U`, (16a) `A`
         - `(M)` Source: `CurrentClass Resources` are edited
-      - class properties are added (20)
+      - class properties are added (20) `A`
         - `(M)` Source: `Class Properties` are added
-      - class properties are removed (20)
+      - class properties are removed (20) `A`
         - `(M)` Source: `Class Properties` are removed
-      - class properties are changed (20)
+      - class properties are changed (20) `A`
         - `(M)` Source: `Class Properties` are changed
   - row selection state
     - sources:
       - `(VM)` `Selected Resources`
     - changes:
-      - the selection changes (5, 6, 7)
+      - the selection changes (5) `U`, (6) `U`, (7) `U`
         - `(VM)` Source: `Selected Resources` change
+  User Actions:
+  - select one resource (5) `U`
+    - `(VM)` Source: `Selected Resources` change
+  - toggle one resource in the selection (6) `U`
+    - `(VM)` Source: `Selected Resources` change
+  - select a range of resources (7) `U`
+    - `(VM)` Source: `Selected Resources` change
+  - request deletion of one resource (10) `U`
+    - `(VM)` Source: `Pending Delete Resources` are changed
+  - change resource ordering (21) `U`
+    - `(VM)` Source: `Resource Sort Order` is changed
+  - change resource search filter (22) `U`
+    - `(VM)` Source: `Search Filter` is changed
 
 - `PaginationBar`
   Data shown:
@@ -432,21 +462,24 @@ This list is intentionally phrased as "what the user sees" instead of
     - sources:
       - `(VM)` `Current Page`
     - changes:
-      - the current page changes (12)
+      - the current page changes (12) `U`
         - `(VM)` Source: `Current Page` is changed
   - total pages
     - sources:
       - `(VM)` `Total Pages`
     - changes:
-      - the selected class changes (3)
+      - the selected class changes (3) `U`
         - `(VM)` Source: `Selected Class` is changed
-      - subclass inclusion changes (4)
+      - subclass inclusion changes (4) `U`
         - `(VM)` Source: `Include Subclasses` is changed
-      - the number of `CurrentClass Resources` changes (8, 9, 10, 14a, 15a, 22)
+      - the number of `CurrentClass Resources` changes (8) `U`, (9) `U`, (10) `U`, (14a) `A`, (15a) `A`, (22) `U`
         - `(M)` Source: `CurrentClass Resources` are created
         - `(M)` Source: `CurrentClass Resources` are deleted
-      - the page size changes (23)
+      - the page size changes (23) `U`
         - `(VM)` Source: `Page Size` is changed
+  User Actions:
+  - change page (12) `U`
+    - `(VM)` Source: `Current Page` is changed
 
 - `StatusLabel`
   Data shown:
@@ -454,21 +487,23 @@ This list is intentionally phrased as "what the user sees" instead of
     - sources:
       - `(VM)` `Visible Resource Count`
     - changes:
-      - the selected class changes (3)
+      - the selected class changes (3) `U`
         - `(VM)` Source: `Selected Class` is changed
-      - subclass inclusion changes (4)
+      - subclass inclusion changes (4) `U`
         - `(VM)` Source: `Include Subclasses` is changed
-      - the current page changes (12)
+      - the current page changes (12) `U`
         - `(VM)` Source: `Current Page` is changed
-      - the number of `CurrentClass Resources` changes (8, 9, 10, 14a, 15a, 22)
+      - the number of `CurrentClass Resources` changes (8) `U`, (9) `U`, (10) `U`, (14a) `A`, (15a) `A`, (22) `U`
         - `(M)` Source: `CurrentClass Resources` are created
         - `(M)` Source: `CurrentClass Resources` are deleted
   - selected resource count
     - sources:
       - `(VM)` `Selected Resource Count`
     - changes:
-      - the selection changes (5, 6, 7)
+      - the selection changes (5) `U`, (6) `U`, (7) `U`
         - `(VM)` Source: `Selected Resources` change
+  User Actions:
+  - no direct user actions on this element
 
 - `Inspector / Bulk Edit Surface`
   Data shown:
@@ -476,16 +511,19 @@ This list is intentionally phrased as "what the user sees" instead of
     - sources:
       - `(VM)` `Editable Selection Properties`
     - changes:
-      - the selection changes (5, 6, 7)
+      - the selection changes (5) `U`, (6) `U`, (7) `U`
         - `(VM)` Source: `Selected Resources` change
-      - the selected class changes and clears / replaces the current selection (3)
+      - the selected class changes and clears / replaces the current selection (3) `U`
         - `(VM)` Source: `Selected Class` is changed
-      - class properties are added (20)
+      - class properties are added (20) `A`
         - `(M)` Source: `Class Properties` are added
-      - class properties are removed (20)
+      - class properties are removed (20) `A`
         - `(M)` Source: `Class Properties` are removed
-      - class properties are changed (20)
+      - class properties are changed (20) `A`
         - `(M)` Source: `Class Properties` are changed
+  User Actions:
+  - edit the properties of the current selection (13) `U`
+    - `(VM)` Source: `Edit Resource Values Command` is executed
 
 - `SaveResourceDialog`
   Data shown:
@@ -493,8 +531,11 @@ This list is intentionally phrased as "what the user sees" instead of
     - sources:
       - `(VM)` `Class To Create`
     - changes:
-      - the selected class changes (3)
+      - the selected class changes (3) `U`
         - `(VM)` Source: `Selected Class` is changed
+  User Actions:
+  - choose where to create the new resource (26) `U`
+    - `(VM)` Source: `Create Resource Command` is executed
 
 - `ConfirmDeleteDialog`
   Data shown:
@@ -502,8 +543,11 @@ This list is intentionally phrased as "what the user sees" instead of
     - sources:
       - `(VM)` `Pending Delete Resources`
     - changes:
-      - pending resources change (9, 10)
+      - pending resources change (9) `U`, (10) `U`
         - `(VM)` Source: `Pending Delete Resources` are changed
+  User Actions:
+  - confirm deletion of the pending resources (27) `U`
+    - `(VM)` Source: `Delete Resources Command` is executed
 
 - `ErrorDialog`
   Data shown:
@@ -511,12 +555,14 @@ This list is intentionally phrased as "what the user sees" instead of
     - sources:
       - `(VM)` `Current Error Message`
     - changes:
-      - the current error state changes (8, 9, 10, 11, 13, 14a, 15a, 16a, 17, 18, 19, 20)
+      - the current error state changes (8) `U`, (9) `U`, (10) `U`, (11) `U`, (13) `U`, (14a) `A`, (15a) `A`, (16a) `A`, (17) `A`, (18) `A`, (19) `A`, (20) `A`
         - `(M)` Source: `Create Operations` fail
         - `(M)` Source: `Save Operations` fail
         - `(M)` Source: `Delete Operations` fail
         - `(M)` Source: `Load Operations` fail
         - `(M)` Source: `Validation` rejects an action
+  User Actions:
+  - no direct user actions on this element
 
 ### C. Model Data and Change Drivers
 
@@ -526,103 +572,159 @@ window chooses to present them.
 
 - `Project Resource Classes`
   Internal data:
-  - class identity
+  - `class_name` of each script that inherits `Resource`
     - sources:
       - `(M)` `Resource Script Files`
     - changes:
-      - a resource class is declared (17)
+      - a resource class is declared (17) `A`
         - `(M)` Source: `Resource Script Files` add a resource `class_name`
-      - a resource class is removed (18)
+      - a resource class is removed (18) `A`
         - `(M)` Source: `Resource Script Files` remove a resource `class_name`
-      - a resource class is renamed (19)
+      - a resource class is renamed (19) `A`
         - `(M)` Source: `Resource Script Files` rename a resource `class_name`
-  - script path
+  - script file path for each resource class
     - sources:
       - `(M)` `Resource Script Files`
     - changes:
-      - a resource class is declared (17)
-        - `(M)` Source: `Resource Script Files` add a script path
-      - a resource class is removed (18)
-        - `(M)` Source: `Resource Script Files` remove a script path
-  - exported properties
+      - a resource class script is moved (24) `A`
+        - `(M)` Source: `Resource Script Files` change a script path
+  - parent class for each resource class
     - sources:
       - `(M)` `Resource Script Files`
     - changes:
-      - exported properties are added (20)
+      - a resource class is reparented (25) `A`
+        - `(M)` Source: `Resource Script Files` change the inherited parent class
+  - exported properties for each resource class
+    - sources:
+      - `(M)` `Resource Script Files`
+    - changes:
+      - exported properties are added (20) `A`
         - `(M)` Source: `Resource Script Files` add exported properties
-      - exported properties are removed (20)
+      - exported properties are removed (20) `A`
         - `(M)` Source: `Resource Script Files` remove exported properties
-      - exported properties are changed (20)
+      - exported properties are changed (20) `A`
         - `(M)` Source: `Resource Script Files` change exported properties
 
-- `Project Resource Files`
+- `Resource Instances`
   Internal data:
-  - resource file identity
+  - resource file path
     - sources:
       - `(M)` `Resource Files on Disk`
     - changes:
-      - a resource file is created from the editor (8)
+      - a resource instance is created from the editor (8) `U`
         - `(VM)` Source: `Create Resource Command` is executed
-      - a resource file is created externally (14a, 14b)
+      - a resource instance is created externally (14a) `A`, (14b) `A`
         - `(M)` Source: `Resource Files on Disk` add a resource file
-      - a resource file is deleted from the editor (9, 10)
+      - a resource instance is deleted from the editor (9) `U`, (10) `U`
         - `(VM)` Source: `Delete Resources Command` is executed
-      - a resource file is deleted externally (15a, 15b)
+      - a resource instance is deleted externally (15a) `A`, (15b) `A`
         - `(M)` Source: `Resource Files on Disk` remove a resource file
   - resource class reference
     - sources:
       - `(M)` `Resource Files on Disk`
+      - `(M)` `Project Resource Classes`
     - changes:
-      - a resource file is created from the editor (8)
-        - `(VM)` Source: `Create Resource Command` creates a resource file with a class reference
-      - a resource file is created externally (14a, 14b)
-        - `(M)` Source: `Resource Files on Disk` add a resource file with a class reference
-      - a resource file is modified externally (16a, 16b)
+      - a resource file changes its class reference (16a) `A`, (16b) `A`
         - `(M)` Source: `Resource Files on Disk` change a resource class reference
-      - the referenced class is renamed or removed (18, 19)
+      - project resource classes are renamed or removed (18) `A`, (19) `A`
         - `(M)` Source: `Project Resource Classes` change
-  - serialized property values
+  - property values
     - sources:
       - `(M)` `Resource Files on Disk`
     - changes:
-      - a resource is edited from the editor (13)
+      - a resource is edited from the editor (13) `U`
         - `(VM)` Source: `Edit Resource Values Command` is executed
-      - a resource file is modified externally (16a, 16b)
-        - `(M)` Source: `Resource Files on Disk` change serialized property values
-      - the class property schema changes and the file is resaved (20)
-        - `(M)` Source: `Project Resource Classes` change exported properties
-
-- `Loaded Resource Objects`
-  Internal data:
-  - loaded resource identity
+      - resource files are modified externally (16a) `A`, (16b) `A`
+        - `(M)` Source: `Resource Files on Disk` change property values
+  - available properties for the resource instance
     - sources:
-      - `(M)` `Project Resource Files`
-    - changes:
-      - resources are loaded or refreshed (3, 4, 11)
-        - `(VM)` Source: `Load / Refresh Resources Command` is executed
-      - resource files are created or deleted (8, 9, 10, 14a, 14b, 15a, 15b)
-        - `(M)` Source: `Project Resource Files` change
-  - loaded class reference
-    - sources:
-      - `(M)` `Project Resource Files`
       - `(M)` `Project Resource Classes`
     - changes:
-      - resources are loaded or refreshed (3, 4, 11)
-        - `(VM)` Source: `Load / Refresh Resources Command` is executed
-      - resource files change their class reference (16a, 16b)
-        - `(M)` Source: `Project Resource Files` change
-      - project resource classes are renamed or removed (18, 19)
-        - `(M)` Source: `Project Resource Classes` change
-  - live property values
-    - sources:
-      - `(M)` `Project Resource Files`
-    - changes:
-      - a resource is edited from the editor (13)
-        - `(VM)` Source: `Edit Resource Values Command` is executed
-      - resources are loaded or refreshed (3, 4, 11)
-        - `(VM)` Source: `Load / Refresh Resources Command` is executed
-      - resource files are modified externally (16a, 16b)
-        - `(M)` Source: `Project Resource Files` change
+      - the resource class reference changes (16a) `A`, (16b) `A`
+        - `(M)` Source: `Resource Files on Disk` change a resource class reference
+      - class properties are added (20) `A`
+        - `(M)` Source: `Project Resource Classes` add exported properties
+      - class properties are removed (20) `A`
+        - `(M)` Source: `Project Resource Classes` remove exported properties
+      - class properties are changed (20) `A`
+        - `(M)` Source: `Project Resource Classes` change exported properties
+
+```mermaid
+flowchart LR
+    classDef auto fill:#fee2e2,stroke:#dc2626,color:#111827,font-size:17px;
+    classDef model fill:#dbeafe,stroke:#2563eb,color:#111827,font-size:17px;
+    classDef vm fill:#fef3c7,stroke:#d97706,color:#111827,font-size:17px;
+    classDef view fill:#dcfce7,stroke:#16a34a,color:#111827,font-size:17px;
+
+    AUTO_SCRIPTS["Automatic Source<br/>Resource Script Changes<br/>A17-A20, A24-A25"]
+    AUTO_FILES["Automatic Source<br/>External Resource File Changes<br/>A14-A16"]
+
+    M_CLASSES["Model<br/>Project Resource Classes<br/>- class_name<br/>- script file path<br/>- parent class<br/>- exported properties"]
+    M_INSTANCES["Model<br/>Resource Instances<br/>- resource file path<br/>- resource class reference<br/>- property values<br/>- available properties"]
+
+    VM_BROWSE["ViewModel<br/>Browse State<br/>- Selected Class<br/>- Include Subclasses"]
+    VM_LIST["ViewModel<br/>Resource List State<br/>- Current Page Resources<br/>- Search Filter<br/>- Resource Sort Order<br/>- Current Page<br/>- Total Pages<br/>- Visible Resource Count"]
+    VM_SELECTION["ViewModel<br/>Selection State<br/>- Selected Resources<br/>- Selected Resource Count<br/>- Editable Selection Properties"]
+    VM_UI["ViewModel<br/>UI Support State<br/>- Visible Columns<br/>- Available Actions<br/>- Class To Create<br/>- Pending Delete Resources<br/>- Current Error Message"]
+    VM_COMMANDS["ViewModel<br/>Commands<br/>- Create Resource<br/>- Delete Resources<br/>- Edit Resource Values<br/>- Refresh Resources"]
+
+    V_CLASS["View<br/>ClassSelector<br/>Data: Project Resource Classes, Selected Class<br/>Actions: Select a class"]
+    V_SUB["View<br/>SubclassFilter<br/>Data: Include Subclasses<br/>Actions: Toggle include subclasses"]
+    V_TOOLBAR["View<br/>Toolbar<br/>Data: Available Actions, Selected Count<br/>Actions: Create, Delete, Refresh"]
+    V_LIST["View<br/>ResourceList<br/>Data: Current Page Resources, Visible Columns, Selected Resources<br/>Actions: Select, Delete one, Sort, Search"]
+    V_PAGE["View<br/>PaginationBar<br/>Data: Current Page, Total Pages<br/>Actions: Change page"]
+    V_STATUS["View<br/>StatusLabel<br/>Data: Visible Resource Count, Selected Resource Count<br/>Actions: none"]
+    V_BULK["View<br/>Inspector / Bulk Edit Surface<br/>Data: Editable Selection Properties<br/>Actions: Edit selected resource values"]
+    V_SAVE["View<br/>SaveResourceDialog<br/>Data: Class To Create<br/>Actions: Choose where to create the resource"]
+    V_DELETE["View<br/>ConfirmDeleteDialog<br/>Data: Pending Delete Resources<br/>Actions: Confirm deletion"]
+    V_ERROR["View<br/>ErrorDialog<br/>Data: Current Error Message<br/>Actions: none"]
+
+    class AUTO_SCRIPTS,AUTO_FILES auto
+    class M_CLASSES,M_INSTANCES model
+    class VM_BROWSE,VM_LIST,VM_SELECTION,VM_UI,VM_COMMANDS vm
+    class V_CLASS,V_SUB,V_TOOLBAR,V_LIST,V_PAGE,V_STATUS,V_BULK,V_SAVE,V_DELETE,V_ERROR view
+
+    AUTO_SCRIPTS --> M_CLASSES
+    AUTO_FILES --> M_INSTANCES
+
+    M_CLASSES --> VM_BROWSE
+    M_CLASSES --> VM_UI
+    M_INSTANCES --> VM_LIST
+    M_INSTANCES --> VM_SELECTION
+    VM_BROWSE --> VM_LIST
+    VM_BROWSE --> VM_UI
+    VM_SELECTION --> VM_UI
+
+    M_CLASSES --> V_CLASS
+    VM_BROWSE --> V_CLASS
+    VM_BROWSE --> V_SUB
+    VM_UI --> V_TOOLBAR
+    VM_SELECTION --> V_TOOLBAR
+    VM_LIST --> V_LIST
+    VM_UI --> V_LIST
+    VM_SELECTION --> V_LIST
+    VM_LIST --> V_PAGE
+    VM_LIST --> V_STATUS
+    VM_SELECTION --> V_STATUS
+    VM_SELECTION --> V_BULK
+    VM_UI --> V_SAVE
+    VM_UI --> V_DELETE
+    VM_UI --> V_ERROR
+
+    V_CLASS -.-> VM_BROWSE
+    V_SUB -.-> VM_BROWSE
+    V_TOOLBAR -.-> VM_COMMANDS
+    V_LIST -.-> VM_SELECTION
+    V_LIST -.-> VM_LIST
+    V_PAGE -.-> VM_LIST
+    V_BULK -.-> VM_COMMANDS
+    V_SAVE -.-> VM_COMMANDS
+    V_DELETE -.-> VM_COMMANDS
+
+    VM_COMMANDS --> M_INSTANCES
+    VM_COMMANDS --> VM_UI
+    VM_COMMANDS --> VM_LIST
+```
 
 ### D. Shared Change Drivers Across Views
 

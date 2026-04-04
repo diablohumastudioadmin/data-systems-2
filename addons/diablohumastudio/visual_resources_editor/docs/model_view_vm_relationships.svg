@@ -1,0 +1,358 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2800" height="1780" viewBox="0 0 2800 1780" role="img" aria-labelledby="title desc">
+  <title id="title">Visual Resources Editor model, viewmodel, and view relationship map</title>
+  <desc id="desc">Automatic sources on the left feed models. Models and viewmodels provide data to views. User actions inside views point back to viewmodels or commands. Command viewmodels can mutate models.</desc>
+
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 28px 'Helvetica Neue', Arial, sans-serif; fill: #0f172a; }
+      .section { font: 700 16px 'Helvetica Neue', Arial, sans-serif; fill: #0f172a; }
+      .box-title { font: 700 18px 'Helvetica Neue', Arial, sans-serif; fill: #0f172a; }
+      .box-subtitle { font: 700 13px 'Helvetica Neue', Arial, sans-serif; fill: #334155; }
+      .item { font: 13px 'Helvetica Neue', Arial, sans-serif; fill: #1e293b; }
+      .item-small { font: 12px 'Helvetica Neue', Arial, sans-serif; fill: #334155; }
+      .mono { font-family: Menlo, Consolas, monospace; }
+
+      .auto-box { fill: #fff1f2; stroke: #ef4444; stroke-width: 2; rx: 14; }
+      .model-box { fill: #eff6ff; stroke: #2563eb; stroke-width: 2; rx: 14; }
+      .vm-box { fill: #fffbeb; stroke: #d97706; stroke-width: 2; rx: 12; }
+      .view-box { fill: #ecfdf5; stroke: #059669; stroke-width: 2; rx: 14; }
+      .legend-box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.5; rx: 12; }
+      .divider { stroke: #94a3b8; stroke-width: 1.5; }
+
+      .arrow-auto { stroke: #ef4444; stroke-width: 2.5; fill: none; marker-end: url(#arrow-auto); }
+      .arrow-model { stroke: #2563eb; stroke-width: 2.5; fill: none; marker-end: url(#arrow-model); }
+      .arrow-vm { stroke: #d97706; stroke-width: 2.5; fill: none; marker-end: url(#arrow-vm); }
+      .arrow-action { stroke: #059669; stroke-width: 2.5; stroke-dasharray: 8 6; fill: none; marker-end: url(#arrow-action); }
+      .arrow-command { stroke: #7c3aed; stroke-width: 2.5; fill: none; marker-end: url(#arrow-command); }
+      .arrow-dependency { stroke: #1d4ed8; stroke-width: 2; stroke-dasharray: 7 5; fill: none; marker-end: url(#arrow-model); }
+    </style>
+
+    <marker id="arrow-auto" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ef4444"/>
+    </marker>
+    <marker id="arrow-model" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-vm" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#d97706"/>
+    </marker>
+    <marker id="arrow-action" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#059669"/>
+    </marker>
+    <marker id="arrow-command" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="2800" height="1780"/>
+  <text class="title" x="28" y="42">Model / ViewModel / View Relationship Map</text>
+
+  <g transform="translate(20,70)">
+    <rect class="legend-box" x="0" y="0" width="270" height="178"/>
+    <text class="box-title" x="16" y="28">Legend</text>
+    <line class="arrow-auto" x1="20" y1="52" x2="84" y2="52"/>
+    <text class="item" x="98" y="57">Automatic source -&gt; Model</text>
+    <line class="arrow-model" x1="20" y1="82" x2="84" y2="82"/>
+    <text class="item" x="98" y="87">Model -&gt; View</text>
+    <line class="arrow-vm" x1="20" y1="112" x2="84" y2="112"/>
+    <text class="item" x="98" y="117">ViewModel -&gt; View</text>
+    <line class="arrow-action" x1="20" y1="142" x2="84" y2="142"/>
+    <text class="item" x="98" y="147">View user action -&gt; ViewModel</text>
+    <line class="arrow-command" x1="20" y1="168" x2="84" y2="168"/>
+    <text class="item" x="98" y="173">Command ViewModel -&gt; Model</text>
+  </g>
+
+  <text class="section" x="20" y="305">Automatic Sources</text>
+  <text class="section" x="280" y="305">Models</text>
+  <text class="section" x="700" y="24">ViewModels</text>
+  <text class="section" x="1890" y="305">Views</text>
+
+  <g transform="translate(20,330)">
+    <rect class="auto-box" x="0" y="0" width="220" height="150"/>
+    <text class="box-title" x="14" y="26">A17-20, 24-25</text>
+    <text class="box-subtitle" x="14" y="48">Resource Script Changes</text>
+    <text class="item" x="14" y="74">- create / remove / rename classes</text>
+    <text class="item" x="14" y="96">- move script path</text>
+    <text class="item" x="14" y="118">- change inherited parent</text>
+    <text class="item" x="14" y="140">- change exported properties</text>
+  </g>
+
+  <g transform="translate(20,560)">
+    <rect class="auto-box" x="0" y="0" width="220" height="120"/>
+    <text class="box-title" x="14" y="26">A14-16</text>
+    <text class="box-subtitle" x="14" y="48">External Resource File</text>
+    <text class="box-subtitle" x="14" y="66">Changes</text>
+    <text class="item" x="14" y="92">- create / delete / modify</text>
+    <text class="item" x="14" y="112">  <tspan class="mono">.tres</tspan> resource files</text>
+  </g>
+
+  <g transform="translate(280,330)">
+    <rect class="model-box" x="0" y="0" width="360" height="220"/>
+    <text class="box-title" x="16" y="28">Project Resource Classes</text>
+    <text class="box-subtitle" x="16" y="54">Internal Data</text>
+    <text class="item" x="16" y="82">- <tspan class="mono">class_name</tspan></text>
+    <text class="item" x="16" y="106">- script file path</text>
+    <text class="item" x="16" y="130">- parent class</text>
+    <text class="item" x="16" y="154">- exported properties</text>
+  </g>
+
+  <g transform="translate(280,590)">
+    <rect class="model-box" x="0" y="0" width="360" height="240"/>
+    <text class="box-title" x="16" y="28">Resource Instances</text>
+    <text class="box-subtitle" x="16" y="54">Internal Data</text>
+    <text class="item" x="16" y="82">- resource file path</text>
+    <text class="item" x="16" y="106">- resource class reference</text>
+    <text class="item" x="16" y="130">- property values</text>
+    <text class="item" x="16" y="154">- available properties</text>
+  </g>
+
+  <!-- ViewModel boxes -->
+  <g transform="translate(700,50)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="28" text-anchor="middle">Selected Class</text>
+  </g>
+  <g transform="translate(895,50)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="28" text-anchor="middle">Include Subclasses</text>
+  </g>
+  <g transform="translate(1090,50)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="28" text-anchor="middle">Selected Resources</text>
+  </g>
+  <g transform="translate(1285,50)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="28" text-anchor="middle">Current Page</text>
+  </g>
+  <g transform="translate(1480,50)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="28" text-anchor="middle">Page Size</text>
+  </g>
+  <g transform="translate(1675,50)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="28" text-anchor="middle">Search Filter</text>
+  </g>
+
+  <g transform="translate(700,106)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="22" text-anchor="middle">Current Page</text>
+    <text class="item" x="85" y="36" text-anchor="middle">Resources</text>
+  </g>
+  <g transform="translate(895,106)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="28" text-anchor="middle">Visible Columns</text>
+  </g>
+  <g transform="translate(1090,106)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="28" text-anchor="middle">Total Pages</text>
+  </g>
+  <g transform="translate(1285,106)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="22" text-anchor="middle">Visible Resource</text>
+    <text class="item" x="85" y="36" text-anchor="middle">Count</text>
+  </g>
+  <g transform="translate(1480,106)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="22" text-anchor="middle">Selected Resource</text>
+    <text class="item" x="85" y="36" text-anchor="middle">Count</text>
+  </g>
+  <g transform="translate(1675,106)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="22" text-anchor="middle">Editable Selection</text>
+    <text class="item" x="85" y="36" text-anchor="middle">Properties</text>
+  </g>
+
+  <g transform="translate(700,162)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="28" text-anchor="middle">Available Actions</text>
+  </g>
+  <g transform="translate(895,162)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="28" text-anchor="middle">Selected Count</text>
+  </g>
+  <g transform="translate(1090,162)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="28" text-anchor="middle">Class To Create</text>
+  </g>
+  <g transform="translate(1285,162)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="22" text-anchor="middle">Pending Delete</text>
+    <text class="item" x="85" y="36" text-anchor="middle">Resources</text>
+  </g>
+  <g transform="translate(1480,162)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="22" text-anchor="middle">Current Error</text>
+    <text class="item" x="85" y="36" text-anchor="middle">Message</text>
+  </g>
+  <g transform="translate(1675,162)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="22" text-anchor="middle">Resource Sort</text>
+    <text class="item" x="85" y="36" text-anchor="middle">Order</text>
+  </g>
+
+  <g transform="translate(895,218)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="22" text-anchor="middle">Create Resource</text>
+    <text class="item" x="85" y="36" text-anchor="middle">Command</text>
+  </g>
+  <g transform="translate(1090,218)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="22" text-anchor="middle">Delete Resources</text>
+    <text class="item" x="85" y="36" text-anchor="middle">Command</text>
+  </g>
+  <g transform="translate(1285,218)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="22" text-anchor="middle">Edit Resource</text>
+    <text class="item" x="85" y="36" text-anchor="middle">Values Command</text>
+  </g>
+  <g transform="translate(1480,218)">
+    <rect class="vm-box" x="0" y="0" width="170" height="46"/>
+    <text class="item" x="85" y="16" text-anchor="middle">Load / Refresh</text>
+    <text class="item" x="85" y="30" text-anchor="middle">Resources</text>
+    <text class="item" x="85" y="44" text-anchor="middle">Command</text>
+  </g>
+
+  <!-- View boxes -->
+  <g transform="translate(1890,320)">
+    <rect class="view-box" x="0" y="0" width="860" height="120"/>
+    <text class="box-title" x="16" y="28">ClassSelector</text>
+    <text class="box-subtitle" x="16" y="52">Data Sources</text>
+    <text class="item" x="16" y="74">- [M] Project Resource Classes</text>
+    <text class="item" x="16" y="94">- [VM] Selected Class</text>
+    <line class="divider" x1="12" y1="100" x2="848" y2="100"/>
+    <text class="box-subtitle" x="16" y="116">User Actions: [U3] Select a class from the dropdown</text>
+  </g>
+
+  <g transform="translate(1890,450)">
+    <rect class="view-box" x="0" y="0" width="860" height="96"/>
+    <text class="box-title" x="16" y="28">SubclassFilter</text>
+    <text class="box-subtitle" x="16" y="52">Data Sources</text>
+    <text class="item" x="16" y="74">- [VM] Include Subclasses</text>
+    <line class="divider" x1="12" y1="80" x2="848" y2="80"/>
+    <text class="box-subtitle" x="16" y="94">User Actions: [U4] Toggle include subclasses</text>
+  </g>
+
+  <g transform="translate(1890,560)">
+    <rect class="view-box" x="0" y="0" width="860" height="150"/>
+    <text class="box-title" x="16" y="28">Toolbar</text>
+    <text class="box-subtitle" x="16" y="52">Data Sources</text>
+    <text class="item" x="16" y="74">- [VM] Available Actions</text>
+    <text class="item" x="16" y="94">- [VM] Selected Count</text>
+    <line class="divider" x1="12" y1="102" x2="848" y2="102"/>
+    <text class="box-subtitle" x="16" y="122">User Actions</text>
+    <text class="item" x="16" y="140">- [U8] Request create resource</text>
+    <text class="item" x="340" y="140">- [U9] Request delete selected</text>
+    <text class="item" x="620" y="140">- [U11] Refresh resources</text>
+  </g>
+
+  <g transform="translate(1890,725)">
+    <rect class="view-box" x="0" y="0" width="860" height="260"/>
+    <text class="box-title" x="16" y="28">ResourceList</text>
+    <text class="box-subtitle" x="16" y="52">Data Sources</text>
+    <text class="item" x="16" y="74">- [VM] Current Page Resources</text>
+    <text class="item" x="16" y="94">- [VM] Visible Columns</text>
+    <text class="item" x="16" y="114">- [VM] Selected Resources</text>
+    <line class="divider" x1="12" y1="126" x2="848" y2="126"/>
+    <text class="box-subtitle" x="16" y="148">User Actions</text>
+    <text class="item" x="16" y="170">- [U5-7] Change selection</text>
+    <text class="item" x="16" y="194">- [U10] Request deletion of one resource</text>
+    <text class="item" x="16" y="218">- [U21] Change resource ordering</text>
+    <text class="item" x="16" y="242">- [U22] Change resource search filter</text>
+  </g>
+
+  <g transform="translate(1890,1000)">
+    <rect class="view-box" x="0" y="0" width="860" height="120"/>
+    <text class="box-title" x="16" y="28">PaginationBar</text>
+    <text class="box-subtitle" x="16" y="52">Data Sources</text>
+    <text class="item" x="16" y="74">- [VM] Current Page</text>
+    <text class="item" x="16" y="94">- [VM] Total Pages</text>
+    <line class="divider" x1="12" y1="100" x2="848" y2="100"/>
+    <text class="box-subtitle" x="16" y="116">User Actions: [U12] Change page</text>
+  </g>
+
+  <g transform="translate(1890,1135)">
+    <rect class="view-box" x="0" y="0" width="860" height="90"/>
+    <text class="box-title" x="16" y="28">StatusLabel</text>
+    <text class="box-subtitle" x="16" y="52">Data Sources</text>
+    <text class="item" x="16" y="74">- [VM] Visible Resource Count  |  [VM] Selected Resource Count</text>
+  </g>
+
+  <g transform="translate(1890,1238)">
+    <rect class="view-box" x="0" y="0" width="860" height="130"/>
+    <text class="box-title" x="16" y="28">Inspector / Bulk Edit Surface</text>
+    <text class="box-subtitle" x="16" y="52">Data Sources</text>
+    <text class="item" x="16" y="74">- [VM] Editable Selection Properties</text>
+    <line class="divider" x1="12" y1="86" x2="848" y2="86"/>
+    <text class="box-subtitle" x="16" y="108">User Actions: [U13] Edit selected resource values</text>
+  </g>
+
+  <g transform="translate(1890,1382)">
+    <rect class="view-box" x="0" y="0" width="860" height="105"/>
+    <text class="box-title" x="16" y="28">SaveResourceDialog</text>
+    <text class="box-subtitle" x="16" y="52">Data Sources</text>
+    <text class="item" x="16" y="74">- [VM] Class To Create</text>
+    <line class="divider" x1="12" y1="80" x2="848" y2="80"/>
+    <text class="box-subtitle" x="16" y="98">User Actions: [U26] Choose where to create the new resource</text>
+  </g>
+
+  <g transform="translate(1890,1498)">
+    <rect class="view-box" x="0" y="0" width="860" height="105"/>
+    <text class="box-title" x="16" y="28">ConfirmDeleteDialog</text>
+    <text class="box-subtitle" x="16" y="52">Data Sources</text>
+    <text class="item" x="16" y="74">- [VM] Pending Delete Resources</text>
+    <line class="divider" x1="12" y1="80" x2="848" y2="80"/>
+    <text class="box-subtitle" x="16" y="98">User Actions: [U27] Confirm deletion of pending resources</text>
+  </g>
+
+  <g transform="translate(1890,1615)">
+    <rect class="view-box" x="0" y="0" width="860" height="90"/>
+    <text class="box-title" x="16" y="28">ErrorDialog</text>
+    <text class="box-subtitle" x="16" y="52">Data Sources</text>
+    <text class="item" x="16" y="74">- [VM] Current Error Message</text>
+  </g>
+
+  <!-- Automatic -> model -->
+  <path class="arrow-auto" d="M240,405 L280,435"/>
+  <path class="arrow-auto" d="M240,620 L280,710"/>
+
+  <!-- Model dependency -->
+  <path class="arrow-dependency" d="M460,550 L460,590"/>
+
+  <!-- Model / VM -> view -->
+  <path class="arrow-model" d="M640,390 L1890,355"/>
+  <path class="arrow-vm" d="M785,96 L1890,388"/>
+  <path class="arrow-vm" d="M980,96 L1890,498"/>
+  <path class="arrow-vm" d="M785,208 L1890,602"/>
+  <path class="arrow-vm" d="M980,208 L1890,626"/>
+  <path class="arrow-vm" d="M785,152 L1890,772"/>
+  <path class="arrow-vm" d="M980,152 L1890,796"/>
+  <path class="arrow-vm" d="M1175,96 L1890,820"/>
+  <path class="arrow-vm" d="M1370,96 L1890,1036"/>
+  <path class="arrow-vm" d="M1175,152 L1890,1064"/>
+  <path class="arrow-vm" d="M1370,152 L1890,1158"/>
+  <path class="arrow-vm" d="M1565,152 L1890,1180"/>
+  <path class="arrow-vm" d="M1760,152 L1890,1284"/>
+  <path class="arrow-vm" d="M1175,208 L1890,1410"/>
+  <path class="arrow-vm" d="M1370,208 L1890,1528"/>
+  <path class="arrow-vm" d="M1565,208 L1890,1644"/>
+
+  <!-- View user actions -> VM -->
+  <path class="arrow-action" d="M1890,420 L785,96"/>
+  <path class="arrow-action" d="M1890,500 L980,96"/>
+  <path class="arrow-action" d="M1890,698 L980,241"/>
+  <path class="arrow-action" d="M1890,683 L1370,185"/>
+  <path class="arrow-action" d="M1890,705 L1565,241"/>
+  <path class="arrow-action" d="M1890,870 L1175,96"/>
+  <path class="arrow-action" d="M1890,895 L1370,185"/>
+  <path class="arrow-action" d="M1890,920 L1760,185"/>
+  <path class="arrow-action" d="M1890,945 L1760,96"/>
+  <path class="arrow-action" d="M1890,1086 L1370,96"/>
+  <path class="arrow-action" d="M1890,1328 L1370,241"/>
+  <path class="arrow-action" d="M1890,1456 L980,241"/>
+  <path class="arrow-action" d="M1890,1572 L1175,241"/>
+
+  <!-- Command VM -> model -->
+  <path class="arrow-command" d="M980,264 L500,590"/>
+  <path class="arrow-command" d="M1175,264 L540,590"/>
+  <path class="arrow-command" d="M1370,264 L580,590"/>
+</svg>
