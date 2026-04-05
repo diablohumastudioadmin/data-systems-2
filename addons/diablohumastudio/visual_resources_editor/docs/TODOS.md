@@ -33,7 +33,7 @@ func save_resources(resources: Array[Resource]) -> Array[String]:
 ### 2. Narrow State Manager Injection
 
 **Proposed by:** Claude (Worth No.2), Gemini (No.1)
-**Status:** ❌ Not solved
+**Status:** ✅ Solved (MVVM refactor)
 
 **Problem (Claude):** Every UI component receives the full `VREStateManager`. `PaginationBar` only needs `prev_page`, `next_page`, and `pagination_changed`. Passing the whole manager makes the dependency surface larger than necessary and blocks independent testing.
 
@@ -115,11 +115,13 @@ func _ready() -> void:
 ### 7. Strict MVVM (ViewModel Layer)
 
 **Proposed by:** Claude (Ugly No.2)
-**Status:** ❌ Not solved (intentional — too much work)
+**Status:** ✅ Solved (MVVM refactor)
 
-**Problem:** UI components bind directly to domain objects. `ResourceRow` knows what a `Resource` is, what `ResourceProperty` is, and holds a reference to `VREStateManager`. In strict MVVM, `ResourceRow` would only know about a `ResourceItemViewModel` — a plain data struct with display strings — and have zero knowledge of Godot's domain objects.
-
-**Fix:** Ground-up rethink of data flow through the plugin. Worthwhile only if the plugin grows into a large, long-lived tool.
+A full MVVM layer was implemented. Each View now binds to a dedicated ViewModel
+(`ClassSelectorVM`, `ToolbarVM`, `ResourceListVM`, `ResourceRowVM`, etc.).
+`SessionStateModel` was introduced to eliminate VM-to-VM dependencies.
+`BulkEditor` connects directly to `VREModel` (no VM needed — it is a
+non-visual service). See `architecture_analisys.md §I–L`.
 
 ---
 
@@ -128,9 +130,9 @@ func _ready() -> void:
 | # | Item | Proposed by | Status | Effort | Impact |
 |---|------|-------------|--------|--------|--------|
 | 1 | Centralize saves + acknowledge mtimes | Claude / Codex | ❌ Open | Medium | High — fixes inspector reset on save |
-| 2 | Narrow state_manager injection | Claude / Gemini | ❌ Open | Medium | Medium — testability, clean deps |
+| 2 | Narrow state_manager injection | Claude / Gemini | ✅ Solved | Medium | Medium — testability, clean deps |
 | 3 | Manual window lifecycle | Codex / Gemini | ❌ Open | Medium | Medium — stability |
 | 4 | Synchronous scanning bottlenecks | Codex / Gemini | ❌ Open | High | Medium — profile first |
 | 5 | Rigid %UniqueName coupling | Codex / Gemini | ❌ Disagree | Low | Low |
 | 6 | O(N) linear scan | Claude | ❌ Open | Low | Low — only at scale |
-| 7 | Strict MVVM | Claude | ❌ Skip | Very high | Low for current scope |
+| 7 | Strict MVVM | Claude | ✅ Solved | Very high | Low for current scope |

@@ -755,10 +755,10 @@ define what each ViewModel must hold and what can change it.
   - `ClassSelector` VM → `Selected Class` (for Editable Properties)
 
 - `SaveResourceDialog` VM depends on:
-  - `ClassSelector` VM → `Selected Class` (for determine what class to create).
+  - `ClassSelector` VM → `Selected Class` (for Class To Create).
 
 - `ConfirmDeleteDialog` VM depends on:
-  - `ResourceList` VM → `Selected Resources`.
+  - `Toolbar` VM → `Delete Resources Command` (for Pending Delete Resources).
 
 - `ErrorDialog` VM depends on:
   - _(no VM-to-VM dependencies)_
@@ -878,3 +878,125 @@ flowchart LR
     VM_SAVE --> M_INSTANCES
     VM_DELETE --> M_INSTANCES
 ```
+
+---
+
+## Implementation — Resolved Design Decisions
+
+This section documents architectural decisions made during implementation that
+deviate from or extend the analysis above.
+
+### I. SessionStateModel — Eliminating VM-to-VM Dependencies
+
+During implementation it became clear that the VM-to-VM dependency graph in
+Section G was a structural problem: five ViewModels depended on
+`ClassSelector VM → Selected Class`, and three depended on
+`SubclassFilter VM → Include Subclasses`. Any ViewModel that needs to react to
+a class change had to hold a reference to another ViewModel, creating
+horizontal coupling that is hard to test and breaks the principle that VMs
+should only depend downward.
+
+**Decision:** Extract all shared session state into a dedicated
+`SessionStateModel` that lives in the Model layer (not the ViewModel layer).
+`SessionStateModel` owns:
+
+- `selected_class`
+- `include_subclasses`
+- `selected_resources`
+- `current_page`
+
+All ViewModels read these directly from `SessionStateModel` (via `VREModel`),
+the same way they read domain data. The VM-to-VM arrows in Section G are
+replaced by Model→VM arrows. `ClassSelector VM` still _writes_ `selected_class`
+into `SessionStateModel` when the user picks a class — that is a View→VM→Model
+write-back, not a VM-to-VM dependency.
+
+**Result:** VM-to-VM dependencies are eliminated. `VREModel` acts as a facade
+that wraps `ClassRegistry`, `ResourceRepository`, `SelectionManager`,
+`PaginationManager`, and `SessionStateModel`, coordinating between them
+internally. ViewModels talk only to `VREModel`.
+
+### J. BulkEditor — Direct Model Connection (No ViewModel)
+
+`BulkEditor` is a non-visual service node: it drives Godot's `EditorInspector`
+by creating a proxy `Resource` and calling `EditorInterface.inspect_object()`.
+It renders nothing itself and has no View that binds to it.
+
+The ViewModel layer exists to adapt Model data into a shape that a View can
+bind to. Since `BulkEditor` has no View, a `BulkEditVM` adapter would be pure
+passthrough with no meaningful transformation.
+
+**Decision:** `BulkEditor` connects directly to `VREModel`. It reads
+`model.session.selected_resources`, `model.current_class_script`, and
+`model.current_included_class_property_lists` when building the proxy, and
+calls `model.report_error()` / `model.notify_resources_edited()` on write-back.
+
+`BulkEditVM` was deleted. The `Bulk Edit VM` and `Inspector / Bulk Edit Surface`
+entries in Sections E–H reflect the _intended_ split if a custom bulk-edit
+panel is ever built as a real View. Until then, `BulkEditor` is a Model-layer
+service.
+
+### K. ResourceRowVM — Per-Row ViewModels
+
+The original design had `ResourceList VM` managing all row state directly.
+Following the Gemini architecture synthesis (Option 4 in
+`refactor_architecture_gemini.md`), a `ResourceRowVM` is created per resource
+instance.
+
+- `ResourceListVM` creates an `Array[ResourceRowVM]` and emits them via
+  `rows_replaced` / `rows_added` / `rows_removed`.
+- `ResourceRow` (View) receives a single `ResourceRowVM` and binds to it.
+- `ResourceRowVM` exposes `get_property_value()`, `is_selected()`, `select()`,
+  `request_delete()`, and emits `is_selected_changed`.
+- Selection state updates are handled per-row via `is_selected_changed` —
+  `ResourceList` no longer needs a global `_update_selection()` sweep.
+
+### L. Updated Layer Lists (as implemented)
+
+**Model layer (`core/`)**
+
+| Class | Role |
+|---|---|
+| `VREModel` | Facade / coordinator — single entry point for all VMs |
+| `SessionStateModel` | Shared session state: selected class, selection, page, filters |
+| `ClassRegistry` | Project class scanning and metadata |
+| `ResourceRepository` | `.tres` file loading, mtime diffing, saving |
+| `SelectionManager` | Multi-select logic (single / ctrl / shift) |
+| `PaginationManager` | Page arithmetic and page-slice extraction |
+| `EditorFileSystemListener` | Filesystem change events |
+| `BulkEditor` | Inspector proxy creation and bulk property write-back |
+| `ProjectClassScanner` | Static scanning utilities |
+| `ResourceProperty` | Data model: single exported property definition |
+| `ClassDefinition` | Data model: class name + path + properties |
+
+**ViewModel layer (`view_models/`)**
+
+| Class | Paired View |
+|---|---|
+| `ClassSelectorVM` | ClassSelector |
+| `SubclassFilterVM` | SubclassFilter |
+| `ToolbarVM` | Toolbar |
+| `ResourceListVM` | ResourceList |
+| `ResourceRowVM` | ResourceRow |
+| `PaginationBarVM` | PaginationBar |
+| `StatusLabelVM` | StatusLabel |
+| `SaveResourceDialogVM` | SaveResourceDialog |
+| `ConfirmDeleteDialogVM` | ConfirmDeleteDialog |
+| `ErrorDialogVM` | ErrorDialog |
+
+**View layer (`ui/`)**
+
+| Scene / Script | Type |
+|---|---|
+| `VisualResourcesEditorWindow` | Window — dependency injector |
+| `ClassSelector` | HBoxContainer — class dropdown |
+| `SubclassFilter` | VBoxContainer — checkbox + warning |
+| `Toolbar` (VREToolbar) | HBoxContainer — action buttons |
+| `ResourceList` | VBoxContainer — header + scrollable rows |
+| `ResourceRow` | Button — one row per resource |
+| `PaginationBar` | HBoxContainer — prev/next + page label |
+| `StatusLabel` | Label — resource / selection count |
+| `Dialogs` | Control — container for all dialogs |
+| `SaveResourceDialog` | EditorFileDialog |
+| `ConfirmDeleteDialog` | ConfirmationDialog |
+| `ErrorDialog` | AcceptDialog |
