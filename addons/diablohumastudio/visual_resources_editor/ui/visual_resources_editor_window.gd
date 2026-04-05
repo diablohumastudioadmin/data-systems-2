@@ -14,9 +14,11 @@ func _ready() -> void:
 	%Toolbar.vm = ToolbarVM.new(_state.model)
 	%PaginationBar.vm = PaginationBarVM.new(_state.model)
 	%StatusLabel.vm = StatusLabelVM.new(_state.model)
+	%Dialogs.save_dialog_vm = SaveResourceDialogVM.new(_state.model)
+	%Dialogs.confirm_delete_vm = ConfirmDeleteDialogVM.new(_state.model)
+	%Dialogs.error_dialog_vm = ErrorDialogVM.new(_state.model)
 	%ResourceList.state_manager = _state
 	%BulkEditor.state_manager = _state
-	%Dialogs.state_manager = _state
 
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -2,18 +2,29 @@
 class_name Dialogs
 extends Control
 
-var state_manager: VREStateManager = null:
+var save_dialog_vm: SaveResourceDialogVM = null:
 	set(value):
-		state_manager = value
+		save_dialog_vm = value
 		if is_node_ready():
-			_connect_state()
+			%SaveResourceDialog.vm = save_dialog_vm
+
+var confirm_delete_vm: ConfirmDeleteDialogVM = null:
+	set(value):
+		confirm_delete_vm = value
+		if is_node_ready():
+			%ConfirmDeleteDialog.vm = confirm_delete_vm
+
+var error_dialog_vm: ErrorDialogVM = null:
+	set(value):
+		error_dialog_vm = value
+		if is_node_ready():
+			%ErrorDialog.vm = error_dialog_vm
 
 
 func _ready() -> void:
-	if state_manager:
-		_connect_state()
-
-
-func _connect_state() -> void:
-	%ConfirmDeleteDialog.state_manager = state_manager
-	%SaveResourceDialog.state_manager = state_manager
+	if save_dialog_vm:
+		%SaveResourceDialog.vm = save_dialog_vm
+	if confirm_delete_vm:
+		%ConfirmDeleteDialog.vm = confirm_delete_vm
+	if error_dialog_vm:
+		%ErrorDialog.vm = error_dialog_vm

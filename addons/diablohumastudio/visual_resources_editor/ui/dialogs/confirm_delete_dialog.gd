@@ -4,28 +4,24 @@ extends ConfirmationDialog
 
 var _pending_paths: Array[String] = []
 
-var state_manager: VREStateManager = null:
+var vm: ConfirmDeleteDialogVM = null:
 	set(value):
-		state_manager = value
+		vm = value
 		if is_node_ready():
-			_connect_state()
+			_connect_vm()
 
 
 func _ready() -> void:
-	if state_manager:
-		_connect_state()
 	confirmed.connect(_on_confirmed)
+	if vm:
+		_connect_vm()
 
 
-func _connect_state():
-	state_manager.delete_selected_requested.connect(on_state_manager_delete_selected_requested)
+func _connect_vm() -> void:
+	vm.pending_deletions_changed.connect(_on_pending_deletions_changed)
 
 
-func on_state_manager_delete_selected_requested(paths: Array[String]):
-	show_delete_dialog(paths)
-
-
-func show_delete_dialog(paths: Array[String]) -> void:
+func _on_pending_deletions_changed(paths: Array[String]) -> void:
 	_pending_paths = paths
 	dialog_text = "Move %d resource(s) to trash?\n\n%s" % [
 		paths.size(),
@@ -37,8 +33,6 @@ func show_delete_dialog(paths: Array[String]) -> void:
 func _on_confirmed() -> void:
 	var failed_paths: Array[String] = []
 	for path: String in _pending_paths:
-		# Guard: only delete files inside the project to prevent accidental
-		# deletion of arbitrary filesystem paths via a malformed resource_path.
 		if not path.begins_with("res://"):
 			push_warning("VRE: Skipping delete of path outside project: %s" % path)
 			failed_paths.append(path)
@@ -50,5 +44,5 @@ func _on_confirmed() -> void:
 	for path: String in _pending_paths:
 		efs.update_file(path)
 	if not failed_paths.is_empty():
-		state_manager.report_error("Failed to delete:\n%s" % "\n".join(failed_paths))
+		vm.report_error("Failed to delete:\n%s" % "\n".join(failed_paths))
 	_pending_paths.clear()
