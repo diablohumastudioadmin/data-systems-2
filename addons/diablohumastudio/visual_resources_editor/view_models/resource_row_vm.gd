@@ -23,5 +23,8 @@ func is_selected() -> bool:
 func select(ctrl_held: bool = false, shift_held: bool = false) -> void:
 	_model.set_selected_resources(resource, ctrl_held, shift_held)
 
+func request_delete() -> void:
+	_model.request_delete_selected_resources([resource.resource_path])
+
 func _on_selection_changed(resources: Array[Resource]) -> void:
 	is_selected_changed.emit(resources.has(resource))

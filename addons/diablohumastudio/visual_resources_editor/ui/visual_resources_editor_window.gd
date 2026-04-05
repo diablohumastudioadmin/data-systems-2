@@ -17,7 +17,7 @@ func _ready() -> void:
 	%Dialogs.save_dialog_vm = SaveResourceDialogVM.new(_state.model)
 	%Dialogs.confirm_delete_vm = ConfirmDeleteDialogVM.new(_state.model)
 	%Dialogs.error_dialog_vm = ErrorDialogVM.new(_state.model)
-	%ResourceList.state_manager = _state
+	%ResourceList.vm = ResourceListVM.new(_state.model)
 	%BulkEditor.state_manager = _state
 
 

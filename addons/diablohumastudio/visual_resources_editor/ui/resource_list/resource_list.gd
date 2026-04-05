@@ -4,109 +4,90 @@ extends VBoxContainer
 
 const RESOURCE_ROW_SCENE: PackedScene = preload("uid://dukcnu4xa4lbd")
 
-var state_manager: VREStateManager = null:
+var vm: ResourceListVM = null:
 	set(value):
-		state_manager = value
+		vm = value
 		if is_node_ready():
-			_connect_state()
+			_connect_vm()
 
 var _rows: Array[ResourceRow] = []
 var _resource_path_to_row: Dictionary[String, ResourceRow] = {}
+var _resource_path_to_row_vm: Dictionary[String, ResourceRowVM] = {}
 var _current_shared_property_list: Array[ResourceProperty] = []
 
 
 func _ready() -> void:
-	if state_manager:
-		_connect_state()
+	if vm:
+		_connect_vm()
 
 
-func _connect_state() -> void:
-	state_manager.resources_replaced.connect(_on_state_manager_resources_replaced)
-
-	state_manager.resources_added.connect(_on_state_manager_resources_added)
-	state_manager.resources_modified.connect(_on_state_manager_resources_modified)
-	state_manager.resources_removed.connect(_on_state_manager_resources_removed)
-
-	state_manager.selection_changed.connect(_on_state_manager_selection_changed)
-	state_manager.resources_edited.connect(_on_state_manager_resources_edited)
-
-# ── State Manager Signal conections handlers ─────────────────────────────────────────────────────────────
-
-func _on_state_manager_resources_added(resources: Array[Resource]):
-	_add_resources(resources)
-	_update_selection(state_manager.selected_resources)
-
-func _on_state_manager_resources_modified(resources: Array[Resource]):
-	_modify_resources(resources)
-	_update_selection(state_manager.selected_resources)
-
-func _on_state_manager_resources_removed(resources: Array[Resource]):
-	_remove_resources(resources)
-	_update_selection(state_manager.selected_resources)
-
-func _on_state_manager_resources_replaced(resources: Array[Resource], current_shared_property_list: Array[ResourceProperty]) -> void:
-	_build_rows(resources, current_shared_property_list)
-	_update_selection(state_manager.selected_resources)
-
-func _on_state_manager_selection_changed(selected_resources: Array[Resource]):
-	_update_selection(selected_resources)
-
-func _on_state_manager_resources_edited(resources: Array[Resource]):
-	for res: Resource in resources:
-		_refresh_row(res.resource_path)
-
-# ── rows handling ─────────────────────────────────────────────────────────────
-
-func _add_resources(resources: Array[Resource]) -> void:
-	for res: Resource in resources:
-		_add_row(res)
-	_sort_rows_by_path()
-
-func _modify_resources(resources: Array[Resource]) -> void:
-	for res: Resource in resources:
-		_update_row_resource(res)
-
-func _remove_resources(resources: Array[Resource]) -> void:
-	for res: Resource in resources:
-		_remove_row_by_path(res.resource_path)
-
-func _refresh_row(resource_path: String) -> void:
-	if not _resource_path_to_row.has(resource_path):
-		return
-	var row: ResourceRow = _resource_path_to_row[resource_path]
-	if is_instance_valid(row):
-		row.update_display()
+func _connect_vm() -> void:
+	vm.columns_changed.connect(_on_columns_changed)
+	vm.rows_replaced.connect(_on_rows_replaced)
+	vm.rows_added.connect(_on_rows_added)
+	vm.rows_removed.connect(_on_rows_removed)
+	vm.rows_modified.connect(_on_rows_modified)
+	vm.rows_edited.connect(_on_rows_edited)
 
 
-func _build_rows(resources: Array[Resource], current_shared_property_list: Array[ResourceProperty]) -> void:
-	_clear_rows()
-	_current_shared_property_list = current_shared_property_list
-	%HeaderRow.current_shared_property_list = current_shared_property_list
-
-	for res: Resource in resources:
-		_add_row(res)
-
-	_sort_rows_by_path()
-
-
-func _clear_rows() -> void:
+func _on_columns_changed(columns: Array[ResourceProperty]) -> void:
+	_current_shared_property_list = columns
+	%HeaderRow.current_shared_property_list = columns
 	for row: ResourceRow in _rows:
 		if is_instance_valid(row):
-			row.queue_free()
-	_rows.clear()
-	_resource_path_to_row.clear()
+			row.current_shared_property_list = columns
+			row.rebuild_fields()
 
 
-func _add_row(res: Resource) -> void:
-	if _resource_path_to_row.has(res.resource_path):
+func _on_rows_replaced(rows: Array[ResourceRowVM]) -> void:
+	_clear_rows()
+	for row_vm: ResourceRowVM in rows:
+		_add_row(row_vm)
+	_sort_rows_by_path()
+
+
+func _on_rows_added(rows: Array[ResourceRowVM]) -> void:
+	for row_vm: ResourceRowVM in rows:
+		_add_row(row_vm)
+	_sort_rows_by_path()
+
+
+func _on_rows_removed(removed_resources: Array[Resource]) -> void:
+	for res: Resource in removed_resources:
+		_remove_row_by_path(res.resource_path)
+
+
+func _on_rows_modified(modified_resources: Array[Resource]) -> void:
+	for res: Resource in modified_resources:
+		var path: String = res.resource_path
+		if _resource_path_to_row_vm.has(path):
+			_resource_path_to_row_vm[path].resource = res
+		if _resource_path_to_row.has(path):
+			var row: ResourceRow = _resource_path_to_row[path]
+			if is_instance_valid(row):
+				row.update_display()
+
+
+func _on_rows_edited(resources: Array[Resource]) -> void:
+	for res: Resource in resources:
+		var path: String = res.resource_path
+		if _resource_path_to_row.has(path):
+			var row: ResourceRow = _resource_path_to_row[path]
+			if is_instance_valid(row):
+				row.update_display()
+
+
+func _add_row(row_vm: ResourceRowVM) -> void:
+	var path: String = row_vm.resource.resource_path
+	if _resource_path_to_row.has(path):
 		return
 	var row: ResourceRow = RESOURCE_ROW_SCENE.instantiate()
-	row.state_manager = state_manager
-	row.resource = res
+	row.vm = row_vm
 	row.current_shared_property_list = _current_shared_property_list
 	%RowsContainer.add_child(row)
 	_rows.append(row)
-	_resource_path_to_row[res.resource_path] = row
+	_resource_path_to_row[path] = row
+	_resource_path_to_row_vm[path] = row_vm
 
 
 func _remove_row_by_path(resource_path: String) -> void:
@@ -117,27 +98,23 @@ func _remove_row_by_path(resource_path: String) -> void:
 		_rows.erase(row)
 		row.queue_free()
 	_resource_path_to_row.erase(resource_path)
+	_resource_path_to_row_vm.erase(resource_path)
 
 
-func _update_row_resource(resource: Resource) -> void:
-	if not _resource_path_to_row.has(resource.resource_path):
-		return
-	var row: ResourceRow = _resource_path_to_row[resource.resource_path]
-	if is_instance_valid(row):
-		row.resource = resource
-		row.update_display()
+func _clear_rows() -> void:
+	for row: ResourceRow in _rows:
+		if is_instance_valid(row):
+			row.queue_free()
+	_rows.clear()
+	_resource_path_to_row.clear()
+	_resource_path_to_row_vm.clear()
 
 
 func _sort_rows_by_path() -> void:
-	_rows.sort_custom(func(a: ResourceRow, b: ResourceRow) -> bool: return a.get_resource_path() < b.get_resource_path())
+	_rows.sort_custom(
+		func(a: ResourceRow, b: ResourceRow) -> bool: return a.get_resource_path() < b.get_resource_path()
+	)
 	for i: int in _rows.size():
 		var row: ResourceRow = _rows[i]
 		if is_instance_valid(row):
 			%RowsContainer.move_child(row, i)
-
-# ── slection handling ─────────────────────────────────────────────────────────────
-
-func _update_selection(selected: Array[Resource]) -> void:
-	for row: ResourceRow in _rows:
-		if is_instance_valid(row):
-			row.set_selected(selected.has(row.get_resource()))
