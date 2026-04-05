@@ -9,13 +9,13 @@ func _ready() -> void:
 	_state = VREStateManager.new()
 	_state.start()
 
-	%ClassSelector.state_manager = _state
-	%SubclassFilter.state_manager = _state
+	%ClassSelector.vm = ClassSelectorVM.new(_state.model)
+	%SubclassFilter.vm = SubclassFilterVM.new(_state.model)
+	%Toolbar.vm = ToolbarVM.new(_state.model)
+	%PaginationBar.vm = PaginationBarVM.new(_state.model)
+	%StatusLabel.vm = StatusLabelVM.new(_state.model)
 	%ResourceList.state_manager = _state
-	%Toolbar.state_manager = _state
 	%BulkEditor.state_manager = _state
-	%PaginationBar.state_manager = _state
-	%StatusLabel.state_manager = _state
 	%Dialogs.state_manager = _state
 
 

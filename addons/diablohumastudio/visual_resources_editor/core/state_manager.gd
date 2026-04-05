@@ -3,6 +3,8 @@ class_name VREStateManager
 extends RefCounted
 
 var _model: VREModel = VREModel.new()
+var model: VREModel:
+	get: return _model
 
 # ── Signals (public API — unchanged) ──────────────────────────────────────────
 signal resources_replaced(resources: Array[Resource], current_shared_property_list: Array[ResourceProperty])

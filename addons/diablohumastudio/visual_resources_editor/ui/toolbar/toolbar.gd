@@ -2,34 +2,38 @@
 class_name VREToolbar
 extends HBoxContainer
 
-var state_manager: VREStateManager = null:
+var vm: ToolbarVM = null:
 	set(value):
-		state_manager = value
+		vm = value
 		if is_node_ready():
-			_connect_state()
+			_connect_vm()
 
 
 func _ready() -> void:
-	if state_manager:
-		_connect_state()
+	if vm:
+		_connect_vm()
 
 
-func _connect_state() -> void:
-	state_manager.selection_changed.connect(update_selection)
+func _connect_vm() -> void:
+	vm.actions_availability_changed.connect(_update_actions)
+	_update_actions()
 
 
-func update_selection(resources: Array[Resource]) -> void:
-	var count: int = resources.size()
+func _update_actions() -> void:
+	var count: int = vm.get_selected_count()
 	%DeleteSelectedBtn.text = "Delete Selected (%d)" % count if count > 0 else "Delete Selected"
+	%DeleteSelectedBtn.disabled = not vm.is_delete_enabled()
+	%CreateBtn.disabled = not vm.is_create_enabled()
+	%RefreshBtn.disabled = not vm.is_refresh_enabled()
 
 
 func _on_create_btn_pressed() -> void:
-	state_manager.request_create_new_resouce()
+	vm.request_create()
 
 
 func _on_delete_selected_pressed() -> void:
-	state_manager.request_delete_selected_resources(state_manager._selected_paths)
+	vm.request_delete()
 
 
 func _on_refresh_btn_pressed() -> void:
-	state_manager.refresh_resource_list_values()
+	vm.request_refresh()

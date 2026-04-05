@@ -1,10 +1,10 @@
 @tool
 extends VBoxContainer
 
-var state_manager: VREStateManager = null
+var vm: SubclassFilterVM = null
 
 
 func _on_include_subclasses_check_toggled(pressed: bool) -> void:
 	%SubclassWarningLabel.visible = pressed
-	if state_manager:
-		state_manager.set_include_subclasses(pressed)
+	if vm:
+		vm.set_include_subclasses(pressed)

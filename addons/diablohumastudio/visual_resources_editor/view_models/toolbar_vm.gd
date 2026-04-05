@@ -17,6 +17,9 @@ func _on_selection_changed(_resources: Array[Resource]) -> void:
 func _on_class_changed(_class_name_: String) -> void:
 	actions_availability_changed.emit()
 
+func get_selected_count() -> int:
+	return _model.session.selected_resources.size()
+
 func is_delete_enabled() -> bool:
 	return _model.session.selected_resources.size() > 0
 

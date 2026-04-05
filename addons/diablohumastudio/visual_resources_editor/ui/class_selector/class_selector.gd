@@ -3,22 +3,22 @@ extends HBoxContainer
 
 const PLACEHOLDER_TEXT: String = "-- Select a class --"
 
-var state_manager: VREStateManager = null:
+var vm: ClassSelectorVM = null:
 	set(value):
-		state_manager = value
+		vm = value
 		if is_node_ready():
-			_connect_state()
+			_connect_vm()
 
 
 func _ready() -> void:
-	if state_manager:
-		_connect_state()
+	if vm:
+		_connect_vm()
 
 
-func _connect_state() -> void:
-	state_manager.project_classes_changed.connect(set_classes_in_dropdown)
-	state_manager.current_class_renamed.connect(select_class)
-	set_classes_in_dropdown(state_manager.global_class_name_list)
+func _connect_vm() -> void:
+	vm.browsable_classes_changed.connect(set_classes_in_dropdown)
+	vm.selected_class_changed.connect(select_class)
+	set_classes_in_dropdown(vm.get_browsable_classes())
 
 
 func set_classes_in_dropdown(classes: Array[String]) -> void:
@@ -48,4 +48,4 @@ func select_class(class_name_str: String) -> void:
 
 func _on_class_dropdown_item_selected(index: int) -> void:
 	if index == 0: return
-	state_manager.set_current_class(%ClassDropdown.get_item_text(index))
+	vm.set_selected_class(%ClassDropdown.get_item_text(index))
