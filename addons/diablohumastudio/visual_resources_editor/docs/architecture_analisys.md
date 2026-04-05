@@ -347,12 +347,14 @@ window chooses to present them.
       - exported properties are changed (20) `A`
         - `(M)` Source: `Resource Script Files` change exported properties
 
-- `Resource Instances`
+- `Resource Instances` (Selected Class Resources)
   Internal data:
-  - resource file path
+  - `Selected Class Resources` list
     - sources:
       - `(M)` `Resource Files on Disk`
     - changes:
+      - the selected class changes (3) `U`
+        - `(VM)` Source: `Selected Class` is changed
       - a resource instance is created from the editor (8) `U`
         - `(VM)` Source: `Create Resource Command` is executed
       - a resource instance is created externally (14a) `A`, (14b) `A`
@@ -361,9 +363,17 @@ window chooses to present them.
         - `(VM)` Source: `Delete Resources Command` is executed
       - a resource instance is deleted externally (15a) `A`, (15b) `A`
         - `(M)` Source: `Resource Files on Disk` remove a resource file
+
+- `Resource Instance`
+  Internal data:
+  - resource file path
+    - sources:
+      - `(M)` `Resource File`
+    - changes:
+      - a resource file changes its path 
+        - `(M)` Source: `Resource Files` change
   - resource class reference
     - sources:
-      - `(M)` `Resource Files on Disk`
       - `(M)` `Project Resource Classes`
     - changes:
       - a resource file changes its class reference (16a) `A`, (16b) `A`
@@ -646,8 +656,8 @@ define what each ViewModel must hold and what can change it.
         - `(V)` Source: `PaginationBar` changes `Current Page`
   - `Total Pages`
     - changes:
-      - current page resources population changes
-        - `(VM)` Source: `ResourceList VM` changes `Current Page Resources`
+      - current class resources population changes
+        - `(M)` Source: `Resource Instances M` changes `Current Class Resources`
       - selected class changes
         - `(VM)` Source: `ClassSelector VM` changes `Selected Class`
       - subclass inclusion changes
@@ -733,7 +743,6 @@ define what each ViewModel must hold and what can change it.
   - `PaginationBar` VM → `Current Page` (for Current Page Resources)
 
 - `PaginationBar` VM depends on:
-  - `ResourceList` VM → `Current Page Resources` (for Total Pages)
   - `ClassSelector` VM → `Selected Class` (for Total Pages)
   - `SubclassFilter` VM → `Include Subclasses` (for Total Pages)
 
