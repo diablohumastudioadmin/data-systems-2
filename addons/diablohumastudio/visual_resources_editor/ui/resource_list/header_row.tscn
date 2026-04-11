@@ -6,10 +6,14 @@
 custom_minimum_size = Vector2(0, 24)
 script = ExtResource("1_hdr")
 
-[node name="FileLabel" type="Label" parent="." unique_id=839752079]
+[node name="FileLabel" type="Button" parent="." unique_id=839752079]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 size_flags_horizontal = 3
+flat = true
+alignment = 0
+clip_text = true
 theme_override_font_sizes/font_size = 12
 text = "File"
 

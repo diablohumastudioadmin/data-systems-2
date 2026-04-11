@@ -7,6 +7,10 @@ signal include_subclasses_changed(include: bool)
 signal search_filter_changed(filter: String)
 signal current_page_changed(page: int)
 signal selected_resources_changed(resources: Array[Resource])
+signal sort_changed(column: String, ascending: bool)
+
+var sort_column: String = ""
+var sort_ascending: bool = true
 
 var selected_class: String = "":
 	set(value):
@@ -37,3 +41,11 @@ var selected_resources: Array[Resource] = []:
 		if selected_resources != value:
 			selected_resources = value
 			selected_resources_changed.emit(value)
+
+
+func set_sort(column: String, ascending: bool) -> void:
+	if sort_column == column and sort_ascending == ascending:
+		return
+	sort_column = column
+	sort_ascending = ascending
+	sort_changed.emit(column, ascending)

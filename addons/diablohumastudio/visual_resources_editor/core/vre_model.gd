@@ -75,6 +75,7 @@ func start() -> void:
 	# Wire SessionStateModel coordination
 	session.selected_class_changed.connect(_on_session_selected_class_changed)
 	session.include_subclasses_changed.connect(_on_session_include_subclasses_changed)
+	session.sort_changed.connect(_on_session_sort_changed)
 
 	_fs_listener.start()
 	class_registry.rebuild()
@@ -121,6 +122,7 @@ func refresh_resource_list_values() -> void:
 		return
 	_resolve_current_classes()
 	_scan_current_properties()
+	_validate_sort_column()
 	resource_repo.load_resources(_current_included_class_names)
 
 
@@ -132,6 +134,11 @@ func _on_session_selected_class_changed(_class_name: String) -> void:
 
 func _on_session_include_subclasses_changed(_include: bool) -> void:
 	refresh_resource_list_values()
+
+
+func _on_session_sort_changed(_column: String, _ascending: bool) -> void:
+	_apply_sort()
+	_pagination.reset(resource_repo.current_class_resources)
 
 
 # ── Private coordinator logic ────────────────────────────────────────────────
@@ -164,14 +171,16 @@ func _on_pagination_manager_changed(page: int, page_count: int) -> void:
 	pagination_changed.emit(page, page_count)
 
 
-func _on_resources_reset(resources: Array[Resource]) -> void:
-	_selection.restore(resources)
-	_pagination.reset(resources)
+func _on_resources_reset(_resources: Array[Resource]) -> void:
+	_apply_sort()
+	_selection.restore(resource_repo.current_class_resources)
+	_pagination.reset(resource_repo.current_class_resources)
 
 
 func _on_resources_delta(
 	added: Array[Resource], removed: Array[Resource], modified: Array[Resource]
 ) -> void:
+	_apply_sort()
 	_selection.restore(resource_repo.current_class_resources)
 	_pagination.set_page(_pagination.current_page(), resource_repo.current_class_resources)
 
@@ -257,7 +266,9 @@ func _handle_property_changes() -> void:
 	if ResourceProperty.arrays_equal(new_props, current_class_property_list):
 		return
 	_scan_current_properties()
+	_validate_sort_column()
 	resource_repo.resave_all()
+	_apply_sort()
 	_selection.restore(resource_repo.current_class_resources)
 	_pagination.refresh_silent(resource_repo.current_class_resources)
 	resources_replaced.emit(_pagination.current_page_resources, current_shared_property_list)
@@ -265,6 +276,110 @@ func _handle_property_changes() -> void:
 		_pagination.current_page(),
 		_pagination.page_count(resource_repo.current_class_resources.size())
 	)
+
+
+func _apply_sort() -> void:
+	_sort_resources(
+		resource_repo.current_class_resources,
+		session.sort_column,
+		session.sort_ascending,
+		current_shared_property_list)
+
+
+func _validate_sort_column() -> void:
+	if session.sort_column.is_empty():
+		return
+	for prop: ResourceProperty in current_shared_property_list:
+		if prop.name == session.sort_column:
+			return
+	session.set_sort("", true)
+
+
+static func _sort_resources(
+	resources: Array[Resource],
+	column: String,
+	ascending: bool,
+	props: Array[ResourceProperty]
+) -> void:
+	if resources.size() < 2:
+		return
+
+	var prop_type: int = TYPE_NIL
+	if not column.is_empty():
+		for p: ResourceProperty in props:
+			if p.name == column:
+				prop_type = p.type
+				break
+
+	resources.sort_custom(func(a: Resource, b: Resource) -> bool:
+		var val_a: Variant = _sort_value(a, column, prop_type)
+		var val_b: Variant = _sort_value(b, column, prop_type)
+
+		# null sorts last regardless of direction
+		if val_a == null and val_b == null:
+			return a.resource_path < b.resource_path
+		if val_a == null:
+			return false
+		if val_b == null:
+			return true
+
+		var cmp: int = _compare_values(val_a, val_b, prop_type)
+		if cmp == 0:
+			return a.resource_path < b.resource_path
+		return cmp < 0 if ascending else cmp > 0
+	)
+
+
+static func _sort_value(res: Resource, column: String, prop_type: int) -> Variant:
+	if column.is_empty():
+		return res.resource_path.get_file()
+	var val: Variant = res.get(column) if column in res else null
+	return val
+
+
+static func _compare_values(a: Variant, b: Variant, prop_type: int) -> int:
+	match prop_type:
+		TYPE_STRING, TYPE_STRING_NAME:
+			return str(a).naturalnocasecmp_to(str(b))
+		TYPE_INT, TYPE_FLOAT:
+			var fa: float = float(a)
+			var fb: float = float(b)
+			if fa < fb: return -1
+			if fa > fb: return 1
+			return 0
+		TYPE_BOOL:
+			var ia: int = 1 if a else 0
+			var ib: int = 1 if b else 0
+			if ia < ib: return -1
+			if ia > ib: return 1
+			return 0
+		TYPE_VECTOR2:
+			var la: float = a.length()
+			var lb: float = b.length()
+			if la < lb: return -1
+			if la > lb: return 1
+			return 0
+		TYPE_VECTOR3:
+			var la: float = a.length()
+			var lb: float = b.length()
+			if la < lb: return -1
+			if la > lb: return 1
+			return 0
+		TYPE_COLOR:
+			if a.h != b.h:
+				return -1 if a.h < b.h else 1
+			if a.v != b.v:
+				return -1 if a.v < b.v else 1
+			return 0
+		TYPE_OBJECT:
+			var pa: String = a.resource_path.get_file() if a is Resource and a.resource_path else ""
+			var pb: String = b.resource_path.get_file() if b is Resource and b.resource_path else ""
+			return pa.naturalnocasecmp_to(pb)
+		TYPE_NIL:
+			# File-name column (column == "")
+			return str(a).naturalnocasecmp_to(str(b))
+		_:
+			return str(a).naturalnocasecmp_to(str(b))
 
 
 func _clear_view() -> void:

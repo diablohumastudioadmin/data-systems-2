@@ -18,11 +18,9 @@ var current_class_resources: Array[Resource] = []
 var _mtimes: Dictionary[String, int] = {}
 
 
-## Full reload for the given class names. Sorts by path. Always emits resources_reset.
+## Full reload for the given class names. Always emits resources_reset.
 func load_resources(class_names: Array[String]) -> void:
 	current_class_resources = ProjectClassScanner.load_classed_resources_from_dir(class_names)
-	current_class_resources.sort_custom(
-		func(a: Resource, b: Resource) -> bool: return a.resource_path < b.resource_path)
 	_rebuild_mtimes()
 	resources_reset.emit(current_class_resources.duplicate())
 
@@ -65,8 +63,6 @@ func scan_for_changes(class_names: Array[String]) -> void:
 		return
 
 	current_class_resources = updated
-	current_class_resources.sort_custom(
-		func(a: Resource, b: Resource) -> bool: return a.resource_path < b.resource_path)
 	_rebuild_mtimes()
 	resources_delta.emit(added, removed, modified)
 

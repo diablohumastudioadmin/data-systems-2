@@ -28,6 +28,7 @@ func _connect_vm() -> void:
 	vm.rows_removed.connect(_on_rows_removed)
 	vm.rows_modified.connect(_on_rows_modified)
 	vm.rows_edited.connect(_on_rows_edited)
+	%HeaderRow.set_view_model(vm)
 
 
 func _on_columns_changed(columns: Array[ResourceProperty]) -> void:
@@ -43,13 +44,11 @@ func _on_rows_replaced(rows: Array[ResourceRowVM]) -> void:
 	_clear_rows()
 	for row_vm: ResourceRowVM in rows:
 		_add_row(row_vm)
-	_sort_rows_by_path()
 
 
 func _on_rows_added(rows: Array[ResourceRowVM]) -> void:
 	for row_vm: ResourceRowVM in rows:
 		_add_row(row_vm)
-	_sort_rows_by_path()
 
 
 func _on_rows_removed(removed_resources: Array[Resource]) -> void:
@@ -110,11 +109,3 @@ func _clear_rows() -> void:
 	_resource_path_to_row_vm.clear()
 
 
-func _sort_rows_by_path() -> void:
-	_rows.sort_custom(
-		func(a: ResourceRow, b: ResourceRow) -> bool: return a.get_resource_path() < b.get_resource_path()
-	)
-	for i: int in _rows.size():
-		var row: ResourceRow = _rows[i]
-		if is_instance_valid(row):
-			%RowsContainer.move_child(row, i)
