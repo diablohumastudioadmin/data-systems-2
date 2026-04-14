@@ -10,7 +10,8 @@
       "Bash(git status:*)",
       "Bash(git log:*)",
       "Bash(grep -E \"\\\\.gd$|\\\\.tscn$\")",
-      "mcp__drawio__open_drawio_xml"
+      "mcp__drawio__open_drawio_xml",
+      "mcp__drawio__open_drawio_mermaid"
     ]
   }
 }
