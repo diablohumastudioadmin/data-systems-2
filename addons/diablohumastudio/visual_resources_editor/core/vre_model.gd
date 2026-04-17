@@ -160,6 +160,7 @@ func _scan_current_properties() -> void:
 		session.selected_class, empty_props)
 	current_shared_property_list = class_registry.get_shared_properties(
 		_current_included_class_names)
+	resource_repo.update_last_known_props(current_class_property_list)
 
 
 # ── Manager signal handlers ──────────────────────────────────────────────────
@@ -201,7 +202,8 @@ func _on_page_delta(
 # ── ClassRegistry signal handlers ─────────────────────────────────────────────
 
 func _on_classes_changed(previous: Array[String], current: Array[String]) -> void:
-	_resave_orphaned_resources(previous, current)
+	var schema_resaved: bool = resource_repo.on_classes_changed(
+		previous, current, session.selected_class, class_registry)
 	project_classes_changed.emit(current)
 
 	if session.selected_class.is_empty():
@@ -222,7 +224,8 @@ func _on_classes_changed(previous: Array[String], current: Array[String]) -> voi
 		refresh_resource_list_values()
 		return
 
-	_handle_property_changes()
+	if schema_resaved:
+		_refresh_property_ui()
 
 
 # ── Filesystem / script class event handlers ──────────────────────────────────
@@ -233,8 +236,16 @@ func _on_script_classes_updated() -> void:
 
 func _handle_script_classes_updated() -> void:
 	var list_changed: bool = class_registry.rebuild()
-	if not list_changed:
-		_handle_property_changes()
+	if list_changed:
+		return
+	# No class add/remove, but an existing class may have had its props edited.
+	# Same-list args make on_classes_changed skip the orphan path and run only
+	# the schema-diff resave for the selected class.
+	var current_classes: Array[String] = class_registry.global_class_name_list
+	var schema_resaved: bool = resource_repo.on_classes_changed(
+		current_classes, current_classes, session.selected_class, class_registry)
+	if schema_resaved:
+		_refresh_property_ui()
 
 
 func _on_filesystem_changed() -> void:
@@ -249,28 +260,14 @@ func _refresh_current_class_resources() -> void:
 
 # ── Internal state helpers ────────────────────────────────────────────────────
 
-func _resave_orphaned_resources(previous: Array[String], current: Array[String]) -> void:
-	var removed_classes: Array[String] = []
-	for cls: String in previous:
-		if not current.has(cls):
-			removed_classes.append(cls)
-	if removed_classes.is_empty():
-		return
-	var orphaned: Array[Resource] = ProjectClassScanner.load_classed_resources_from_dir(removed_classes)
-	resource_repo.resave_resources(orphaned)
-
-
-func _handle_property_changes() -> void:
+## UI-side response to a schema change. Disk resave has already been done
+## by ResourceRepository.on_classes_changed.
+func _refresh_property_ui() -> void:
 	if session.selected_class.is_empty():
-		return
-	var new_props: Array[ResourceProperty] = class_registry.get_properties(session.selected_class)
-	if ResourceProperty.arrays_equal(new_props, current_class_property_list):
 		return
 	_scan_current_properties()
 	_validate_sort_column()
-	resource_repo.resave_all()
 	_apply_sort()
-	_selection.restore(resource_repo.current_class_resources)
 	_pagination.refresh_silent(resource_repo.current_class_resources)
 	resources_replaced.emit(_pagination.current_page_resources, current_shared_property_list)
 	pagination_changed.emit(
