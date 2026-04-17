@@ -46,6 +46,9 @@ var global_class_to_path_map: Dictionary[String, String]:
 var current_class_resources: Array[Resource]:
 	get: return resource_repo.current_class_resources
 
+var current_page_resources: Array[Resource]:
+	get: return _pagination.current_page_resources
+
 
 func _init() -> void:
 	session = SessionStateModel.new()
@@ -177,6 +180,7 @@ func _on_pagination_manager_changed(page: int, page_count: int) -> void:
 
 func _on_resources_reset(_resources: Array[Resource]) -> void:
 	_apply_sort()
+	_selection.reconcile(resource_repo.get_paths())
 	_pagination.reset(resource_repo.current_class_resources)
 
 
@@ -184,6 +188,7 @@ func _on_resources_delta(
 	added: Array[Resource], removed: Array[Resource], modified: Array[Resource]
 ) -> void:
 	_apply_sort()
+	_selection.reconcile(resource_repo.get_paths())
 	_pagination.set_page(_pagination.current_page(), resource_repo.current_class_resources)
 
 

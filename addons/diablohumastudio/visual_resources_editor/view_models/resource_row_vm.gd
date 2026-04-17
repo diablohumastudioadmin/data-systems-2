@@ -28,3 +28,8 @@ func request_delete() -> void:
 
 func _on_selection_changed(paths: Array[String]) -> void:
 	is_selected_changed.emit(paths.has(resource.resource_path))
+
+
+func dispose() -> void:
+	if _model and _model.selection_changed.is_connected(_on_selection_changed):
+		_model.selection_changed.disconnect(_on_selection_changed)
