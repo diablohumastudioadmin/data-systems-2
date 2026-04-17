@@ -8,7 +8,7 @@ signal resources_added(resources: Array[Resource])
 signal resources_modified(resources: Array[Resource])
 signal resources_removed(resources: Array[Resource])
 signal project_classes_changed(classes: Array[String])
-signal selection_changed(resources: Array[Resource])
+signal selection_changed(paths: Array[String])
 signal pagination_changed(page: int, page_count: int)
 signal current_class_renamed(new_name: String)
 signal resources_edited(resources: Array[Resource])
@@ -105,8 +105,11 @@ func report_error(message: String) -> void:
 	error_occurred.emit(message)
 
 
-func set_selected_resources(resource: Resource, ctrl_held: bool, shift_held: bool) -> void:
-	_selection.set_selected(resource, ctrl_held, shift_held, resource_repo.current_class_resources)
+func set_selected_by_path(path: String, ctrl_held: bool, shift_held: bool) -> void:
+	var all_paths: Array[String] = []
+	for res: Resource in resource_repo.current_class_resources:
+		all_paths.append(res.resource_path)
+	_selection.set_selected(path, ctrl_held, shift_held, all_paths)
 
 
 func next_page() -> void:
@@ -161,9 +164,9 @@ func _scan_current_properties() -> void:
 
 # ── Manager signal handlers ──────────────────────────────────────────────────
 
-func _on_selection_manager_changed(resources: Array[Resource]) -> void:
-	session.selected_resources = resources
-	selection_changed.emit(resources)
+func _on_selection_manager_changed(paths: Array[String]) -> void:
+	session.selected_paths = paths
+	selection_changed.emit(paths)
 
 
 func _on_pagination_manager_changed(page: int, page_count: int) -> void:
@@ -173,7 +176,6 @@ func _on_pagination_manager_changed(page: int, page_count: int) -> void:
 
 func _on_resources_reset(_resources: Array[Resource]) -> void:
 	_apply_sort()
-	_selection.restore(resource_repo.current_class_resources)
 	_pagination.reset(resource_repo.current_class_resources)
 
 
@@ -181,7 +183,6 @@ func _on_resources_delta(
 	added: Array[Resource], removed: Array[Resource], modified: Array[Resource]
 ) -> void:
 	_apply_sort()
-	_selection.restore(resource_repo.current_class_resources)
 	_pagination.set_page(_pagination.current_page(), resource_repo.current_class_resources)
 
 

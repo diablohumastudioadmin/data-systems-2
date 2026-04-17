@@ -16,21 +16,21 @@ func _init(p_model: VREModel) -> void:
 
 func _on_resources_replaced(resources: Array[Resource], _shared_props: Array[ResourceProperty]) -> void:
 	_visible_count = resources.size()
-	counts_updated.emit(_visible_count, _model.session.selected_resources.size())
+	counts_updated.emit(_visible_count, _model.session.selected_paths.size())
 
 func _on_resources_added(resources: Array[Resource]) -> void:
 	_visible_count += resources.size()
-	counts_updated.emit(_visible_count, _model.session.selected_resources.size())
+	counts_updated.emit(_visible_count, _model.session.selected_paths.size())
 
 func _on_resources_removed(resources: Array[Resource]) -> void:
 	_visible_count -= resources.size()
-	counts_updated.emit(_visible_count, _model.session.selected_resources.size())
+	counts_updated.emit(_visible_count, _model.session.selected_paths.size())
 
-func _on_selection_changed(resources: Array[Resource]) -> void:
-	counts_updated.emit(_visible_count, resources.size())
+func _on_selection_changed(paths: Array[String]) -> void:
+	counts_updated.emit(_visible_count, paths.size())
 
 func get_visible_count() -> int:
 	return _visible_count
 
 func get_selected_count() -> int:
-	return _model.session.selected_resources.size()
+	return _model.session.selected_paths.size()

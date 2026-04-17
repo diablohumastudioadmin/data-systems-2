@@ -18,13 +18,13 @@ func get_property_value(property_name: String) -> Variant:
 	return resource.get(property_name)
 
 func is_selected() -> bool:
-	return _model.session.selected_resources.has(resource)
+	return _model.session.selected_paths.has(resource.resource_path)
 
 func select(ctrl_held: bool = false, shift_held: bool = false) -> void:
-	_model.set_selected_resources(resource, ctrl_held, shift_held)
+	_model.set_selected_by_path(resource.resource_path, ctrl_held, shift_held)
 
 func request_delete() -> void:
 	_model.request_delete_selected_resources([resource.resource_path])
 
-func _on_selection_changed(resources: Array[Resource]) -> void:
-	is_selected_changed.emit(resources.has(resource))
+func _on_selection_changed(paths: Array[String]) -> void:
+	is_selected_changed.emit(paths.has(resource.resource_path))

@@ -6,7 +6,7 @@ signal selected_class_changed(class_name_: String)
 signal include_subclasses_changed(include: bool)
 signal search_filter_changed(filter: String)
 signal current_page_changed(page: int)
-signal selected_resources_changed(resources: Array[Resource])
+signal selected_paths_changed(paths: Array[String])
 signal sort_changed(column: String, ascending: bool)
 
 var sort_column: String = ""
@@ -36,11 +36,11 @@ var current_page: int = 0:
 			current_page = value
 			current_page_changed.emit(value)
 
-var selected_resources: Array[Resource] = []:
+var selected_paths: Array[String] = []:
 	set(value):
-		if selected_resources != value:
-			selected_resources = value
-			selected_resources_changed.emit(value)
+		if selected_paths != value:
+			selected_paths = value
+			selected_paths_changed.emit(value)
 
 
 func set_sort(column: String, ascending: bool) -> void:

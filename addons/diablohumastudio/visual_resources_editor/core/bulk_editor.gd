@@ -39,23 +39,23 @@ func _clear_bulk_proxy() -> void:
 	EditorInterface.inspect_object(null)
 
 
-func _on_selection_changed(resources: Array[Resource]) -> void:
-	var current_selection_paths: Array[String] = _get_selection_paths(resources)
+func _on_selection_changed(paths: Array[String]) -> void:
 	var edited_obj: Object = _inspector.get_edited_object()
-	if _bulk_proxy and edited_obj == _bulk_proxy and current_selection_paths == _inspected_selection_paths:
+	if _bulk_proxy and edited_obj == _bulk_proxy and paths == _inspected_selection_paths:
 		return
 	_create_bulk_proxy()
 
 
 func _create_bulk_proxy() -> void:
 	_clear_bulk_proxy()
-	if model.session.selected_resources.is_empty():
+	var selected: Array[Resource] = _resolve_selected_resources()
+	if selected.is_empty():
 		return
-	var script: GDScript = _get_common_script()
+	var script: GDScript = _get_common_script(selected)
 	if script == null:
 		return
 	_bulk_proxy = script.new()
-	if model.session.selected_resources.size() == 1:
+	if selected.size() == 1:
 		var res_class: String = script.get_global_name()
 		var empty_props: Array[ResourceProperty] = []
 		var fallback: Array[ResourceProperty] = model.current_class_property_list \
@@ -63,22 +63,26 @@ func _create_bulk_proxy() -> void:
 		var props: Array[ResourceProperty] = model.current_included_class_property_lists.get(
 			res_class, fallback)
 		for prop: ResourceProperty in props:
-			_bulk_proxy.set(prop.name, model.session.selected_resources[0].get(prop.name))
+			_bulk_proxy.set(prop.name, selected[0].get(prop.name))
 	EditorInterface.inspect_object(_bulk_proxy)
-	_inspected_selection_paths = _get_selection_paths(model.session.selected_resources)
+	_inspected_selection_paths = model.session.selected_paths.duplicate()
 
 
-func _get_selection_paths(resources: Array[Resource]) -> Array[String]:
-	var paths: Array[String] = []
-	for res: Resource in resources:
-		paths.append(res.resource_path)
-	return paths
+func _resolve_selected_resources() -> Array[Resource]:
+	var result: Array[Resource] = []
+	var lookup: Dictionary = {}
+	for res: Resource in model.resource_repo.current_class_resources:
+		lookup[res.resource_path] = res
+	for path: String in model.session.selected_paths:
+		if lookup.has(path):
+			result.append(lookup[path])
+	return result
 
 
-func _get_common_script() -> GDScript:
-	var first_script: GDScript = model.session.selected_resources[0].get_script()
-	for i: int in model.session.selected_resources.size():
-		if model.session.selected_resources[i].get_script() != first_script:
+func _get_common_script(selected: Array[Resource]) -> GDScript:
+	var first_script: GDScript = selected[0].get_script()
+	for i: int in selected.size():
+		if selected[i].get_script() != first_script:
 			return model.current_class_script
 	return first_script
 
@@ -90,7 +94,7 @@ func _on_inspector_property_edited(property: String) -> void:
 	var new_value: Variant = _bulk_proxy.get(property)
 	var saved: Array[Resource] = []
 	var failed_paths: Array[String] = []
-	for res: Resource in model.session.selected_resources:
+	for res: Resource in _resolve_selected_resources():
 		if property not in res: continue
 		res.set(property, new_value)
 		var err: Error = ResourceSaver.save(res, res.resource_path)
