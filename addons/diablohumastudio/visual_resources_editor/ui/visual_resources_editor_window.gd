@@ -12,12 +12,12 @@ func _ready() -> void:
 	%ClassSelector.vm = ClassSelectorVM.new(_model)
 	%SubclassFilter.vm = SubclassFilterVM.new(_model)
 	%Toolbar.vm = ToolbarVM.new(_model)
-	%PaginationBar.vm = PaginationBarVM.new(_model)
-	%StatusLabel.vm = StatusLabelVM.new(_model)
 	%Dialogs.save_dialog_vm = SaveResourceDialogVM.new(_model)
 	%Dialogs.confirm_delete_vm = ConfirmDeleteDialogVM.new(_model)
 	%Dialogs.error_dialog_vm = ErrorDialogVM.new(_model)
 	%ResourceList.vm = ResourceListVM.new(_model)
+	%ResourceList.pagination_vm = PaginationBarVM.new(_model)
+	%ResourceList.status_vm = StatusLabelVM.new(_model)
 	%BulkEditor.model = _model
 
 

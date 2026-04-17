@@ -10,6 +10,18 @@ var vm: ResourceListVM = null:
 		if is_node_ready():
 			_connect_vm()
 
+var pagination_vm: PaginationBarVM = null:
+	set(value):
+		pagination_vm = value
+		if is_node_ready():
+			%PaginationBar.vm = pagination_vm
+
+var status_vm: StatusLabelVM = null:
+	set(value):
+		status_vm = value
+		if is_node_ready():
+			%StatusLabel.vm = status_vm
+
 var _rows: Array[ResourceRow] = []
 var _resource_path_to_row: Dictionary[String, ResourceRow] = {}
 var _resource_path_to_row_vm: Dictionary[String, ResourceRowVM] = {}
@@ -19,6 +31,10 @@ var _current_shared_property_list: Array[ResourceProperty] = []
 func _ready() -> void:
 	if vm:
 		_connect_vm()
+	if pagination_vm:
+		%PaginationBar.vm = pagination_vm
+	if status_vm:
+		%StatusLabel.vm = status_vm
 
 
 func _connect_vm() -> void:
@@ -107,5 +123,4 @@ func _clear_rows() -> void:
 	_rows.clear()
 	_resource_path_to_row.clear()
 	_resource_path_to_row_vm.clear()
-
 

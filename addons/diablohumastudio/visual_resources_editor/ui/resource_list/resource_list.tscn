@@ -2,6 +2,8 @@
 
 [ext_resource type="Script" uid="uid://bdgqiegljl3yg" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/resource_list.gd" id="1_list"]
 [ext_resource type="PackedScene" uid="uid://b7xqwt52kxrun" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/header_row.tscn" id="2_hdr"]
+[ext_resource type="PackedScene" path="res://addons/diablohumastudio/visual_resources_editor/ui/pagination_bar/pagination_bar.tscn" id="3_pg"]
+[ext_resource type="Script" uid="uid://dovkxlvcqmbf4" path="res://addons/diablohumastudio/visual_resources_editor/ui/status_label.gd" id="4_sl"]
 
 [node name="ResourceList" type="VBoxContainer" unique_id=1598452339]
 anchors_preset = 15
@@ -24,3 +26,13 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+
+[node name="PaginationBar" parent="." instance=ExtResource("3_pg")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Select a class to browse resources"
+script = ExtResource("4_sl")
