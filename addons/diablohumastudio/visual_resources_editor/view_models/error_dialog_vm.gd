@@ -4,8 +4,6 @@ extends RefCounted
 
 signal error_occurred(message: String)
 
-var _model: VREModel
 
-func _init(p_model: VREModel) -> void:
-	_model = p_model
-	_model.resource_repo.error_occurred.connect(func(msg: String): error_occurred.emit(msg))
+func _init(resource_repo: ResourceRepository) -> void:
+	resource_repo.error_occurred.connect(func(msg: String): error_occurred.emit(msg))

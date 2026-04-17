@@ -3,37 +3,50 @@ class_name ToolbarVM
 extends RefCounted
 
 signal actions_availability_changed()
+signal create_requested()
+signal delete_requested(paths: Array[String])
+signal refresh_requested()
 
-var _model: VREModel
+var _session: SessionStateModel
 
-func _init(p_model: VREModel) -> void:
-	_model = p_model
-	_model.selection_changed.connect(_on_selection_changed)
-	_model.session.selected_class_changed.connect(_on_class_changed)
+
+func _init(p_session: SessionStateModel) -> void:
+	_session = p_session
+	_session.selected_paths_changed.connect(_on_selection_changed)
+	_session.selected_class_changed.connect(_on_class_changed)
+
 
 func _on_selection_changed(_paths: Array[String]) -> void:
 	actions_availability_changed.emit()
 
+
 func _on_class_changed(_class_name_: String) -> void:
 	actions_availability_changed.emit()
 
+
 func get_selected_count() -> int:
-	return _model.session.selected_paths.size()
+	return _session.selected_paths.size()
+
 
 func is_delete_enabled() -> bool:
-	return _model.session.selected_paths.size() > 0
+	return _session.selected_paths.size() > 0
+
 
 func is_create_enabled() -> bool:
-	return not _model.session.selected_class.is_empty()
+	return not _session.selected_class.is_empty()
+
 
 func is_refresh_enabled() -> bool:
-	return not _model.session.selected_class.is_empty()
+	return not _session.selected_class.is_empty()
+
 
 func request_create() -> void:
-	_model.request_create_new_resource()
+	create_requested.emit()
+
 
 func request_delete() -> void:
-	_model.request_delete_selected_resources(_model.session.selected_paths.duplicate())
+	delete_requested.emit(_session.selected_paths.duplicate())
+
 
 func request_refresh() -> void:
-	_model.refresh_resource_list_values()
+	refresh_requested.emit()

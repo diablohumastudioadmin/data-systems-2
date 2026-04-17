@@ -2,28 +2,45 @@
 class_name BulkEditor
 extends Node
 
-var model: VREModel = null:
+var session: SessionStateModel = null:
 	set(value):
-		model = value
+		session = value
 		if is_node_ready():
-			_connect_model()
+			_connect_dependencies()
+
+var resource_repo: ResourceRepository = null:
+	set(value):
+		resource_repo = value
+		if is_node_ready():
+			_connect_dependencies()
+
+var class_registry: ClassRegistry = null:
+	set(value):
+		class_registry = value
+		if is_node_ready():
+			_connect_dependencies()
 
 var _inspector: EditorInspector
 var _bulk_proxy: Resource = null
 var _inspected_selection_paths: Array[String] = []
+var _connected: bool = false
 
 
 func _ready() -> void:
 	_inspector = EditorInterface.get_inspector()
 	if not _inspector.property_edited.is_connected(_on_inspector_property_edited):
 		_inspector.property_edited.connect(_on_inspector_property_edited)
-	if model:
-		_connect_model()
+	_connect_dependencies()
 
 
-func _connect_model() -> void:
-	model.selection_changed.connect(_on_selection_changed)
-	model.resource_repo.resources_saved.connect(_on_resources_saved)
+func _connect_dependencies() -> void:
+	if _connected:
+		return
+	if session == null or resource_repo == null or class_registry == null:
+		return
+	session.selected_paths_changed.connect(_on_selection_changed)
+	resource_repo.resources_saved.connect(_on_resources_saved)
+	_connected = true
 
 
 func _exit_tree() -> void:
@@ -55,24 +72,22 @@ func _create_bulk_proxy() -> void:
 		return
 	_bulk_proxy = script.new()
 	if selected.size() == 1:
-		var res_class: String = script.get_global_name()
-		var empty_props: Array[ResourceProperty] = []
-		var fallback: Array[ResourceProperty] = model.current_class_property_list \
-			if not model.current_class_property_list.is_empty() else empty_props
-		var props: Array[ResourceProperty] = model.current_included_class_property_lists.get(
-			res_class, fallback)
+		var script_name: String = script.get_global_name()
+		var props: Array[ResourceProperty] = class_registry.get_properties(script_name)
+		if props.is_empty():
+			props = class_registry.get_properties(session.selected_class)
 		for prop: ResourceProperty in props:
 			_bulk_proxy.set(prop.name, selected[0].get(prop.name))
 	EditorInterface.inspect_object(_bulk_proxy)
-	_inspected_selection_paths = model.session.selected_paths.duplicate()
+	_inspected_selection_paths = session.selected_paths.duplicate()
 
 
 func _resolve_selected_resources() -> Array[Resource]:
 	var result: Array[Resource] = []
 	var lookup: Dictionary = {}
-	for res: Resource in model.resource_repo.current_class_resources:
+	for res: Resource in resource_repo.current_class_resources:
 		lookup[res.resource_path] = res
-	for path: String in model.session.selected_paths:
+	for path: String in session.selected_paths:
 		if lookup.has(path):
 			result.append(lookup[path])
 	return result
@@ -82,18 +97,14 @@ func _get_common_script(selected: Array[Resource]) -> GDScript:
 	var first_script: GDScript = selected[0].get_script()
 	for i: int in selected.size():
 		if selected[i].get_script() != first_script:
-			return model.current_class_script
+			return class_registry.get_class_script(session.selected_class)
 	return first_script
 
 
-func _on_resources_saved(paths: Array[String]) -> void:
-	var saved: Array[Resource] = []
-	for path: String in paths:
-		var res: Resource = model.resource_repo.get_by_path(path)
-		if res:
-			saved.append(res)
-	if not saved.is_empty():
-		model.notify_resources_edited(saved)
+func _on_resources_saved(_paths: Array[String]) -> void:
+	# ResourceListVM listens directly to repo.resources_saved; keep proxy stable here.
+	if _bulk_proxy:
+		_inspected_selection_paths = session.selected_paths.duplicate()
 
 
 func _on_inspector_property_edited(property: String) -> void:
@@ -107,4 +118,4 @@ func _on_inspector_property_edited(property: String) -> void:
 			continue
 		res.set(property, new_value)
 		entries.append({"path": res.resource_path, "resource": res})
-	model.resource_repo.save_multi(entries)
+	resource_repo.save_multi(entries)

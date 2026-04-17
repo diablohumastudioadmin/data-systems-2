@@ -5,19 +5,42 @@ extends RefCounted
 signal browsable_classes_changed(classes: Array[String])
 signal selected_class_changed(class_name_: String)
 
-var _model: VREModel
+var _session: SessionStateModel
+var _class_registry: ClassRegistry
+var _selected_class_script_path: String = ""
 
-func _init(p_model: VREModel) -> void:
-	_model = p_model
-	_model.project_classes_changed.connect(func(classes: Array[String]): browsable_classes_changed.emit(classes))
-	_model.current_class_renamed.connect(func(new_name: String): selected_class_changed.emit(new_name))
-	_model.session.selected_class_changed.connect(func(class_name_: String): selected_class_changed.emit(class_name_))
+
+func _init(p_session: SessionStateModel, p_class_registry: ClassRegistry) -> void:
+	_session = p_session
+	_class_registry = p_class_registry
+	_class_registry.classes_changed.connect(_on_classes_changed)
+	_session.selected_class_changed.connect(_on_session_selected_class_changed)
+	_selected_class_script_path = _class_registry.get_script_path(_session.selected_class)
+
 
 func get_browsable_classes() -> Array[String]:
-	return _model.global_class_name_list
+	return _class_registry.global_class_name_list
+
 
 func get_selected_class() -> String:
-	return _model.session.selected_class
+	return _session.selected_class
+
 
 func set_selected_class(class_name_: String) -> void:
-	_model.session.selected_class = class_name_
+	_session.selected_class = class_name_
+
+
+func _on_classes_changed(_previous: Array[String], current: Array[String]) -> void:
+	browsable_classes_changed.emit(current)
+	if _session.selected_class.is_empty():
+		return
+	if current.has(_session.selected_class):
+		_selected_class_script_path = _class_registry.get_script_path(_session.selected_class)
+		return
+	var new_name: String = _class_registry.detect_rename(_selected_class_script_path)
+	_session.selected_class = new_name
+
+
+func _on_session_selected_class_changed(class_name_: String) -> void:
+	_selected_class_script_path = _class_registry.get_script_path(class_name_)
+	selected_class_changed.emit(class_name_)
