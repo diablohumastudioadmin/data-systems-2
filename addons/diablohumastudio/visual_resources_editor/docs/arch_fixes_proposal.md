@@ -27,46 +27,19 @@
 
 ---
 
+## DONE — Phases 3, 4, 5
+
+- ✅ **Phase 3** — PaginationBar + StatusLabel are children of `resource_list.tscn`; `resource_list.gd` assigns their `vm`.
+- ✅ **Phase 4** — `ResourceListVM` owns `SelectionManager` + `PaginationManager` internally; subscribes directly to repo signals; has `handle_row_click(path,ctrl,shift)`; `ResourceRowVM` takes `list_vm`; `StatusLabelVM` + `PaginationBarVM` deleted.
+- ✅ **Phase 5** — `vre_model.gd` deleted. Window wires services directly. All VMs take `session` + services. `ClassSelectorVM` listens to `class_registry.classes_changed`.
+
+---
+
 ## REMAINING PHASES
 
-### Phase 3 — Embed PaginationBar + StatusLabel into ResourceList.tscn
-- Move `PaginationBar` and `StatusLabel` nodes from `visual_resources_editor_window.tscn` into `ui/resource_list/resource_list.tscn` as children.
-- Remove their VM assignments from `visual_resources_editor_window.gd._ready()`.
-- `resource_list.gd` assigns `%PaginationBar.vm` and `%StatusLabel.vm`.
-- **Commit:** one commit.
+### ~~Phase 6 — Dialog simplification~~ (SKIPPED — dialog VMs kept for testability)
 
-### Phase 4 — Fatten ResourceListVM (owns pagination + selection + sorting)
-- `ResourceListVM` creates `PaginationManager` + `SelectionManager` internally.
-- Subscribes directly to `repo.resources_reset` / `resources_delta` → sort + paginate + emit rows.
-- New method `handle_row_click(path, ctrl, shift)` → writes `session.selected_paths`.
-- `ResourceRowVM` takes `list_vm` instead of full `VREModel`.
-- Delete `StatusLabelVM` + `PaginationBarVM`; absorb into `ResourceListVM` signals: `pagination_state_changed(page,total)`, `status_text_changed(visible,selected)`.
-- VREModel loses `_on_resources_reset/delta/_on_page_*` handlers.
-- **Commit:** one commit.
-
-### Phase 5 — Delete VREModel (3 sub-commits)
-**5a** `Window._ready` wires services directly:
-  - `fs_listener.script_classes_updated → class_registry.rebuild`
-  - `class_registry.classes_changed → repo.on_classes_changed` (lambda reads session)
-  - `fs_listener.filesystem_changed → repo.scan_for_changes` (lambda reads session+registry)
-  - `ClassSelectorVM` listens to `class_registry.classes_changed` for rename/delete (logic from `VREModel._on_classes_changed:202-224`).
-
-**5b** VMs take services directly (no VREModel):
-  - `ClassSelectorVM.new(session, class_registry)`
-  - `SubclassFilterVM.new(session)`
-  - `ToolbarVM.new(session, resource_repo)`
-  - `ResourceListVM.new(session, resource_repo, class_registry)`
-  - `BulkEditor` wired with `session` + `resource_repo`.
-
-**5c** Delete `core/vre_model.gd` + `.uid` sidecar.
-
-### Phase 6 — Dialog simplification
-- Delete `error_dialog_vm.gd`, `confirm_delete_dialog_vm.gd`, `save_resource_dialog_vm.gd`.
-- Dialogs become thin: `ErrorDialog.show(msg)`, `ConfirmDeleteDialog.show(paths)`, `SaveResourceDialog.show(class_name)`.
-- Window wires: `repo.error_occurred → error_dialog.show`, `toolbar_vm.delete_requested → confirm_delete.show`, `toolbar_vm.create_requested → save_dialog.show`.
-- Delete `Dialogs.gd` script if no logic remains.
-
-### Phase 7 — Cleanup
+### Phase 6 — Cleanup
 - Fix `ResourceFieldLabel` StyleBox mutation: call `.duplicate()` before mutating theme stylebox.
 - Delete unused `.gd` + `.uid` pairs (grep `class_name` first).
 - Delete decorative VMs that became empty forwarders after Phase 5.
@@ -77,13 +50,12 @@
 
 | File | Role |
 |------|------|
-| `core/vre_model.gd` | **Will be deleted** in Phase 5c |
-| `core/resource_repository.gd` | Central disk I/O owner (grows through Phase 2) |
+| `core/resource_repository.gd` | Central disk I/O owner |
 | `core/class_registry.gd` | Class map + property scanning |
-| `core/selection_manager.gd` | Now path-based; no restore() |
-| `core/data_models/session_state_model.gd` | `selected_paths: Array[String]` (Phase 1) |
-| `view_models/resource_list_vm.gd` | Grows into pagination+selection owner (Phase 4) |
-| `ui/visual_resources_editor_window.gd` | Becomes composition root (Phase 5b) |
+| `core/selection_manager.gd` | Path-based; no restore() |
+| `core/data_models/session_state_model.gd` | `selected_paths: Array[String]` |
+| `view_models/resource_list_vm.gd` | Owns pagination + selection + sorting |
+| `ui/visual_resources_editor_window.gd` | Composition root — wires all services + VMs |
 
 ## Constraints
 - **Never commit unless user says so.** User tests in Godot first.
