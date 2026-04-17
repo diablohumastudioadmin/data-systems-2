@@ -76,3 +76,17 @@ func get_properties(class_name_str: String) -> Array[ResourceProperty]:
 		var empty: Array[ResourceProperty] = []
 		return empty
 	return ProjectClassScanner.get_properties_from_script_path(path)
+
+
+## Returns { class_name: Array[ResourceProperty] } for each class in class_names.
+## Classes with no registered script path map to an empty array.
+func get_properties_for(class_names: Array[String]) -> Dictionary:
+	return ProjectClassScanner.get_properties_from_script_names(
+		class_names, global_class_to_path_map)
+
+
+## Returns the union of editor-visible properties across class_names,
+## preserving first-seen order and deduplicating by property name.
+func get_shared_properties(class_names: Array[String]) -> Array[ResourceProperty]:
+	return ProjectClassScanner.unite_classes_properties(
+		class_names, global_class_to_path_map)

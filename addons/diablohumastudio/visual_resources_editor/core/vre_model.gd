@@ -150,13 +150,13 @@ func _resolve_current_classes() -> void:
 
 
 func _scan_current_properties() -> void:
-	current_included_class_property_lists = ProjectClassScanner.get_properties_from_script_names(
-		_current_included_class_names, class_registry.global_class_to_path_map)
+	current_included_class_property_lists = class_registry.get_properties_for(
+		_current_included_class_names)
 	var empty_props: Array[ResourceProperty] = []
 	current_class_property_list = current_included_class_property_lists.get(
 		session.selected_class, empty_props)
-	current_shared_property_list = ProjectClassScanner.unite_classes_properties(
-		_current_included_class_names, class_registry.global_class_to_path_map)
+	current_shared_property_list = class_registry.get_shared_properties(
+		_current_included_class_names)
 
 
 # ── Manager signal handlers ──────────────────────────────────────────────────
