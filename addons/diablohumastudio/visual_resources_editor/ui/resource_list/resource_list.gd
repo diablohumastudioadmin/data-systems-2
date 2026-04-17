@@ -10,18 +10,6 @@ var vm: ResourceListVM = null:
 		if is_node_ready():
 			_connect_vm()
 
-var pagination_vm: PaginationBarVM = null:
-	set(value):
-		pagination_vm = value
-		if is_node_ready():
-			%PaginationBar.vm = pagination_vm
-
-var status_vm: StatusLabelVM = null:
-	set(value):
-		status_vm = value
-		if is_node_ready():
-			%StatusLabel.vm = status_vm
-
 var _rows: Array[ResourceRow] = []
 var _resource_path_to_row: Dictionary[String, ResourceRow] = {}
 var _resource_path_to_row_vm: Dictionary[String, ResourceRowVM] = {}
@@ -31,20 +19,15 @@ var _current_shared_property_list: Array[ResourceProperty] = []
 func _ready() -> void:
 	if vm:
 		_connect_vm()
-	if pagination_vm:
-		%PaginationBar.vm = pagination_vm
-	if status_vm:
-		%StatusLabel.vm = status_vm
 
 
 func _connect_vm() -> void:
 	vm.columns_changed.connect(_on_columns_changed)
 	vm.rows_replaced.connect(_on_rows_replaced)
-	vm.rows_added.connect(_on_rows_added)
-	vm.rows_removed.connect(_on_rows_removed)
-	vm.rows_modified.connect(_on_rows_modified)
 	vm.rows_edited.connect(_on_rows_edited)
 	%HeaderRow.set_view_model(vm)
+	%PaginationBar.vm = vm
+	%StatusLabel.vm = vm
 
 
 func _on_columns_changed(columns: Array[ResourceProperty]) -> void:
@@ -62,30 +45,11 @@ func _on_rows_replaced(rows: Array[ResourceRowVM]) -> void:
 		_add_row(row_vm)
 
 
-func _on_rows_added(rows: Array[ResourceRowVM]) -> void:
-	for row_vm: ResourceRowVM in rows:
-		_add_row(row_vm)
-
-
-func _on_rows_removed(removed_resources: Array[Resource]) -> void:
-	for res: Resource in removed_resources:
-		_remove_row_by_path(res.resource_path)
-
-
-func _on_rows_modified(modified_resources: Array[Resource]) -> void:
-	for res: Resource in modified_resources:
-		var path: String = res.resource_path
-		if _resource_path_to_row_vm.has(path):
-			_resource_path_to_row_vm[path].resource = res
-		if _resource_path_to_row.has(path):
-			var row: ResourceRow = _resource_path_to_row[path]
-			if is_instance_valid(row):
-				row.update_display()
-
-
 func _on_rows_edited(resources: Array[Resource]) -> void:
 	for res: Resource in resources:
 		var path: String = res.resource_path
+		if _resource_path_to_row_vm.has(path):
+			_resource_path_to_row_vm[path].resource = res
 		if _resource_path_to_row.has(path):
 			var row: ResourceRow = _resource_path_to_row[path]
 			if is_instance_valid(row):
@@ -105,17 +69,6 @@ func _add_row(row_vm: ResourceRowVM) -> void:
 	_resource_path_to_row_vm[path] = row_vm
 
 
-func _remove_row_by_path(resource_path: String) -> void:
-	if not _resource_path_to_row.has(resource_path):
-		return
-	var row: ResourceRow = _resource_path_to_row[resource_path]
-	if is_instance_valid(row):
-		_rows.erase(row)
-		row.queue_free()
-	_resource_path_to_row.erase(resource_path)
-	_resource_path_to_row_vm.erase(resource_path)
-
-
 func _clear_rows() -> void:
 	for row: ResourceRow in _rows:
 		if is_instance_valid(row):
@@ -123,4 +76,3 @@ func _clear_rows() -> void:
 	_rows.clear()
 	_resource_path_to_row.clear()
 	_resource_path_to_row_vm.clear()
-

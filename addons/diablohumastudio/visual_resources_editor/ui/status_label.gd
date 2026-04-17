@@ -1,7 +1,7 @@
 @tool
 extends Label
 
-var vm: StatusLabelVM = null:
+var vm: ResourceListVM = null:
 	set(value):
 		vm = value
 		if is_node_ready():
@@ -14,7 +14,8 @@ func _ready() -> void:
 
 
 func _connect_vm() -> void:
-	vm.counts_updated.connect(_on_counts_updated)
+	vm.status_text_changed.connect(_on_counts_updated)
+	_on_counts_updated(vm.get_visible_count(), vm.get_selected_count())
 
 
 func _on_counts_updated(visible_count: int, selected_count: int) -> void:

@@ -1,7 +1,7 @@
 @tool
 extends HBoxContainer
 
-var vm: PaginationBarVM = null:
+var vm: ResourceListVM = null:
 	set(value):
 		vm = value
 		if is_node_ready():
@@ -16,7 +16,8 @@ func _ready() -> void:
 func _connect_vm() -> void:
 	%PrevBtn.pressed.connect(vm.prev_page)
 	%NextBtn.pressed.connect(vm.next_page)
-	vm.pagination_updated.connect(_on_pagination_updated)
+	vm.pagination_state_changed.connect(_on_pagination_updated)
+	_on_pagination_updated(vm.get_current_page(), vm.get_total_pages())
 
 
 func _on_pagination_updated(page: int, page_count: int) -> void:

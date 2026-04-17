@@ -16,8 +16,6 @@ func _ready() -> void:
 	%Dialogs.confirm_delete_vm = ConfirmDeleteDialogVM.new(_model)
 	%Dialogs.error_dialog_vm = ErrorDialogVM.new(_model)
 	%ResourceList.vm = ResourceListVM.new(_model)
-	%ResourceList.pagination_vm = PaginationBarVM.new(_model)
-	%ResourceList.status_vm = StatusLabelVM.new(_model)
 	%BulkEditor.model = _model
 
 

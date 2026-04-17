@@ -20,8 +20,6 @@ signal create_new_resource_requested()
 var session: SessionStateModel
 var class_registry: ClassRegistry
 var resource_repo: ResourceRepository
-var _selection: SelectionManager
-var _pagination: PaginationManager
 var _fs_listener: EditorFileSystemListener
 
 # ── Coordinator-only state ────────────────────────────────────────────────────
@@ -46,39 +44,25 @@ var global_class_to_path_map: Dictionary[String, String]:
 var current_class_resources: Array[Resource]:
 	get: return resource_repo.current_class_resources
 
-var current_page_resources: Array[Resource]:
-	get: return _pagination.current_page_resources
-
 
 func _init() -> void:
 	session = SessionStateModel.new()
 	class_registry = ClassRegistry.new()
 	resource_repo = ResourceRepository.new()
-	_selection = SelectionManager.new()
-	_pagination = PaginationManager.new()
 	_fs_listener = EditorFileSystemListener.new()
 
 
 func start() -> void:
-	if not Engine.is_editor_hint(): return
+	if not Engine.is_editor_hint():
+		return
 
 	class_registry.classes_changed.connect(_on_classes_changed)
-	resource_repo.resources_reset.connect(_on_resources_reset)
-	resource_repo.resources_delta.connect(_on_resources_delta)
-	
-	_selection.selection_changed.connect(_on_selection_manager_changed)
-	
-	_pagination.page_replaced.connect(_on_page_replaced)
-	_pagination.page_delta.connect(_on_page_delta)
-	_pagination.pagination_changed.connect(_on_pagination_manager_changed)
-	
 	_fs_listener.filesystem_changed.connect(_on_filesystem_changed)
 	_fs_listener.script_classes_updated.connect(_on_script_classes_updated)
-	
-	# Wire SessionStateModel coordination
+
 	session.selected_class_changed.connect(_on_session_selected_class_changed)
 	session.include_subclasses_changed.connect(_on_session_include_subclasses_changed)
-	session.sort_changed.connect(_on_session_sort_changed)
+	session.selected_paths_changed.connect(_on_session_selected_paths_changed)
 
 	_fs_listener.start()
 	class_registry.rebuild()
@@ -86,7 +70,8 @@ func start() -> void:
 
 
 func stop() -> void:
-	if not Engine.is_editor_hint(): return
+	if not Engine.is_editor_hint():
+		return
 	_fs_listener.stop()
 
 
@@ -108,21 +93,6 @@ func report_error(message: String) -> void:
 	error_occurred.emit(message)
 
 
-func set_selected_by_path(path: String, ctrl_held: bool, shift_held: bool) -> void:
-	var all_paths: Array[String] = []
-	for res: Resource in resource_repo.current_class_resources:
-		all_paths.append(res.resource_path)
-	_selection.set_selected(path, ctrl_held, shift_held, all_paths)
-
-
-func next_page() -> void:
-	_pagination.next(resource_repo.current_class_resources)
-
-
-func prev_page() -> void:
-	_pagination.prev(resource_repo.current_class_resources)
-
-
 func refresh_resource_list_values() -> void:
 	if session.selected_class.is_empty():
 		return
@@ -142,9 +112,8 @@ func _on_session_include_subclasses_changed(_include: bool) -> void:
 	refresh_resource_list_values()
 
 
-func _on_session_sort_changed(_column: String, _ascending: bool) -> void:
-	_apply_sort()
-	_pagination.reset(resource_repo.current_class_resources)
+func _on_session_selected_paths_changed(paths: Array[String]) -> void:
+	selection_changed.emit(paths)
 
 
 # ── Private coordinator logic ────────────────────────────────────────────────
@@ -164,44 +133,6 @@ func _scan_current_properties() -> void:
 	current_shared_property_list = class_registry.get_shared_properties(
 		_current_included_class_names)
 	resource_repo.update_last_known_props(current_class_property_list)
-
-
-# ── Manager signal handlers ──────────────────────────────────────────────────
-
-func _on_selection_manager_changed(paths: Array[String]) -> void:
-	session.selected_paths = paths
-	selection_changed.emit(paths)
-
-
-func _on_pagination_manager_changed(page: int, page_count: int) -> void:
-	session.current_page = page
-	pagination_changed.emit(page, page_count)
-
-
-func _on_resources_reset(_resources: Array[Resource]) -> void:
-	_apply_sort()
-	_selection.reconcile(resource_repo.get_paths())
-	_pagination.reset(resource_repo.current_class_resources)
-
-
-func _on_resources_delta(
-	added: Array[Resource], removed: Array[Resource], modified: Array[Resource]
-) -> void:
-	_apply_sort()
-	_selection.reconcile(resource_repo.get_paths())
-	_pagination.set_page(_pagination.current_page(), resource_repo.current_class_resources)
-
-
-func _on_page_replaced(resources: Array[Resource]) -> void:
-	resources_replaced.emit(resources, current_shared_property_list)
-
-
-func _on_page_delta(
-	added: Array[Resource], removed: Array[Resource], modified: Array[Resource]
-) -> void:
-	if not removed.is_empty(): resources_removed.emit(removed)
-	if not added.is_empty(): resources_added.emit(added)
-	if not modified.is_empty(): resources_modified.emit(modified)
 
 
 # ── ClassRegistry signal handlers ─────────────────────────────────────────────
@@ -272,21 +203,7 @@ func _refresh_property_ui() -> void:
 		return
 	_scan_current_properties()
 	_validate_sort_column()
-	_apply_sort()
-	_pagination.refresh_silent(resource_repo.current_class_resources)
-	resources_replaced.emit(_pagination.current_page_resources, current_shared_property_list)
-	pagination_changed.emit(
-		_pagination.current_page(),
-		_pagination.page_count(resource_repo.current_class_resources.size())
-	)
-
-
-func _apply_sort() -> void:
-	ResourceSorter.sort(
-		resource_repo.current_class_resources,
-		session.sort_column,
-		session.sort_ascending,
-		current_shared_property_list)
+	resource_repo.load_resources(_current_included_class_names)
 
 
 func _validate_sort_column() -> void:
@@ -300,14 +217,11 @@ func _validate_sort_column() -> void:
 
 func _clear_view() -> void:
 	session.selected_class = ""
+	session.selected_paths = []
+	session.current_page = 0
 	_current_included_class_names.clear()
 	current_class_script = null
 	current_class_property_list = []
 	current_included_class_property_lists.clear()
 	current_shared_property_list.clear()
-	resource_repo.clear()
-	_selection.clear()
-	var empty_resources: Array[Resource] = []
-	var empty_props: Array[ResourceProperty] = []
-	resources_replaced.emit(empty_resources, empty_props)
-	pagination_changed.emit(0, 1)
+	resource_repo.load_resources([])
