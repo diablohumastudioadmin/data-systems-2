@@ -62,8 +62,6 @@ func start() -> void:
 	class_registry.classes_changed.connect(_on_classes_changed)
 	resource_repo.resources_reset.connect(_on_resources_reset)
 	resource_repo.resources_delta.connect(_on_resources_delta)
-	# Temporary bridge removed in Phase 2.4 when ErrorDialogVM wires to repo directly.
-	resource_repo.error_occurred.connect(error_occurred.emit)
 	
 	_selection.selection_changed.connect(_on_selection_manager_changed)
 	
