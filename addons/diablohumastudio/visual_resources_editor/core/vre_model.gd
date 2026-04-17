@@ -97,7 +97,7 @@ func request_delete_selected_resources(resource_paths: Array[String]) -> void:
 	delete_selected_requested.emit(resource_paths)
 
 
-func request_create_new_resouce() -> void:
+func request_create_new_resource() -> void:
 	create_new_resource_requested.emit()
 
 

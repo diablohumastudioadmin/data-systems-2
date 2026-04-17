@@ -30,7 +30,7 @@ func is_refresh_enabled() -> bool:
 	return not _model.session.selected_class.is_empty()
 
 func request_create() -> void:
-	_model.request_create_new_resouce()
+	_model.request_create_new_resource()
 
 func request_delete() -> void:
 	var paths: Array[String] = []
