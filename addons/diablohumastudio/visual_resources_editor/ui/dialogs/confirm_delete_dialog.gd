@@ -31,18 +31,5 @@ func _on_pending_deletions_changed(paths: Array[String]) -> void:
 
 
 func _on_confirmed() -> void:
-	var failed_paths: Array[String] = []
-	for path: String in _pending_paths:
-		if not path.begins_with("res://"):
-			push_warning("VRE: Skipping delete of path outside project: %s" % path)
-			failed_paths.append(path)
-			continue
-		var err: Error = OS.move_to_trash(ProjectSettings.globalize_path(path))
-		if err != OK:
-			failed_paths.append(path)
-	var efs: EditorFileSystem = EditorInterface.get_resource_filesystem()
-	for path: String in _pending_paths:
-		efs.update_file(path)
-	if not failed_paths.is_empty():
-		vm.report_error("Failed to delete:\n%s" % "\n".join(failed_paths))
+	vm.delete(_pending_paths)
 	_pending_paths.clear()

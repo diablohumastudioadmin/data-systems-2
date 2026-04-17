@@ -33,15 +33,4 @@ func _on_show_requested() -> void:
 
 func _on_file_selected(path: String) -> void:
 	var class_name_: String = vm.get_class_to_create()
-	var script_path: String = vm.get_class_script_path(class_name_)
-	var script: GDScript = load(script_path)
-	if script == null:
-		vm.report_error("Failed to load script for %s." % class_name_)
-		return
-	if not script.can_instantiate():
-		vm.report_error("Can't instantiate %s.\nCheck its constructor." % class_name_)
-		return
-	var instance: Resource = script.new()
-	var err: Error = ResourceSaver.save(instance, path)
-	if err != OK:
-		vm.report_error("Failed to save resource:\n%s" % path)
+	vm.create_resource(class_name_, path)

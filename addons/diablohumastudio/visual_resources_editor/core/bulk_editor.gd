@@ -2,8 +2,6 @@
 class_name BulkEditor
 extends Node
 
-const MAX_SAVE_ERROR_PATHS: int = 3
-
 var model: VREModel = null:
 	set(value):
 		model = value
@@ -25,6 +23,7 @@ func _ready() -> void:
 
 func _connect_model() -> void:
 	model.selection_changed.connect(_on_selection_changed)
+	model.resource_repo.resources_saved.connect(_on_resources_saved)
 
 
 func _exit_tree() -> void:
@@ -87,26 +86,25 @@ func _get_common_script(selected: Array[Resource]) -> GDScript:
 	return first_script
 
 
+func _on_resources_saved(paths: Array[String]) -> void:
+	var saved: Array[Resource] = []
+	for path: String in paths:
+		var res: Resource = model.resource_repo.get_by_path(path)
+		if res:
+			saved.append(res)
+	if not saved.is_empty():
+		model.notify_resources_edited(saved)
+
+
 func _on_inspector_property_edited(property: String) -> void:
 	var edited_obj: Object = _inspector.get_edited_object()
 	if not (_bulk_proxy and edited_obj == _bulk_proxy):
 		return
 	var new_value: Variant = _bulk_proxy.get(property)
-	var saved: Array[Resource] = []
-	var failed_paths: Array[String] = []
+	var entries: Array[Dictionary] = []
 	for res: Resource in _resolve_selected_resources():
-		if property not in res: continue
+		if property not in res:
+			continue
 		res.set(property, new_value)
-		var err: Error = ResourceSaver.save(res, res.resource_path)
-		if err != OK:
-			failed_paths.append(res.resource_path)
-		else:
-			saved.append(res)
-	if not failed_paths.is_empty():
-		var shown: Array[String] = failed_paths.slice(0, MAX_SAVE_ERROR_PATHS)
-		var msg: String = "Failed to save:\n%s" % "\n".join(shown)
-		if failed_paths.size() > MAX_SAVE_ERROR_PATHS:
-			msg += "\n... and %d more" % (failed_paths.size() - MAX_SAVE_ERROR_PATHS)
-		model.report_error(msg)
-	if not saved.is_empty():
-		model.notify_resources_edited(saved)
+		entries.append({"path": res.resource_path, "resource": res})
+	model.resource_repo.save_multi(entries)

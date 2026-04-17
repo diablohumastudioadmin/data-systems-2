@@ -16,10 +16,8 @@ func get_class_to_create() -> String:
 	return _model.session.selected_class
 
 func get_class_script_path(class_name_: String) -> String:
-	for entry: Dictionary in _model.global_class_map:
-		if entry.get("class", "") == class_name_:
-			return entry.get("path", "")
-	return ""
+	return _model.class_registry.get_script_path(class_name_)
 
-func report_error(message: String) -> void:
-	_model.report_error(message)
+func create_resource(class_name_: String, path: String) -> void:
+	var script: GDScript = _model.class_registry.get_class_script(class_name_)
+	_model.resource_repo.create(script, path)

@@ -18,5 +18,5 @@ func _on_delete_requested(paths: Array[String]) -> void:
 func get_pending_deletions() -> Array[String]:
 	return _pending_deletions
 
-func report_error(message: String) -> void:
-	_model.report_error(message)
+func delete(paths: Array[String]) -> void:
+	_model.resource_repo.delete(paths)
