@@ -2,9 +2,9 @@
 class_name BulkEditor
 extends Node
 
-var session: SessionStateModel = null:
+var selection_manager: SelectionManager = null:
 	set(value):
-		session = value
+		selection_manager = value
 		if is_node_ready():
 			_connect_dependencies()
 
@@ -30,9 +30,9 @@ func _ready() -> void:
 func _connect_dependencies() -> void:
 	if _connected:
 		return
-	if session == null or resource_repo == null:
+	if selection_manager == null or resource_repo == null:
 		return
-	session.selected_paths_changed.connect(_on_selection_changed)
+	selection_manager.selection_changed.connect(_on_selection_changed)
 	resource_repo.resources_saved.connect(_on_resources_saved)
 	_connected = true
 
@@ -73,7 +73,7 @@ func _create_bulk_proxy() -> void:
 		for prop: ResourceProperty in props:
 			_bulk_proxy.set(prop.name, selected[0].get(prop.name))
 	EditorInterface.inspect_object(_bulk_proxy)
-	_inspected_selection_paths = session.selected_paths.duplicate()
+	_inspected_selection_paths = selection_manager.selected_paths.duplicate()
 
 
 func _resolve_selected_resources() -> Array[Resource]:
@@ -81,7 +81,7 @@ func _resolve_selected_resources() -> Array[Resource]:
 	var lookup: Dictionary = {}
 	for res: Resource in resource_repo.current_class_resources:
 		lookup[res.resource_path] = res
-	for path: String in session.selected_paths:
+	for path: String in selection_manager.selected_paths:
 		if lookup.has(path):
 			result.append(lookup[path])
 	return result
@@ -97,7 +97,7 @@ func _get_common_script(selected: Array[Resource]) -> GDScript:
 
 func _on_resources_saved(_paths: Array[String]) -> void:
 	if _bulk_proxy:
-		_inspected_selection_paths = session.selected_paths.duplicate()
+		_inspected_selection_paths = selection_manager.selected_paths.duplicate()
 
 
 func _on_inspector_property_edited(property: String) -> void:

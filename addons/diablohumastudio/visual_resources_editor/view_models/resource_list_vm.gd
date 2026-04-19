@@ -12,7 +12,7 @@ signal delete_requested(paths: Array[String])
 
 var _session: SessionStateModel
 var _resource_repo: ResourceRepository
-var _selection: SelectionManager
+var selection_manager: SelectionManager
 var _pagination: PaginationManager
 
 var rows: Array[ResourceRowVM] = []
@@ -26,7 +26,7 @@ var _total_pages: int = 1
 func _init(p_session: SessionStateModel, p_resource_repo: ResourceRepository) -> void:
 	_session = p_session
 	_resource_repo = p_resource_repo
-	_selection = SelectionManager.new()
+	selection_manager = SelectionManager.new()
 	_pagination = PaginationManager.new()
 	sort_column = _session.sort_column
 	sort_ascending = _session.sort_ascending
@@ -35,8 +35,7 @@ func _init(p_session: SessionStateModel, p_resource_repo: ResourceRepository) ->
 	_resource_repo.resources_delta.connect(_on_resources_delta)
 	_resource_repo.resources_saved.connect(_on_resources_saved)
 	_session.sort_changed.connect(_on_sort_changed)
-	_session.selected_paths_changed.connect(_on_session_selected_paths_changed)
-	_selection.selection_changed.connect(_on_selection_manager_changed)
+	selection_manager.selection_changed.connect(_on_selection_changed)
 
 
 func request_sort(column: String) -> void:
@@ -47,13 +46,12 @@ func request_sort(column: String) -> void:
 
 
 func handle_row_click(path: String, ctrl_held: bool, shift_held: bool) -> void:
-	_selection.set_selected(path, ctrl_held, shift_held, _resource_repo.get_paths())
+	selection_manager.set_selected(path, ctrl_held, shift_held, _resource_repo.get_paths())
 
 
 func request_delete(paths: Array[String]) -> void:
 	if paths.is_empty():
 		return
-	_session.selected_paths = paths.duplicate()
 	delete_requested.emit(paths.duplicate())
 
 
@@ -84,11 +82,11 @@ func get_visible_count() -> int:
 
 
 func get_selected_count() -> int:
-	return _session.selected_paths.size()
+	return selection_manager.selected_paths.size()
 
 
 func is_path_selected(path: String) -> bool:
-	return _session.selected_paths.has(path)
+	return selection_manager.selected_paths.has(path)
 
 
 func _on_sort_changed(column: String, ascending: bool) -> void:
@@ -99,7 +97,7 @@ func _on_sort_changed(column: String, ascending: bool) -> void:
 		_emit_page_state()
 		return
 	_apply_sort()
-	_selection.reconcile(_resource_repo.get_paths())
+	selection_manager.reconcile(_resource_repo.get_paths())
 	_pagination.reset(_resource_repo.current_class_resources)
 	_emit_page_state()
 
@@ -107,7 +105,7 @@ func _on_sort_changed(column: String, ascending: bool) -> void:
 func _on_resources_reset(_resources: Array[Resource]) -> void:
 	_rebuild_columns()
 	_apply_sort()
-	_selection.reconcile(_resource_repo.get_paths())
+	selection_manager.reconcile(_resource_repo.get_paths())
 	_pagination.reset(_resource_repo.current_class_resources)
 	_emit_page_state()
 
@@ -116,7 +114,7 @@ func _on_resources_delta(
 	_added: Array[Resource], _removed: Array[Resource], _modified: Array[Resource]
 ) -> void:
 	_apply_sort()
-	_selection.reconcile(_resource_repo.get_paths())
+	selection_manager.reconcile(_resource_repo.get_paths())
 	_pagination.set_page(_pagination.current_page(), _resource_repo.current_class_resources)
 	_emit_page_state()
 
@@ -131,21 +129,7 @@ func _on_resources_saved(paths: Array[String]) -> void:
 		rows_edited.emit(saved)
 
 
-func _on_selection_manager_changed(paths: Array[String]) -> void:
-	_session.selected_paths = paths
-	_apply_selection_to_rows(paths)
-	status_text_changed.emit(_visible_count, paths.size())
-
-
-func _on_session_selected_paths_changed(paths: Array[String]) -> void:
-	if paths == _selection.selected_paths:
-		_apply_selection_to_rows(paths)
-		status_text_changed.emit(_visible_count, paths.size())
-		return
-	if paths.is_empty():
-		_selection.clear()
-		return
-	_selection.selected_paths = paths.duplicate()
+func _on_selection_changed(paths: Array[String]) -> void:
 	_apply_selection_to_rows(paths)
 	status_text_changed.emit(_visible_count, paths.size())
 
@@ -185,7 +169,7 @@ func _emit_page_state() -> void:
 	_total_pages = _pagination.page_count(_resource_repo.current_class_resources.size())
 	_session.current_page = _pagination.current_page()
 	pagination_state_changed.emit(_pagination.current_page(), _total_pages)
-	status_text_changed.emit(_visible_count, _session.selected_paths.size())
+	status_text_changed.emit(_visible_count, selection_manager.selected_paths.size())
 
 
 func _rebuild_rows(resources: Array[Resource]) -> void:

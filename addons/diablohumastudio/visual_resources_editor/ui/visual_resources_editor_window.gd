@@ -13,8 +13,8 @@ func _ready() -> void:
 	_session = SessionStateModel.new()
 	_resource_repo = ResourceRepository.new()
 
-	_toolbar_vm = ToolbarVM.new(_resource_repo, _session)
 	_resource_list_vm = ResourceListVM.new(_session, _resource_repo)
+	_toolbar_vm = ToolbarVM.new(_resource_repo, _resource_list_vm.selection_manager)
 	_toolbar_vm.refresh_requested.connect(_resource_list_vm.refresh_current_view)
 
 	var confirm_delete_vm: ConfirmDeleteDialogVM = ConfirmDeleteDialogVM.new(_resource_repo, _toolbar_vm)
@@ -27,7 +27,7 @@ func _ready() -> void:
 	%Dialogs.confirm_delete_vm = confirm_delete_vm
 	%Dialogs.error_dialog_vm = ErrorDialogVM.new(_resource_repo)
 	%ResourceList.vm = _resource_list_vm
-	%BulkEditor.session = _session
+	%BulkEditor.selection_manager = _resource_list_vm.selection_manager
 	%BulkEditor.resource_repo = _resource_repo
 
 	_resource_repo.start()

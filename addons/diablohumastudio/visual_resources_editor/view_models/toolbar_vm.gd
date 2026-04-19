@@ -8,13 +8,13 @@ signal delete_requested(paths: Array[String])
 signal refresh_requested()
 
 var _resource_repo: ResourceRepository
-var _session: SessionStateModel
+var _selection_manager: SelectionManager
 
 
-func _init(p_resource_repo: ResourceRepository, p_session: SessionStateModel) -> void:
+func _init(p_resource_repo: ResourceRepository, p_selection_manager: SelectionManager) -> void:
 	_resource_repo = p_resource_repo
-	_session = p_session
-	_session.selected_paths_changed.connect(_on_selection_changed)
+	_selection_manager = p_selection_manager
+	_selection_manager.selection_changed.connect(_on_selection_changed)
 	_resource_repo.selected_class_changed.connect(_on_class_changed)
 
 
@@ -27,11 +27,11 @@ func _on_class_changed(_class_name_: String) -> void:
 
 
 func get_selected_count() -> int:
-	return _session.selected_paths.size()
+	return _selection_manager.selected_paths.size()
 
 
 func is_delete_enabled() -> bool:
-	return _session.selected_paths.size() > 0
+	return _selection_manager.selected_paths.size() > 0
 
 
 func is_create_enabled() -> bool:
@@ -47,7 +47,7 @@ func request_create() -> void:
 
 
 func request_delete() -> void:
-	delete_requested.emit(_session.selected_paths.duplicate())
+	delete_requested.emit(_selection_manager.selected_paths.duplicate())
 
 
 func request_refresh() -> void:
