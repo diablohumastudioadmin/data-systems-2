@@ -8,16 +8,12 @@ var _resource_repo: ResourceRepository
 var _pending_deletions: Array[String] = []
 
 
-func _init(p_resource_repo: ResourceRepository, toolbar_vm: ToolbarVM) -> void:
+func _init(p_resource_repo: ResourceRepository) -> void:
 	_resource_repo = p_resource_repo
-	toolbar_vm.delete_requested.connect(_on_delete_requested)
+	_resource_repo.confirmation_needed.connect(_on_confirmation_needed)
 
 
-func bind_resource_list(resource_list_vm: ResourceListVM) -> void:
-	resource_list_vm.delete_requested.connect(_on_delete_requested)
-
-
-func _on_delete_requested(paths: Array[String]) -> void:
+func _on_confirmation_needed(paths: Array[String]) -> void:
 	_pending_deletions = paths
 	pending_deletions_changed.emit(paths)
 

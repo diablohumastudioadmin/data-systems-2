@@ -22,6 +22,7 @@ signal resources_saved(paths: Array[String])
 
 signal selected_class_changed(class_name_: String)
 signal include_subclasses_changed(include: bool)
+signal confirmation_needed(paths: Array[String])
 
 const MAX_ERROR_PATHS: int = 3
 
@@ -153,6 +154,13 @@ func create(script: GDScript, path: String) -> Error:
 	if err != OK:
 		error_occurred.emit("Failed to save resource:\n%s" % path)
 	return err
+
+
+## Emits confirmation_needed so the confirm dialog can gate the deletion.
+func request_delete(paths: Array[String]) -> void:
+	if paths.is_empty():
+		return
+	confirmation_needed.emit(paths)
 
 
 ## Moves the given resource paths to trash and refreshes EditorFileSystem.

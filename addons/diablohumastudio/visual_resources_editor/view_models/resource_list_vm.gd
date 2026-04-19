@@ -8,7 +8,6 @@ signal columns_changed(columns: Array[ResourceProperty])
 signal sort_state_changed(column: String, ascending: bool)
 signal pagination_state_changed(page: int, total_pages: int)
 signal status_text_changed(visible_count: int, selected_count: int)
-signal delete_requested(paths: Array[String])
 
 var resource_repo: ResourceRepository
 var selection_manager: SelectionManager
@@ -61,9 +60,7 @@ func handle_row_click(path: String, ctrl_held: bool, shift_held: bool) -> void:
 
 
 func request_delete(paths: Array[String]) -> void:
-	if paths.is_empty():
-		return
-	delete_requested.emit(paths.duplicate())
+	resource_repo.request_delete(paths)
 
 
 func next_page() -> void:

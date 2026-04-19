@@ -4,7 +4,6 @@ extends RefCounted
 
 signal actions_availability_changed()
 signal create_requested()
-signal delete_requested(paths: Array[String])
 signal refresh_requested()
 
 var _resource_repo: ResourceRepository
@@ -47,7 +46,7 @@ func request_create() -> void:
 
 
 func request_delete() -> void:
-	delete_requested.emit(_selection_manager.selected_paths.duplicate())
+	_resource_repo.request_delete(_selection_manager.selected_paths.duplicate())
 
 
 func request_refresh() -> void:

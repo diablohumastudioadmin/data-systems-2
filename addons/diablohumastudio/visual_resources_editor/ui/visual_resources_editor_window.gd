@@ -14,12 +14,8 @@ func _ready() -> void:
 	%SubclassFilter.vm = SubclassFilterVM.new(_resource_repo)
 	%ResourceList.vm = _resource_list_vm
 
-	var toolbar_vm: ToolbarVM = %ResourceList.toolbar_vm
-	var confirm_delete_vm: ConfirmDeleteDialogVM = ConfirmDeleteDialogVM.new(_resource_repo, toolbar_vm)
-	confirm_delete_vm.bind_resource_list(_resource_list_vm)
-
-	%Dialogs.save_dialog_vm = SaveResourceDialogVM.new(_resource_repo, toolbar_vm)
-	%Dialogs.confirm_delete_vm = confirm_delete_vm
+	%Dialogs.save_dialog_vm = SaveResourceDialogVM.new(_resource_repo, %ResourceList.toolbar_vm)
+	%Dialogs.confirm_delete_vm = ConfirmDeleteDialogVM.new(_resource_repo)
 	%Dialogs.error_dialog_vm = ErrorDialogVM.new(_resource_repo)
 
 	_resource_repo.start()
