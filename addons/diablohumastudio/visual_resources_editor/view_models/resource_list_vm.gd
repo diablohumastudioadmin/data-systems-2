@@ -10,7 +10,6 @@ signal pagination_state_changed(page: int, total_pages: int)
 signal status_text_changed(visible_count: int, selected_count: int)
 signal delete_requested(paths: Array[String])
 
-var _session: SessionStateModel
 var _resource_repo: ResourceRepository
 var selection_manager: SelectionManager
 var _pagination: PaginationManager
@@ -19,30 +18,42 @@ var rows: Array[ResourceRowVM] = []
 var visible_columns: Array[ResourceProperty] = []
 var sort_column: String = ""
 var sort_ascending: bool = true
+var search_filter: String = ""
 var _visible_count: int = 0
 var _total_pages: int = 1
 
 
-func _init(p_session: SessionStateModel, p_resource_repo: ResourceRepository) -> void:
-	_session = p_session
+func _init(p_resource_repo: ResourceRepository) -> void:
 	_resource_repo = p_resource_repo
 	selection_manager = SelectionManager.new()
 	_pagination = PaginationManager.new()
-	sort_column = _session.sort_column
-	sort_ascending = _session.sort_ascending
 
 	_resource_repo.resources_reset.connect(_on_resources_reset)
 	_resource_repo.resources_delta.connect(_on_resources_delta)
 	_resource_repo.resources_saved.connect(_on_resources_saved)
-	_session.sort_changed.connect(_on_sort_changed)
 	selection_manager.selection_changed.connect(_on_selection_changed)
 
 
 func request_sort(column: String) -> void:
 	if column == sort_column:
-		_session.set_sort(column, not sort_ascending)
+		set_sort(column, not sort_ascending)
 	else:
-		_session.set_sort(column, true)
+		set_sort(column, true)
+
+
+func set_sort(column: String, ascending: bool) -> void:
+	if sort_column == column and sort_ascending == ascending:
+		return
+	sort_column = column
+	sort_ascending = ascending
+	sort_state_changed.emit(column, ascending)
+	if _resource_repo.current_class_resources.is_empty():
+		_emit_page_state()
+		return
+	_apply_sort()
+	selection_manager.reconcile(_resource_repo.get_paths())
+	_pagination.reset(_resource_repo.current_class_resources)
+	_emit_page_state()
 
 
 func handle_row_click(path: String, ctrl_held: bool, shift_held: bool) -> void:
@@ -87,19 +98,6 @@ func get_selected_count() -> int:
 
 func is_path_selected(path: String) -> bool:
 	return selection_manager.selected_paths.has(path)
-
-
-func _on_sort_changed(column: String, ascending: bool) -> void:
-	sort_column = column
-	sort_ascending = ascending
-	sort_state_changed.emit(column, ascending)
-	if _resource_repo.current_class_resources.is_empty():
-		_emit_page_state()
-		return
-	_apply_sort()
-	selection_manager.reconcile(_resource_repo.get_paths())
-	_pagination.reset(_resource_repo.current_class_resources)
-	_emit_page_state()
 
 
 func _on_resources_reset(_resources: Array[Resource]) -> void:
@@ -150,8 +148,8 @@ func _rebuild_columns() -> void:
 func _apply_sort() -> void:
 	ResourceSorter.sort(
 		_resource_repo.current_class_resources,
-		_session.sort_column,
-		_session.sort_ascending,
+		sort_column,
+		sort_ascending,
 		visible_columns)
 
 
@@ -167,7 +165,6 @@ func _emit_page_state() -> void:
 	_rebuild_rows(_pagination.current_page_resources)
 	_visible_count = _pagination.current_page_resources.size()
 	_total_pages = _pagination.page_count(_resource_repo.current_class_resources.size())
-	_session.current_page = _pagination.current_page()
 	pagination_state_changed.emit(_pagination.current_page(), _total_pages)
 	status_text_changed.emit(_visible_count, selection_manager.selected_paths.size())
 
@@ -182,9 +179,9 @@ func _rebuild_rows(resources: Array[Resource]) -> void:
 
 
 func _validate_sort_column() -> void:
-	if _session.sort_column.is_empty():
+	if sort_column.is_empty():
 		return
 	for prop: ResourceProperty in visible_columns:
-		if prop.name == _session.sort_column:
+		if prop.name == sort_column:
 			return
-	_session.set_sort("", true)
+	set_sort("", true)

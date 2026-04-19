@@ -2,7 +2,6 @@
 class_name VisualResourcesEditorWindow
 extends Window
 
-var _session: SessionStateModel
 var _resource_repo: ResourceRepository
 
 var _toolbar_vm: ToolbarVM
@@ -10,10 +9,9 @@ var _resource_list_vm: ResourceListVM
 
 
 func _ready() -> void:
-	_session = SessionStateModel.new()
 	_resource_repo = ResourceRepository.new()
 
-	_resource_list_vm = ResourceListVM.new(_session, _resource_repo)
+	_resource_list_vm = ResourceListVM.new(_resource_repo)
 	_toolbar_vm = ToolbarVM.new(_resource_repo, _resource_list_vm.selection_manager)
 	_toolbar_vm.refresh_requested.connect(_resource_list_vm.refresh_current_view)
 
