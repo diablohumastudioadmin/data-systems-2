@@ -10,7 +10,7 @@ signal pagination_state_changed(page: int, total_pages: int)
 signal status_text_changed(visible_count: int, selected_count: int)
 signal delete_requested(paths: Array[String])
 
-var _resource_repo: ResourceRepository
+var resource_repo: ResourceRepository
 var selection_manager: SelectionManager
 var _pagination: PaginationManager
 
@@ -23,14 +23,14 @@ var _visible_count: int = 0
 var _total_pages: int = 1
 
 
-func _init(p_resource_repo: ResourceRepository) -> void:
-	_resource_repo = p_resource_repo
+func _init(presource_repo: ResourceRepository) -> void:
+	resource_repo = presource_repo
 	selection_manager = SelectionManager.new()
 	_pagination = PaginationManager.new()
 
-	_resource_repo.resources_reset.connect(_on_resources_reset)
-	_resource_repo.resources_delta.connect(_on_resources_delta)
-	_resource_repo.resources_saved.connect(_on_resources_saved)
+	resource_repo.resources_reset.connect(_on_resources_reset)
+	resource_repo.resources_delta.connect(_on_resources_delta)
+	resource_repo.resources_saved.connect(_on_resources_saved)
 	selection_manager.selection_changed.connect(_on_selection_changed)
 
 
@@ -47,17 +47,17 @@ func set_sort(column: String, ascending: bool) -> void:
 	sort_column = column
 	sort_ascending = ascending
 	sort_state_changed.emit(column, ascending)
-	if _resource_repo.current_class_resources.is_empty():
+	if resource_repo.current_class_resources.is_empty():
 		_emit_page_state()
 		return
 	_apply_sort()
-	selection_manager.reconcile(_resource_repo.get_paths())
-	_pagination.reset(_resource_repo.current_class_resources)
+	selection_manager.reconcile(resource_repo.get_paths())
+	_pagination.reset(resource_repo.current_class_resources)
 	_emit_page_state()
 
 
 func handle_row_click(path: String, ctrl_held: bool, shift_held: bool) -> void:
-	selection_manager.set_selected(path, ctrl_held, shift_held, _resource_repo.get_paths())
+	selection_manager.set_selected(path, ctrl_held, shift_held, resource_repo.get_paths())
 
 
 func request_delete(paths: Array[String]) -> void:
@@ -67,17 +67,17 @@ func request_delete(paths: Array[String]) -> void:
 
 
 func next_page() -> void:
-	_pagination.next(_resource_repo.current_class_resources)
+	_pagination.next(resource_repo.current_class_resources)
 	_emit_page_state()
 
 
 func prev_page() -> void:
-	_pagination.prev(_resource_repo.current_class_resources)
+	_pagination.prev(resource_repo.current_class_resources)
 	_emit_page_state()
 
 
 func refresh_current_view() -> void:
-	_resource_repo.reload()
+	resource_repo.reload()
 
 
 func get_current_page() -> int:
@@ -103,8 +103,8 @@ func is_path_selected(path: String) -> bool:
 func _on_resources_reset(_resources: Array[Resource]) -> void:
 	_rebuild_columns()
 	_apply_sort()
-	selection_manager.reconcile(_resource_repo.get_paths())
-	_pagination.reset(_resource_repo.current_class_resources)
+	selection_manager.reconcile(resource_repo.get_paths())
+	_pagination.reset(resource_repo.current_class_resources)
 	_emit_page_state()
 
 
@@ -112,15 +112,15 @@ func _on_resources_delta(
 	_added: Array[Resource], _removed: Array[Resource], _modified: Array[Resource]
 ) -> void:
 	_apply_sort()
-	selection_manager.reconcile(_resource_repo.get_paths())
-	_pagination.set_page(_pagination.current_page(), _resource_repo.current_class_resources)
+	selection_manager.reconcile(resource_repo.get_paths())
+	_pagination.set_page(_pagination.current_page(), resource_repo.current_class_resources)
 	_emit_page_state()
 
 
 func _on_resources_saved(paths: Array[String]) -> void:
 	var saved: Array[Resource] = []
 	for path: String in paths:
-		var res: Resource = _resource_repo.get_by_path(path)
+		var res: Resource = resource_repo.get_by_path(path)
 		if res:
 			saved.append(res)
 	if not saved.is_empty():
@@ -133,21 +133,21 @@ func _on_selection_changed(paths: Array[String]) -> void:
 
 
 func _rebuild_columns() -> void:
-	var selected: String = _resource_repo.selected_class
+	var selected: String = resource_repo.selected_class
 	if selected.is_empty():
 		visible_columns.clear()
 		columns_changed.emit([])
 		return
-	var included: Array[String] = _resource_repo.class_registry.get_included_classes(
-		selected, _resource_repo.include_subclasses)
-	visible_columns = _resource_repo.class_registry.get_shared_properties(included)
+	var included: Array[String] = resource_repo.class_registry.get_included_classes(
+		selected, resource_repo.include_subclasses)
+	visible_columns = resource_repo.class_registry.get_shared_properties(included)
 	columns_changed.emit(visible_columns)
 	_validate_sort_column()
 
 
 func _apply_sort() -> void:
 	ResourceSorter.sort(
-		_resource_repo.current_class_resources,
+		resource_repo.current_class_resources,
 		sort_column,
 		sort_ascending,
 		visible_columns)
@@ -164,7 +164,7 @@ func _apply_selection_to_rows(paths: Array[String]) -> void:
 func _emit_page_state() -> void:
 	_rebuild_rows(_pagination.current_page_resources)
 	_visible_count = _pagination.current_page_resources.size()
-	_total_pages = _pagination.page_count(_resource_repo.current_class_resources.size())
+	_total_pages = _pagination.page_count(resource_repo.current_class_resources.size())
 	pagination_state_changed.emit(_pagination.current_page(), _total_pages)
 	status_text_changed.emit(_visible_count, selection_manager.selected_paths.size())
 

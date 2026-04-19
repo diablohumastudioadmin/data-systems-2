@@ -10,6 +10,8 @@ var vm: ResourceListVM = null:
 		if is_node_ready():
 			_connect_vm()
 
+var toolbar_vm: ToolbarVM
+
 var _rows: Array[ResourceRow] = []
 var _resource_path_to_row: Dictionary[String, ResourceRow] = {}
 var _resource_path_to_row_vm: Dictionary[String, ResourceRowVM] = {}
@@ -22,6 +24,11 @@ func _ready() -> void:
 
 
 func _connect_vm() -> void:
+	toolbar_vm = ToolbarVM.new(vm.resource_repo, vm.selection_manager)
+	toolbar_vm.refresh_requested.connect(vm.refresh_current_view)
+	%Toolbar.vm = toolbar_vm
+	%BulkEditor.selection_manager = vm.selection_manager
+	%BulkEditor.resource_repo = vm.resource_repo
 	vm.columns_changed.connect(_on_columns_changed)
 	vm.rows_replaced.connect(_on_rows_replaced)
 	vm.rows_edited.connect(_on_rows_edited)
