@@ -20,14 +20,52 @@ signal error_occurred(message: String)
 ## Emitted after one or more resources are saved successfully.
 signal resources_saved(paths: Array[String])
 
+signal selected_class_changed(class_name_: String)
+signal include_subclasses_changed(include: bool)
+
 const MAX_ERROR_PATHS: int = 3
+
+var class_registry: ClassRegistry
+
+var selected_class: String = "":
+	set(value):
+		if selected_class != value:
+			selected_class = value
+			selected_class_changed.emit(value)
+			_reload()
+
+var include_subclasses: bool = true:
+	set(value):
+		if include_subclasses != value:
+			include_subclasses = value
+			include_subclasses_changed.emit(value)
+			_reload()
 
 var current_class_resources: Array[Resource] = []
 var _mtimes: Dictionary[String, int] = {}
-
-## Snapshot of the selected class's editor-visible properties as of the last
-## successful load / schema sync. Used to detect schema drift on class events.
 var _last_known_props: Array[ResourceProperty] = []
+var _fs_listener: EditorFileSystemListener
+
+
+func _init(p_class_registry: ClassRegistry = null) -> void:
+	class_registry = p_class_registry if p_class_registry else ClassRegistry.new()
+	_fs_listener = EditorFileSystemListener.new()
+	class_registry.classes_changed.connect(_on_classes_changed)
+	_fs_listener.script_classes_updated.connect(_on_script_classes_updated)
+	_fs_listener.filesystem_changed.connect(_on_filesystem_changed)
+
+
+func start() -> void:
+	_fs_listener.start()
+	class_registry.rebuild()
+
+
+func stop() -> void:
+	_fs_listener.stop()
+
+
+func reload() -> void:
+	_reload()
 
 
 ## Full reload for the given class names. Always emits resources_reset.
@@ -89,46 +127,6 @@ func resave_all() -> void:
 func resave_resources(resources: Array[Resource]) -> void:
 	for res: Resource in resources:
 		ResourceSaver.save(res, res.resource_path)
-
-
-## Sets the baseline for schema-drift detection. Callers should invoke
-## this after every property scan so the next classes_changed event has
-## a correct comparison point.
-func update_last_known_props(props: Array[ResourceProperty]) -> void:
-	_last_known_props = props.duplicate()
-
-
-## Handles the disk-side consequences of a class-list change:
-##  - Resaves resources belonging to removed classes so they stop using
-##    the deleted script as their Resource base.
-##  - If the selected class's properties differ from the last-known
-##    snapshot, resaves all current resources with the new schema.
-## Returns true if a schema-diff resave ran; the caller should refresh UI.
-func on_classes_changed(
-	previous_classes: Array[String],
-	current_classes: Array[String],
-	current_selected_class: String,
-	registry: ClassRegistry
-) -> bool:
-	_resave_orphaned(previous_classes, current_classes)
-	if current_selected_class.is_empty() or not current_classes.has(current_selected_class):
-		return false
-	var new_props: Array[ResourceProperty] = registry.get_properties(current_selected_class)
-	if ResourceProperty.arrays_equal(new_props, _last_known_props):
-		return false
-	resave_all()
-	return true
-
-
-func _resave_orphaned(previous: Array[String], current: Array[String]) -> void:
-	var removed_classes: Array[String] = []
-	for cls: String in previous:
-		if not current.has(cls):
-			removed_classes.append(cls)
-	if removed_classes.is_empty():
-		return
-	var orphaned: Array[Resource] = ProjectClassScanner.load_classed_resources_from_dir(removed_classes)
-	resave_resources(orphaned)
 
 
 ## Looks up a loaded resource by path. Falls back to ResourceLoader.load
@@ -222,6 +220,59 @@ func get_paths() -> Array[String]:
 func clear() -> void:
 	current_class_resources.clear()
 	_mtimes.clear()
+
+
+func _reload() -> void:
+	if selected_class.is_empty():
+		current_class_resources.clear()
+		_mtimes.clear()
+		resources_reset.emit([])
+		return
+	_last_known_props = class_registry.get_properties(selected_class).duplicate()
+	var included: Array[String] = class_registry.get_included_classes(selected_class, include_subclasses)
+	load_resources(included)
+
+
+func _on_script_classes_updated() -> void:
+	var list_changed: bool = class_registry.rebuild()
+	if list_changed:
+		return
+	if selected_class.is_empty() or not class_registry.global_class_name_list.has(selected_class):
+		return
+	var new_props: Array[ResourceProperty] = class_registry.get_properties(selected_class)
+	if ResourceProperty.arrays_equal(new_props, _last_known_props):
+		return
+	resave_all()
+	resources_reset.emit(current_class_resources.duplicate())
+
+
+func _on_classes_changed(previous: Array[String], current: Array[String]) -> void:
+	_resave_orphaned(previous, current)
+	if selected_class.is_empty() or not current.has(selected_class):
+		return
+	var new_props: Array[ResourceProperty] = class_registry.get_properties(selected_class)
+	if ResourceProperty.arrays_equal(new_props, _last_known_props):
+		return
+	resave_all()
+	resources_reset.emit(current_class_resources.duplicate())
+
+
+func _on_filesystem_changed() -> void:
+	if selected_class.is_empty():
+		return
+	var included: Array[String] = class_registry.get_included_classes(selected_class, include_subclasses)
+	scan_for_changes(included)
+
+
+func _resave_orphaned(previous: Array[String], current: Array[String]) -> void:
+	var removed_classes: Array[String] = []
+	for cls: String in previous:
+		if not current.has(cls):
+			removed_classes.append(cls)
+	if removed_classes.is_empty():
+		return
+	var orphaned: Array[Resource] = ProjectClassScanner.load_classed_resources_from_dir(removed_classes)
+	resave_resources(orphaned)
 
 
 func _rebuild_mtimes() -> void:

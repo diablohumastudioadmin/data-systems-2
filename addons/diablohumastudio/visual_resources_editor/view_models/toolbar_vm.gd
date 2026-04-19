@@ -7,13 +7,15 @@ signal create_requested()
 signal delete_requested(paths: Array[String])
 signal refresh_requested()
 
+var _resource_repo: ResourceRepository
 var _session: SessionStateModel
 
 
-func _init(p_session: SessionStateModel) -> void:
+func _init(p_resource_repo: ResourceRepository, p_session: SessionStateModel) -> void:
+	_resource_repo = p_resource_repo
 	_session = p_session
 	_session.selected_paths_changed.connect(_on_selection_changed)
-	_session.selected_class_changed.connect(_on_class_changed)
+	_resource_repo.selected_class_changed.connect(_on_class_changed)
 
 
 func _on_selection_changed(_paths: Array[String]) -> void:
@@ -33,11 +35,11 @@ func is_delete_enabled() -> bool:
 
 
 func is_create_enabled() -> bool:
-	return not _session.selected_class.is_empty()
+	return not _resource_repo.selected_class.is_empty()
 
 
 func is_refresh_enabled() -> bool:
-	return not _session.selected_class.is_empty()
+	return not _resource_repo.selected_class.is_empty()
 
 
 func request_create() -> void:

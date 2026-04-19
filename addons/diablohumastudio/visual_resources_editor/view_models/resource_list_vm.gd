@@ -12,10 +12,8 @@ signal delete_requested(paths: Array[String])
 
 var _session: SessionStateModel
 var _resource_repo: ResourceRepository
-var _class_registry: ClassRegistry
 var _selection: SelectionManager
 var _pagination: PaginationManager
-var _current_included_class_names: Array[String] = []
 
 var rows: Array[ResourceRowVM] = []
 var visible_columns: Array[ResourceProperty] = []
@@ -25,14 +23,9 @@ var _visible_count: int = 0
 var _total_pages: int = 1
 
 
-func _init(
-	p_session: SessionStateModel,
-	p_resource_repo: ResourceRepository,
-	p_class_registry: ClassRegistry
-) -> void:
+func _init(p_session: SessionStateModel, p_resource_repo: ResourceRepository) -> void:
 	_session = p_session
 	_resource_repo = p_resource_repo
-	_class_registry = p_class_registry
 	_selection = SelectionManager.new()
 	_pagination = PaginationManager.new()
 	sort_column = _session.sort_column
@@ -41,11 +34,8 @@ func _init(
 	_resource_repo.resources_reset.connect(_on_resources_reset)
 	_resource_repo.resources_delta.connect(_on_resources_delta)
 	_resource_repo.resources_saved.connect(_on_resources_saved)
-	_session.selected_class_changed.connect(_on_session_class_filter_changed)
-	_session.include_subclasses_changed.connect(_on_session_class_filter_changed)
 	_session.sort_changed.connect(_on_sort_changed)
 	_session.selected_paths_changed.connect(_on_session_selected_paths_changed)
-	_class_registry.classes_changed.connect(_on_classes_changed)
 	_selection.selection_changed.connect(_on_selection_manager_changed)
 
 
@@ -78,17 +68,7 @@ func prev_page() -> void:
 
 
 func refresh_current_view() -> void:
-	if _session.selected_class.is_empty():
-		_clear_view()
-		return
-	_current_included_class_names = _class_registry.get_included_classes(
-		_session.selected_class, _session.include_subclasses)
-	var current_class_props: Array[ResourceProperty] = _class_registry.get_properties(_session.selected_class)
-	visible_columns = _class_registry.get_shared_properties(_current_included_class_names)
-	columns_changed.emit(visible_columns)
-	_resource_repo.update_last_known_props(current_class_props)
-	_validate_sort_column()
-	_resource_repo.load_resources(_current_included_class_names)
+	_resource_repo.reload()
 
 
 func get_current_page() -> int:
@@ -111,10 +91,6 @@ func is_path_selected(path: String) -> bool:
 	return _session.selected_paths.has(path)
 
 
-func _on_session_class_filter_changed(_value: Variant) -> void:
-	refresh_current_view()
-
-
 func _on_sort_changed(column: String, ascending: bool) -> void:
 	sort_column = column
 	sort_ascending = ascending
@@ -128,15 +104,8 @@ func _on_sort_changed(column: String, ascending: bool) -> void:
 	_emit_page_state()
 
 
-func _on_classes_changed(_previous: Array[String], current: Array[String]) -> void:
-	if _session.selected_class.is_empty():
-		return
-	if not current.has(_session.selected_class):
-		return
-	refresh_current_view()
-
-
 func _on_resources_reset(_resources: Array[Resource]) -> void:
+	_rebuild_columns()
 	_apply_sort()
 	_selection.reconcile(_resource_repo.get_paths())
 	_pagination.reset(_resource_repo.current_class_resources)
@@ -181,6 +150,19 @@ func _on_session_selected_paths_changed(paths: Array[String]) -> void:
 	status_text_changed.emit(_visible_count, paths.size())
 
 
+func _rebuild_columns() -> void:
+	var selected: String = _resource_repo.selected_class
+	if selected.is_empty():
+		visible_columns.clear()
+		columns_changed.emit([])
+		return
+	var included: Array[String] = _resource_repo.class_registry.get_included_classes(
+		selected, _resource_repo.include_subclasses)
+	visible_columns = _resource_repo.class_registry.get_shared_properties(included)
+	columns_changed.emit(visible_columns)
+	_validate_sort_column()
+
+
 func _apply_sort() -> void:
 	ResourceSorter.sort(
 		_resource_repo.current_class_resources,
@@ -222,12 +204,3 @@ func _validate_sort_column() -> void:
 		if prop.name == _session.sort_column:
 			return
 	_session.set_sort("", true)
-
-
-func _clear_view() -> void:
-	_current_included_class_names.clear()
-	visible_columns.clear()
-	columns_changed.emit([])
-	if not _session.selected_paths.is_empty():
-		_session.selected_paths = []
-	_resource_repo.load_resources([])

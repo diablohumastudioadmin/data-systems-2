@@ -2,8 +2,6 @@
 class_name SessionStateModel
 extends RefCounted
 
-signal selected_class_changed(class_name_: String)
-signal include_subclasses_changed(include: bool)
 signal search_filter_changed(filter: String)
 signal current_page_changed(page: int)
 signal selected_paths_changed(paths: Array[String])
@@ -11,18 +9,6 @@ signal sort_changed(column: String, ascending: bool)
 
 var sort_column: String = ""
 var sort_ascending: bool = true
-
-var selected_class: String = "":
-	set(value):
-		if selected_class != value:
-			selected_class = value
-			selected_class_changed.emit(value)
-
-var include_subclasses: bool = true:
-	set(value):
-		if include_subclasses != value:
-			include_subclasses = value
-			include_subclasses_changed.emit(value)
 
 var search_filter: String = "":
 	set(value):

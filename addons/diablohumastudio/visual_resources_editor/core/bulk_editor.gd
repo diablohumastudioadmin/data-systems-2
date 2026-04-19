@@ -14,12 +14,6 @@ var resource_repo: ResourceRepository = null:
 		if is_node_ready():
 			_connect_dependencies()
 
-var class_registry: ClassRegistry = null:
-	set(value):
-		class_registry = value
-		if is_node_ready():
-			_connect_dependencies()
-
 var _inspector: EditorInspector
 var _bulk_proxy: Resource = null
 var _inspected_selection_paths: Array[String] = []
@@ -36,7 +30,7 @@ func _ready() -> void:
 func _connect_dependencies() -> void:
 	if _connected:
 		return
-	if session == null or resource_repo == null or class_registry == null:
+	if session == null or resource_repo == null:
 		return
 	session.selected_paths_changed.connect(_on_selection_changed)
 	resource_repo.resources_saved.connect(_on_resources_saved)
@@ -73,9 +67,9 @@ func _create_bulk_proxy() -> void:
 	_bulk_proxy = script.new()
 	if selected.size() == 1:
 		var script_name: String = script.get_global_name()
-		var props: Array[ResourceProperty] = class_registry.get_properties(script_name)
+		var props: Array[ResourceProperty] = resource_repo.class_registry.get_properties(script_name)
 		if props.is_empty():
-			props = class_registry.get_properties(session.selected_class)
+			props = resource_repo.class_registry.get_properties(resource_repo.selected_class)
 		for prop: ResourceProperty in props:
 			_bulk_proxy.set(prop.name, selected[0].get(prop.name))
 	EditorInterface.inspect_object(_bulk_proxy)
@@ -97,12 +91,11 @@ func _get_common_script(selected: Array[Resource]) -> GDScript:
 	var first_script: GDScript = selected[0].get_script()
 	for i: int in selected.size():
 		if selected[i].get_script() != first_script:
-			return class_registry.get_class_script(session.selected_class)
+			return resource_repo.class_registry.get_class_script(resource_repo.selected_class)
 	return first_script
 
 
 func _on_resources_saved(_paths: Array[String]) -> void:
-	# ResourceListVM listens directly to repo.resources_saved; keep proxy stable here.
 	if _bulk_proxy:
 		_inspected_selection_paths = session.selected_paths.duplicate()
 
