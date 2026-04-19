@@ -3,16 +3,14 @@ class_name VisualResourcesEditorWindow
 extends Window
 
 var _resource_repo: ResourceRepository
-var _resource_list_vm: ResourceListVM
 
 
 func _ready() -> void:
 	_resource_repo = ResourceRepository.new()
-	_resource_list_vm = ResourceListVM.new(_resource_repo)
 
 	%ClassSelector.vm = ClassSelectorVM.new(_resource_repo)
 	%SubclassFilter.vm = SubclassFilterVM.new(_resource_repo)
-	%ResourceList.vm = _resource_list_vm
+	%ResourceList.vm = ResourceListVM.new(_resource_repo)
 
 	%Dialogs.save_dialog_vm = SaveResourceDialogVM.new(_resource_repo, %ResourceList.toolbar_vm)
 	%Dialogs.confirm_delete_vm = ConfirmDeleteDialogVM.new(_resource_repo)
