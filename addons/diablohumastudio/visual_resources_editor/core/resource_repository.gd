@@ -2,22 +2,16 @@
 class_name ResourceRepository
 extends RefCounted
 
-## Emitted after a full reload (class change, subclass toggle, refresh).
-## UI should rebuild entirely on this.
-signal resources_reset(resources: Array[Resource])
+signal resources_reseted(resources: Array[Resource])
 
-## Emitted after an incremental filesystem scan finds changes.
-## UI should add/remove/update only the affected rows.
-signal resources_delta(
+signal resources_changed(
 	added: Array[Resource],
 	removed: Array[Resource],
 	modified: Array[Resource]
 )
 
-## Emitted when a disk operation fails. Listener shows the error UI.
 signal error_occurred(message: String)
 
-## Emitted after one or more resources are saved successfully.
 signal resources_saved(paths: Array[String])
 
 signal selected_class_changed(class_name_: String)
@@ -26,7 +20,7 @@ signal confirmation_needed(paths: Array[String])
 
 const MAX_ERROR_PATHS: int = 3
 
-var class_registry: ClassRegistry
+var class_registry: ResourceClassMap
 
 var selected_class: String = "":
 	set(value):
@@ -44,14 +38,13 @@ var include_subclasses: bool = true:
 
 var current_class_resources: Array[Resource] = []
 var _mtimes: Dictionary[String, int] = {}
-var _last_known_props: Array[ResourceProperty] = []
+var _current_class_props: Array[ResourceProperty] = []
 var _fs_listener: EditorFileSystemListener
 
 
-func _init(p_class_registry: ClassRegistry = null) -> void:
-	class_registry = p_class_registry if p_class_registry else ClassRegistry.new()
+func _init(p_class_registry: ResourceClassMap = null) -> void:
+	class_registry = p_class_registry if p_class_registry else ResourceClassMap.new()
 	_fs_listener = EditorFileSystemListener.new()
-	class_registry.classes_changed.connect(_on_classes_changed)
 	_fs_listener.script_classes_updated.connect(_on_script_classes_updated)
 	_fs_listener.filesystem_changed.connect(_on_filesystem_changed)
 
@@ -69,15 +62,15 @@ func reload() -> void:
 	_reload()
 
 
-## Full reload for the given class names. Always emits resources_reset.
+## Full reload for the given class names. Always emits resources_reseted.
 func load_resources(class_names: Array[String]) -> void:
 	current_class_resources = ProjectClassScanner.load_classed_resources_from_dir(class_names)
 	_rebuild_mtimes()
-	resources_reset.emit(current_class_resources.duplicate())
+	resources_reseted.emit(current_class_resources.duplicate())
 
 
 ## Incremental scan: compares current filesystem state against the cached mtimes.
-## Emits resources_delta only if something changed; silent otherwise.
+## Emits resources_changed only if something changed; silent otherwise.
 func scan_for_changes(class_names: Array[String]) -> void:
 	var updated: Array[Resource] = current_class_resources.duplicate()
 	var current_paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(class_names)
@@ -115,7 +108,7 @@ func scan_for_changes(class_names: Array[String]) -> void:
 
 	current_class_resources = updated
 	_rebuild_mtimes()
-	resources_delta.emit(added, removed, modified)
+	resources_changed.emit(added, removed, modified)
 
 
 ## Resaves all current resources (used on property schema change).
@@ -234,41 +227,70 @@ func _reload() -> void:
 	if selected_class.is_empty():
 		current_class_resources.clear()
 		_mtimes.clear()
-		resources_reset.emit([])
+		resources_reseted.emit(Array([], TYPE_OBJECT, "Resource", null))
 		return
-	_last_known_props = class_registry.get_properties(selected_class).duplicate()
-	var included: Array[String] = class_registry.get_included_classes(selected_class, include_subclasses)
+	_current_class_props = class_registry.get_properties_from_class_name(selected_class).duplicate()
+	var included: Array[String] = class_registry.get_descendant_classes(selected_class, include_subclasses)
 	load_resources(included)
 
 
 func _on_script_classes_updated() -> void:
-	var list_changed: bool = class_registry.rebuild()
-	if list_changed:
+	var previous_names: Array[String] = class_registry.names.duplicate()
+	class_registry.rebuild()
+	var current_names: Array[String] = class_registry.names.duplicate()
+	var old_path: String = class_registry.get_script_path_from_class_name(selected_class)
+
+	var has_map_changed: bool = previous_names != current_names
+	var is_current_class_missing: bool = has_map_changed and not current_names.has(selected_class)
+
+	if has_map_changed:
+		_resave_orphaned(previous_names, current_names)
+
+	if is_current_class_missing:
+		var new_name: String = class_registry.get_class_name_from_path(old_path)
+		var is_current_class_renamed: bool = not new_name.is_empty()
+		if is_current_class_renamed:
+			_on_current_class_renamed(new_name)
+		else:
+			_on_current_class_deleted()
 		return
-	if selected_class.is_empty() or not class_registry.global_class_name_list.has(selected_class):
+
+	if selected_class.is_empty():
 		return
-	var new_props: Array[ResourceProperty] = class_registry.get_properties(selected_class)
-	if ResourceProperty.arrays_equal(new_props, _last_known_props):
-		return
-	resave_all()
-	resources_reset.emit(current_class_resources.duplicate())
+
+	var new_props: Array[ResourceProperty] = class_registry.get_properties_from_class_name(selected_class)
+	var has_current_class_props_changed: bool = not ResourceProperty.arrays_equal(new_props, _current_class_props)
+
+	if has_current_class_props_changed:
+		_on_current_class_props_changed(new_props)
 
 
-func _on_classes_changed(previous: Array[String], current: Array[String]) -> void:
-	_resave_orphaned(previous, current)
-	if selected_class.is_empty() or not current.has(selected_class):
-		return
-	var new_props: Array[ResourceProperty] = class_registry.get_properties(selected_class)
-	if ResourceProperty.arrays_equal(new_props, _last_known_props):
-		return
+func _on_current_class_renamed(new_name: String) -> void:
 	resave_all()
-	resources_reset.emit(current_class_resources.duplicate())
+	selected_class = new_name
+
+
+func _on_current_class_deleted() -> void:
+	selected_class = ""
+
+
+func _on_current_class_props_changed(new_props: Array[ResourceProperty]) -> void:
+	resave_all()
+	_current_class_props = new_props.duplicate()
+	_reload_fresh()
+
+
+func _reload_fresh() -> void:
+	var included: Array[String] = class_registry.get_descendant_classes(selected_class, include_subclasses)
+	current_class_resources = ProjectClassScanner.load_classed_resources_from_dir(included)
+	_rebuild_mtimes()
+	resources_reseted.emit(current_class_resources.duplicate())
 
 
 func _on_filesystem_changed() -> void:
 	if selected_class.is_empty():
 		return
-	var included: Array[String] = class_registry.get_included_classes(selected_class, include_subclasses)
+	var included: Array[String] = class_registry.get_descendant_classes(selected_class, include_subclasses)
 	scan_for_changes(included)
 
 

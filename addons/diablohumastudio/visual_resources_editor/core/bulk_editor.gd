@@ -67,9 +67,9 @@ func _create_bulk_proxy() -> void:
 	_bulk_proxy = script.new()
 	if selected.size() == 1:
 		var script_name: String = script.get_global_name()
-		var props: Array[ResourceProperty] = resource_repo.class_registry.get_properties(script_name)
+		var props: Array[ResourceProperty] = resource_repo.class_registry.get_properties_from_class_name(script_name)
 		if props.is_empty():
-			props = resource_repo.class_registry.get_properties(resource_repo.selected_class)
+			props = resource_repo.class_registry.get_properties_from_class_name(resource_repo.selected_class)
 		for prop: ResourceProperty in props:
 			_bulk_proxy.set(prop.name, selected[0].get(prop.name))
 	EditorInterface.inspect_object(_bulk_proxy)
@@ -91,7 +91,7 @@ func _get_common_script(selected: Array[Resource]) -> GDScript:
 	var first_script: GDScript = selected[0].get_script()
 	for i: int in selected.size():
 		if selected[i].get_script() != first_script:
-			return resource_repo.class_registry.get_class_script(resource_repo.selected_class)
+			return resource_repo.class_registry.get_script_from_class_name(resource_repo.selected_class)
 	return first_script
 
 

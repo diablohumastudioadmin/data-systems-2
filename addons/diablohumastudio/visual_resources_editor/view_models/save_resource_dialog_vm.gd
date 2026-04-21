@@ -20,9 +20,9 @@ func get_class_to_create() -> String:
 
 
 func get_class_script_path(class_name_: String) -> String:
-	return _resource_repo.class_registry.get_script_path(class_name_)
+	return _resource_repo.class_registry.get_script_path_from_class_name(class_name_)
 
 
 func create_resource(class_name_: String, path: String) -> void:
-	var script: GDScript = _resource_repo.class_registry.get_class_script(class_name_)
+	var script: GDScript = _resource_repo.class_registry.get_script_from_class_name(class_name_)
 	_resource_repo.create(script, path)

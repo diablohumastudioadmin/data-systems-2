@@ -63,6 +63,16 @@ Godot 4 `@tool` editor plugin (`addons/diablohumastudio/database_manager/`) for 
 - Leave arrays untyped when they come from built-in APIs that return untyped arrays.
 - `Array.map` returns an untyped array; do not force a typed array on the result.
 
+## Typed Array Constructor for Empty Arrays
+- **Never return or pass a bare `[]` where a typed array is expected** — GDScript will throw a runtime error if the inferred type doesn't match. Use the 4-parameter Array constructor:
+  ```gdscript
+  Array([], TYPE_OBJECT, "RefCounted", ResourceProperty)
+  ```
+- Parameters: `(base_array, type_int, class_name_hint, script_hint)`
+  - Built-in types: `Array([], TYPE_STRING, "", null)`
+  - Resource subclasses: `Array([], TYPE_OBJECT, "RefCounted", MyResourceClass)`
+- Any function with a typed return like `-> Array[ResourceProperty]` that needs to return empty must use this form, not `return []` or a local typed var.
+
 ## GDScript Setters
 - Setters must assign the incoming value to the property; do not remove the assignment.
 

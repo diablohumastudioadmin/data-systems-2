@@ -27,8 +27,8 @@ func _init(presource_repo: ResourceRepository) -> void:
 	selection_manager = SelectionManager.new()
 	_pagination = PaginationManager.new()
 
-	resource_repo.resources_reset.connect(_on_resources_reset)
-	resource_repo.resources_delta.connect(_on_resources_delta)
+	resource_repo.resources_reseted.connect(_on_resources_reseted)
+	resource_repo.resources_changed.connect(_on_resources_changed)
 	resource_repo.resources_saved.connect(_on_resources_saved)
 	selection_manager.selection_changed.connect(_on_selection_changed)
 
@@ -97,7 +97,7 @@ func is_path_selected(path: String) -> bool:
 	return selection_manager.selected_paths.has(path)
 
 
-func _on_resources_reset(_resources: Array[Resource]) -> void:
+func _on_resources_reseted(_resources: Array[Resource]) -> void:
 	_rebuild_columns()
 	_apply_sort()
 	selection_manager.reconcile(resource_repo.get_paths())
@@ -105,7 +105,7 @@ func _on_resources_reset(_resources: Array[Resource]) -> void:
 	_emit_page_state()
 
 
-func _on_resources_delta(
+func _on_resources_changed(
 	_added: Array[Resource], _removed: Array[Resource], _modified: Array[Resource]
 ) -> void:
 	_apply_sort()
@@ -133,9 +133,9 @@ func _rebuild_columns() -> void:
 	var selected: String = resource_repo.selected_class
 	if selected.is_empty():
 		visible_columns.clear()
-		columns_changed.emit([])
+		columns_changed.emit(Array([], TYPE_OBJECT, "RefCounted", ResourceProperty))
 		return
-	var included: Array[String] = resource_repo.class_registry.get_included_classes(
+	var included: Array[String] = resource_repo.class_registry.get_descendant_classes(
 		selected, resource_repo.include_subclasses)
 	visible_columns = resource_repo.class_registry.get_shared_properties(included)
 	columns_changed.emit(visible_columns)
