@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="ShooterAllyLevelData" format=3 uid="uid://do2kmu2ck5wwc"]
+
+[ext_resource type="Script" uid="uid://cjkedluv74wln" path="res://tests/database/res/classes/shooterallyleveldata.gd" id="1_v7kp7"]
+
+[resource]
+script = ExtResource("1_v7kp7")
+metadata/_custom_type_script = "uid://cjkedluv74wln"

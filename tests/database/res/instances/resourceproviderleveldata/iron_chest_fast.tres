@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ResourceProviderLevelData" format=3 uid="uid://wy18sq6fmkb0"]
+
+[ext_resource type="Script" uid="uid://buhtfqyluxilm" path="res://tests/database/res/classes/resourceproviderleveldata.gd" id="1_a3goy"]
+[ext_resource type="Resource" uid="uid://dvqo0pkdfw5jm" path="res://tests/database/res/instances/allydata/iron_chest.tres" id="1_h2qv2"]
+
+[resource]
+script = ExtResource("1_a3goy")
+providing_interval_seconds = 4.0
+ally = ExtResource("1_h2qv2")
+name = "iron chest fast"
+id = 7433822600959864464
