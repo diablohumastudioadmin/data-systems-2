@@ -1,5 +1,4 @@
 [gd_scene format=3 uid="uid://bu4cm5ri3fy8l"]
 
 [node name="FieldSeparator" type="VSeparator" unique_id=975218634]
-layout_mode = 2
 mouse_filter = 2

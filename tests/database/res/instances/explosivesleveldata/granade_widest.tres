@@ -8,5 +8,3 @@ script = ExtResource("1_np6uk")
 range = 10
 price = 480
 ally = ExtResource("1_0y43w")
-name = "granade_widest"
-id = 7886571173313218859

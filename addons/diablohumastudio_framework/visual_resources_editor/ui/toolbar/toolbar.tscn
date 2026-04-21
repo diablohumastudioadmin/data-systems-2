@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://b37n3eimc2hpq"]
 
-[ext_resource type="Script" uid="uid://ubq8q05v67qf" path="res://addons/diablohumastudio/visual_resources_editor/ui/toolbar/toolbar.gd" id="1_tb"]
+[ext_resource type="Script" uid="uid://ubq8q05v67qf" path="res://addons/diablohumastudio_framework/visual_resources_editor/ui/toolbar/toolbar.gd" id="1_tb"]
 
 [node name="Toolbar" type="HBoxContainer" unique_id=752553109]
 script = ExtResource("1_tb")

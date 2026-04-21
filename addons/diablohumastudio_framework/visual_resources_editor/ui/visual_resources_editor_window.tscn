@@ -1,10 +1,10 @@
 [gd_scene format=3 uid="uid://b6ssn0jpljw4r"]
 
-[ext_resource type="Script" uid="uid://dxrryiiulb1v7" path="res://addons/diablohumastudio/visual_resources_editor/ui/visual_resources_editor_window.gd" id="1_w7ie3"]
-[ext_resource type="PackedScene" uid="uid://bkuj0fqxrjoj8" path="res://addons/diablohumastudio/visual_resources_editor/ui/class_selector/class_selector.tscn" id="2_cls"]
-[ext_resource type="PackedScene" uid="uid://c113p8acip31a" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/resource_list.tscn" id="3_list"]
-[ext_resource type="PackedScene" uid="uid://ctihwyghqdbk4" path="res://addons/diablohumastudio/visual_resources_editor/ui/dialogs/dialogs.tscn" id="4_2cbbm"]
-[ext_resource type="PackedScene" path="res://addons/diablohumastudio/visual_resources_editor/ui/subclass_filter/subclass_filter.tscn" id="5_sf"]
+[ext_resource type="Script" uid="uid://dxrryiiulb1v7" path="res://addons/diablohumastudio_framework/visual_resources_editor/ui/visual_resources_editor_window.gd" id="1_w7ie3"]
+[ext_resource type="PackedScene" uid="uid://bkuj0fqxrjoj8" path="res://addons/diablohumastudio_framework/visual_resources_editor/ui/class_selector/class_selector.tscn" id="2_cls"]
+[ext_resource type="PackedScene" uid="uid://c113p8acip31a" path="res://addons/diablohumastudio_framework/visual_resources_editor/ui/resource_list/resource_list.tscn" id="3_list"]
+[ext_resource type="PackedScene" uid="uid://ctihwyghqdbk4" path="res://addons/diablohumastudio_framework/visual_resources_editor/ui/dialogs/dialogs.tscn" id="4_2cbbm"]
+[ext_resource type="PackedScene" uid="uid://30l0lcaeamld" path="res://addons/diablohumastudio_framework/visual_resources_editor/ui/subclass_filter/subclass_filter.tscn" id="5_sf"]
 
 [node name="VisualResourcesEditorWindow" type="Window" unique_id=382482314]
 oversampling_override = 1.0

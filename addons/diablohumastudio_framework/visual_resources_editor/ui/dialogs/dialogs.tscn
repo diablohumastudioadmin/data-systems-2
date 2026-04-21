@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://ctihwyghqdbk4"]
 
-[ext_resource type="Script" uid="uid://hx4fthmuudr4" path="res://addons/diablohumastudio/visual_resources_editor/ui/dialogs/dialogs.gd" id="1_6tb8l"]
-[ext_resource type="Script" uid="uid://crj8o6mkhh13c" path="res://addons/diablohumastudio/visual_resources_editor/ui/dialogs/save_resource_dialog.gd" id="2_l1quv"]
-[ext_resource type="Script" uid="uid://3y48t2sura63" path="res://addons/diablohumastudio/visual_resources_editor/ui/dialogs/confirm_delete_dialog.gd" id="3_u1j1g"]
-[ext_resource type="Script" uid="uid://d4kh8p3auqq3j" path="res://addons/diablohumastudio/visual_resources_editor/ui/dialogs/error_dialog.gd" id="4_i7ehq"]
+[ext_resource type="Script" uid="uid://hx4fthmuudr4" path="res://addons/diablohumastudio_framework/visual_resources_editor/ui/dialogs/dialogs.gd" id="1_6tb8l"]
+[ext_resource type="Script" uid="uid://crj8o6mkhh13c" path="res://addons/diablohumastudio_framework/visual_resources_editor/ui/dialogs/save_resource_dialog.gd" id="2_l1quv"]
+[ext_resource type="Script" uid="uid://3y48t2sura63" path="res://addons/diablohumastudio_framework/visual_resources_editor/ui/dialogs/confirm_delete_dialog.gd" id="3_u1j1g"]
+[ext_resource type="Script" uid="uid://d4kh8p3auqq3j" path="res://addons/diablohumastudio_framework/visual_resources_editor/ui/dialogs/error_dialog.gd" id="4_i7ehq"]
 
 [node name="Dialogs" type="Control" unique_id=243550216]
 layout_mode = 3

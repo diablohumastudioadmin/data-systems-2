@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://dukcnu4xa4lbd"]
 
-[ext_resource type="Script" uid="uid://clxxgcsp18f1o" path="res://addons/diablohumastudio/visual_resources_editor/ui/resource_list/resource_row.gd" id="1_row"]
+[ext_resource type="Script" uid="uid://clxxgcsp18f1o" path="res://addons/diablohumastudio_framework/visual_resources_editor/ui/resource_list/resource_row.gd" id="1_row"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_normal"]
 

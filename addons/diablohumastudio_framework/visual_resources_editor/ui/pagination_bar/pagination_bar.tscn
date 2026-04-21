@@ -1,23 +1,23 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bldm4qh2872bh"]
 
-[ext_resource type="Script" path="res://addons/diablohumastudio/visual_resources_editor/ui/pagination_bar/pagination_bar.gd" id="1_pg"]
+[ext_resource type="Script" uid="uid://pejiwgujf1b5" path="res://addons/diablohumastudio_framework/visual_resources_editor/ui/pagination_bar/pagination_bar.gd" id="1_pg"]
 
-[node name="PaginationBar" type="HBoxContainer"]
+[node name="PaginationBar" type="HBoxContainer" unique_id=668469544]
 visible = false
 script = ExtResource("1_pg")
 
-[node name="PrevBtn" type="Button" parent="."]
+[node name="PrevBtn" type="Button" parent="." unique_id=1694589989]
 unique_name_in_owner = true
 layout_mode = 2
 text = "◄"
 
-[node name="PageLabel" type="Label" parent="."]
+[node name="PageLabel" type="Label" parent="." unique_id=307504061]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 horizontal_alignment = 1
 
-[node name="NextBtn" type="Button" parent="."]
+[node name="NextBtn" type="Button" parent="." unique_id=2036717796]
 unique_name_in_owner = true
 layout_mode = 2
 text = "►"

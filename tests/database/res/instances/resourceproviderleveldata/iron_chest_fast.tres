@@ -7,5 +7,3 @@
 script = ExtResource("1_a3goy")
 providing_interval_seconds = 4.0
 ally = ExtResource("1_h2qv2")
-name = "iron chest fast"
-id = 7433822600959864464

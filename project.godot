@@ -17,7 +17,7 @@ config/icon="res://icon.svg"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/diablohumastudio/core/main_toolbar_plugin/plugin.cfg", "res://addons/diablohumastudio/custom_scenes_runner/plugin.cfg", "res://addons/diablohumastudio/scenes_and_resources_resaver/plugin.cfg", "res://addons/diablohumastudio/visual_resources_editor/plugin.cfg")
+enabled=PackedStringArray("res://addons/diablohumastudio_framework/core/main_toolbar_plugin/plugin.cfg", "res://addons/diablohumastudio_framework/custom_scenes_runner/plugin.cfg", "res://addons/diablohumastudio_framework/scenes_and_resources_resaver/plugin.cfg", "res://addons/diablohumastudio_framework/visual_resources_editor/plugin.cfg", "res://addons/test_non_dhs_plugin/plugin.cfg")
 
 [physics]
 
