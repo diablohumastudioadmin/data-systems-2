@@ -1,4 +1,4 @@
-class_name ToolBarsAndPlugins
+class_name ToolBarsAndPluginsUtils
 extends RefCounted
 
 static func get_editor_tool_bar() -> PopupMenu:

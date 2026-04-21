@@ -21,7 +21,6 @@ func _on_add_button_pressed() -> void:
 func _on_save_button_pressed() -> void:
 	save_config()
 	scenes_updated.emit()
-	queue_free()
 
 func _on_close_requested() -> void:
 	queue_free()
