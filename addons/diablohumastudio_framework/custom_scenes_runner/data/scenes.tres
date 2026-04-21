@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="RunnerScenes" format=3 uid="uid://dm7d56wow5n01"]
+[gd_resource type="Resource" script_class="DH_CSR_RunnerScenes" format=3 uid="uid://dm7d56wow5n01"]
 
 [ext_resource type="Script" uid="uid://bljqup04nyd01" path="res://addons/diablohumastudio_framework/custom_scenes_runner/scenes_data_models/runner_scene_data.gd" id="1_1t3c1"]
 [ext_resource type="Script" uid="uid://chfiai4gtie1p" path="res://addons/diablohumastudio_framework/custom_scenes_runner/scenes_data_models/runner_scenes.gd" id="2_gjiem"]

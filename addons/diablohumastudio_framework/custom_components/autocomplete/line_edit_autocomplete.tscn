@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://addons/diablohumastudio/custom_components/autocomplete/line_edit_autocomplete.gd" id="1"]
+[ext_resource type="Script" uid="uid://dakim1y4j3ka5" path="res://addons/diablohumastudio_framework/custom_components/autocomplete/line_edit_autocomplete.gd" id="1"]
 
 [node name="LineEditAutocomplete" type="Control"]
 custom_minimum_size = Vector2(200, 0)

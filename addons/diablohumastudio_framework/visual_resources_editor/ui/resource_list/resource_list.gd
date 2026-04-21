@@ -27,8 +27,8 @@ func _connect_vm() -> void:
 	toolbar_vm = DH_VRE_ToolbarVM.new(vm.resource_repo, vm.selection_manager)
 	toolbar_vm.refresh_requested.connect(vm.refresh_current_view)
 	%Toolbar.vm = toolbar_vm
-	%DH_VRE_BulkEditor.selection_manager = vm.selection_manager
-	%DH_VRE_BulkEditor.resource_repo = vm.resource_repo
+	%BulkEditor.selection_manager = vm.selection_manager
+	%BulkEditor.resource_repo = vm.resource_repo
 	vm.columns_changed.connect(_on_columns_changed)
 	vm.rows_replaced.connect(_on_rows_replaced)
 	vm.rows_edited.connect(_on_rows_edited)

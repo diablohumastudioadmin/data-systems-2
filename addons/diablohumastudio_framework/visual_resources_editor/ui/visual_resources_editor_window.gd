@@ -10,11 +10,11 @@ func _ready() -> void:
 
 	%ClassSelector.vm = DH_VRE_ClassSelectorVM.new(_resource_repo)
 	%SubclassFilter.vm = DH_VRE_SubclassFilterVM.new(_resource_repo)
-	%DH_VRE_ResourceList.vm = DH_VRE_ResourceListVM.new(_resource_repo)
+	%ResourceList.vm = DH_VRE_ResourceListVM.new(_resource_repo)
 
-	%DH_VRE_Dialogs.save_dialog_vm = DH_VRE_SaveResourceDialogVM.new(_resource_repo, %DH_VRE_ResourceList.toolbar_vm)
-	%DH_VRE_Dialogs.confirm_delete_vm = DH_VRE_ConfirmDeleteDialogVM.new(_resource_repo)
-	%DH_VRE_Dialogs.error_dialog_vm = DH_VRE_ErrorDialogVM.new(_resource_repo)
+	%Dialogs.save_dialog_vm = DH_VRE_SaveResourceDialogVM.new(_resource_repo, %ResourceList.toolbar_vm)
+	%Dialogs.confirm_delete_vm = DH_VRE_ConfirmDeleteDialogVM.new(_resource_repo)
+	%Dialogs.error_dialog_vm = DH_VRE_ErrorDialogVM.new(_resource_repo)
 
 	_resource_repo.start()
 
