@@ -1,5 +1,5 @@
 @tool
-class_name EditorFileSystemListener
+class_name DH_VRE_EditorFileSystemListener
 extends RefCounted
 
 signal script_classes_updated()

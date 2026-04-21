@@ -1,5 +1,5 @@
 @tool
-class_name ProjectClassScanner
+class_name DH_VRE_ProjectClassScanner
 
 
 static func scan_folder_for_classed_tres_paths(
@@ -53,7 +53,7 @@ static func load_classed_resources_from_dir(
 		push_warning("ProjectScaner: filesystem directory is not valid, skipping resource scan.")
 		return []
 
-	var paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(classes, dir)
+	var paths: Array[String] = DH_VRE_ProjectClassScanner.scan_folder_for_classed_tres_paths(classes, dir)
 	paths.sort()
 	var resources: Array[Resource] = []
 	for path: String in paths:

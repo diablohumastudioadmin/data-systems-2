@@ -1,5 +1,5 @@
 @tool
-class_name RunnerScenes
+class_name DH_CSR_RunnerScenes
 extends Resource
 
-@export var scenes: Array[RunnerSceneData]
+@export var scenes: Array[DH_CSR_RunnerSceneData]

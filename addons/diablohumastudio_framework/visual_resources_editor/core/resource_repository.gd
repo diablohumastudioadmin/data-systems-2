@@ -1,5 +1,5 @@
 @tool
-class_name ResourceRepository
+class_name DH_VRE_ResourceRepository
 extends RefCounted
 
 signal resources_reseted(resources: Array[Resource])
@@ -20,7 +20,7 @@ signal confirmation_needed(paths: Array[String])
 
 const MAX_ERROR_PATHS: int = 3
 
-var class_registry: ResourceClassMap
+var class_registry: DH_VRE_ResourceClassMap
 
 var selected_class: String = "":
 	set(value):
@@ -38,13 +38,13 @@ var include_subclasses: bool = true:
 
 var current_class_resources: Array[Resource] = []
 var _mtimes: Dictionary[String, int] = {}
-var _current_class_props: Array[ResourceProperty] = []
-var _fs_listener: EditorFileSystemListener
+var _current_class_props: Array[DH_VRE_ResourceProperty] = []
+var _fs_listener: DH_VRE_EditorFileSystemListener
 
 
-func _init(p_class_registry: ResourceClassMap = null) -> void:
-	class_registry = p_class_registry if p_class_registry else ResourceClassMap.new()
-	_fs_listener = EditorFileSystemListener.new()
+func _init(p_class_registry: DH_VRE_ResourceClassMap = null) -> void:
+	class_registry = p_class_registry if p_class_registry else DH_VRE_ResourceClassMap.new()
+	_fs_listener = DH_VRE_EditorFileSystemListener.new()
 	_fs_listener.script_classes_updated.connect(_on_script_classes_updated)
 	_fs_listener.filesystem_changed.connect(_on_filesystem_changed)
 
@@ -64,7 +64,7 @@ func reload() -> void:
 
 ## Full reload for the given class names. Always emits resources_reseted.
 func load_resources(class_names: Array[String]) -> void:
-	current_class_resources = ProjectClassScanner.load_classed_resources_from_dir(class_names)
+	current_class_resources = DH_VRE_ProjectClassScanner.load_classed_resources_from_dir(class_names)
 	_rebuild_mtimes()
 	resources_reseted.emit(current_class_resources.duplicate())
 
@@ -73,7 +73,7 @@ func load_resources(class_names: Array[String]) -> void:
 ## Emits resources_changed only if something changed; silent otherwise.
 func scan_for_changes(class_names: Array[String]) -> void:
 	var updated: Array[Resource] = current_class_resources.duplicate()
-	var current_paths: Array[String] = ProjectClassScanner.scan_folder_for_classed_tres_paths(class_names)
+	var current_paths: Array[String] = DH_VRE_ProjectClassScanner.scan_folder_for_classed_tres_paths(class_names)
 	var added: Array[Resource] = []
 	var removed: Array[Resource] = []
 	var modified: Array[Resource] = []
@@ -258,8 +258,8 @@ func _on_script_classes_updated() -> void:
 	if selected_class.is_empty():
 		return
 
-	var new_props: Array[ResourceProperty] = class_registry.get_properties_from_class_name(selected_class)
-	var has_current_class_props_changed: bool = not ResourceProperty.arrays_equal(new_props, _current_class_props)
+	var new_props: Array[DH_VRE_ResourceProperty] = class_registry.get_properties_from_class_name(selected_class)
+	var has_current_class_props_changed: bool = not DH_VRE_ResourceProperty.arrays_equal(new_props, _current_class_props)
 
 	if has_current_class_props_changed:
 		_on_current_class_props_changed(new_props)
@@ -274,7 +274,7 @@ func _on_current_class_deleted() -> void:
 	selected_class = ""
 
 
-func _on_current_class_props_changed(new_props: Array[ResourceProperty]) -> void:
+func _on_current_class_props_changed(new_props: Array[DH_VRE_ResourceProperty]) -> void:
 	resave_all()
 	_current_class_props = new_props.duplicate()
 	_reload_fresh()
@@ -282,7 +282,7 @@ func _on_current_class_props_changed(new_props: Array[ResourceProperty]) -> void
 
 func _reload_fresh() -> void:
 	var included: Array[String] = class_registry.get_descendant_classes(selected_class, include_subclasses)
-	current_class_resources = ProjectClassScanner.load_classed_resources_from_dir(included)
+	current_class_resources = DH_VRE_ProjectClassScanner.load_classed_resources_from_dir(included)
 	_rebuild_mtimes()
 	resources_reseted.emit(current_class_resources.duplicate())
 
@@ -301,7 +301,7 @@ func _resave_orphaned(previous: Array[String], current: Array[String]) -> void:
 			removed_classes.append(cls)
 	if removed_classes.is_empty():
 		return
-	var orphaned: Array[Resource] = ProjectClassScanner.load_classed_resources_from_dir(removed_classes)
+	var orphaned: Array[Resource] = DH_VRE_ProjectClassScanner.load_classed_resources_from_dir(removed_classes)
 	resave_resources(orphaned)
 
 

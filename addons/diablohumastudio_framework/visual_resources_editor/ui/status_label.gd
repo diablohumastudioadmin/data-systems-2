@@ -1,7 +1,7 @@
 @tool
 extends Label
 
-var vm: ResourceListVM = null:
+var vm: DH_VRE_ResourceListVM = null:
 	set(value):
 		vm = value
 		if is_node_ready():

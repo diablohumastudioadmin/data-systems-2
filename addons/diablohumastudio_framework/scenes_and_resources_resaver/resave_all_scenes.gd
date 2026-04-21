@@ -1,5 +1,5 @@
 @tool
-class_name ScenesResaver
+class_name DH_SRR_ScenesResaver
 extends EditorScript
 
 ## Script to resave all .tscn files in the project

@@ -1,7 +1,7 @@
 @tool
 extends VBoxContainer
 
-var vm: SubclassFilterVM = null
+var vm: DH_VRE_SubclassFilterVM = null
 
 
 func _on_include_subclasses_check_toggled(pressed: bool) -> void:

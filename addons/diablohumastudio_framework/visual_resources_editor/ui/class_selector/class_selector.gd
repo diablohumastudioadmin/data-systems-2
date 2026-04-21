@@ -3,7 +3,7 @@ extends HBoxContainer
 
 const PLACEHOLDER_TEXT: String = "-- Select a class --"
 
-var vm: ClassSelectorVM = null:
+var vm: DH_VRE_ClassSelectorVM = null:
 	set(value):
 		vm = value
 		if is_node_ready():

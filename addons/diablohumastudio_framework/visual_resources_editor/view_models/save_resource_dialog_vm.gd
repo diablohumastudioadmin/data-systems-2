@@ -1,14 +1,14 @@
 @tool
-class_name SaveResourceDialogVM
+class_name DH_VRE_SaveResourceDialogVM
 extends RefCounted
 
 signal class_to_create_changed(class_name_: String)
 signal show_requested()
 
-var _resource_repo: ResourceRepository
+var _resource_repo: DH_VRE_ResourceRepository
 
 
-func _init(p_resource_repo: ResourceRepository, toolbar_vm: ToolbarVM) -> void:
+func _init(p_resource_repo: DH_VRE_ResourceRepository, toolbar_vm: DH_VRE_ToolbarVM) -> void:
 	_resource_repo = p_resource_repo
 	_resource_repo.selected_class_changed.connect(
 		func(class_name_: String): class_to_create_changed.emit(class_name_))

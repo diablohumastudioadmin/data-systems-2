@@ -1,9 +1,9 @@
 @tool
-class_name LineEditAutocomplete
+class_name DH_LineEditAutocomplete
 extends Control
 
 ## Generic LineEdit with autocomplete suggestions dropdown.
-## Receives its suggestions and validation logic from a SuggestionProvider.
+## Receives its suggestions and validation logic from a DH_SuggestionProvider.
 ## The Panel overlay is created in code as a child of this Control.
 
 signal text_committed(text: String)
@@ -15,7 +15,7 @@ signal validation_changed(has_error: bool)
 		if %LineEdit:
 			%LineEdit.placeholder_text = value
 
-var provider: SuggestionProvider
+var provider: DH_SuggestionProvider
 var has_error: bool = false
 var last_error: String = ""
 

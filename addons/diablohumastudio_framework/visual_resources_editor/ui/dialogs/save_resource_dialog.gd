@@ -1,8 +1,8 @@
 @tool
-class_name SaveResourceDialog
+class_name DH_VRE_SaveResourceDialog
 extends EditorFileDialog
 
-var vm: SaveResourceDialogVM = null:
+var vm: DH_VRE_SaveResourceDialogVM = null:
 	set(value):
 		vm = value
 		if is_node_ready():

@@ -1,5 +1,5 @@
 @tool
-class_name ResourceSorter
+class_name DH_VRE_ResourceSorter
 
 ## Sorts `resources` in place by `column`. `column` empty sorts by filename.
 ## `props` is the shared property list used to look up the column type.
@@ -7,14 +7,14 @@ static func sort(
 	resources: Array[Resource],
 	column: String,
 	ascending: bool,
-	props: Array[ResourceProperty]
+	props: Array[DH_VRE_ResourceProperty]
 ) -> void:
 	if resources.size() < 2:
 		return
 
 	var prop_type: int = TYPE_NIL
 	if not column.is_empty():
-		for p: ResourceProperty in props:
+		for p: DH_VRE_ResourceProperty in props:
 			if p.name == column:
 				prop_type = p.type
 				break

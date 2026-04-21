@@ -1,5 +1,5 @@
 @tool
-class_name SelectionManager
+class_name DH_VRE_SelectionManager
 extends RefCounted
 
 signal selection_changed(paths: Array[String])

@@ -1,9 +1,9 @@
 @tool
-class_name ResourceFieldLabel
+class_name DH_VRE_ResourceFieldLabel
 extends Label
 
 
-func set_value(resource: Resource, col: ResourceProperty) -> void:
+func set_value(resource: Resource, col: DH_VRE_ResourceProperty) -> void:
 	var value: Variant = resource.get(col.name)
 	text = _format_value(value, col.type)
 	tooltip_text = "%s: %s" % [col.name, text]

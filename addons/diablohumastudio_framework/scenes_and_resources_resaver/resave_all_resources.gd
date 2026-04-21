@@ -1,5 +1,5 @@
 @tool
-class_name ResourceResaver
+class_name DH_SRR_ResourceResaver
 extends EditorScript
 
 ## Script to resave all .tres files in the project

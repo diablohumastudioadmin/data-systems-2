@@ -1,11 +1,11 @@
 @tool
-class_name CustomScenesRunnerToolbar
+class_name DH_CustomScenesRunnerToolbar
 extends DiablohumaStudioToolMenu
 
 const SELECT_SCENES_ITEM_ID := 1000
 
 const SELECT_SCENES_POPUP_PKSC: PackedScene = preload("uid://dlfttbd1xdwe8")
-var scenes: Array[RunnerSceneData] = []
+var scenes: Array[DH_CSR_RunnerSceneData] = []
 var saved_scenes_resource_path: String:
 	get:
 		var script_path: String = get_script().resource_path
@@ -18,8 +18,8 @@ func _enter_tree() -> void:
 
 func _load_scenes():
 	if !ResourceLoader.exists(saved_scenes_resource_path):
-		ResourceSaver.save(RunnerScenes.new(), saved_scenes_resource_path)
-	var scenes_resource: RunnerScenes = ResourceLoader.load(saved_scenes_resource_path, "", ResourceLoader.CACHE_MODE_REPLACE)
+		ResourceSaver.save(DH_CSR_RunnerScenes.new(), saved_scenes_resource_path)
+	var scenes_resource: DH_CSR_RunnerScenes = ResourceLoader.load(saved_scenes_resource_path, "", ResourceLoader.CACHE_MODE_REPLACE)
 	scenes = scenes_resource.scenes
 
 func _rebuild_menu() -> void:
@@ -31,7 +31,7 @@ func _rebuild_menu() -> void:
 
 func _on_menu_id_pressed(id: int) -> void:
 	if id == SELECT_SCENES_ITEM_ID:
-		var select_scenes_popup_instance: ScenesSelector = SELECT_SCENES_POPUP_PKSC.instantiate()
+		var select_scenes_popup_instance: DH_CSR_ScenesSelector = SELECT_SCENES_POPUP_PKSC.instantiate()
 		select_scenes_popup_instance.saved_scenes_resource_path = saved_scenes_resource_path
 		select_scenes_popup_instance.scenes_updated.connect(_on_scenes_updated)
 		EditorInterface.get_base_control().add_child(select_scenes_popup_instance)

@@ -1,20 +1,20 @@
 @tool
-class_name VisualResourcesEditorWindow
+class_name DH_VRE_Window
 extends Window
 
-var _resource_repo: ResourceRepository
+var _resource_repo: DH_VRE_ResourceRepository
 
 
 func _ready() -> void:
-	_resource_repo = ResourceRepository.new()
+	_resource_repo = DH_VRE_ResourceRepository.new()
 
-	%ClassSelector.vm = ClassSelectorVM.new(_resource_repo)
-	%SubclassFilter.vm = SubclassFilterVM.new(_resource_repo)
-	%ResourceList.vm = ResourceListVM.new(_resource_repo)
+	%ClassSelector.vm = DH_VRE_ClassSelectorVM.new(_resource_repo)
+	%SubclassFilter.vm = DH_VRE_SubclassFilterVM.new(_resource_repo)
+	%DH_VRE_ResourceList.vm = DH_VRE_ResourceListVM.new(_resource_repo)
 
-	%Dialogs.save_dialog_vm = SaveResourceDialogVM.new(_resource_repo, %ResourceList.toolbar_vm)
-	%Dialogs.confirm_delete_vm = ConfirmDeleteDialogVM.new(_resource_repo)
-	%Dialogs.error_dialog_vm = ErrorDialogVM.new(_resource_repo)
+	%DH_VRE_Dialogs.save_dialog_vm = DH_VRE_SaveResourceDialogVM.new(_resource_repo, %DH_VRE_ResourceList.toolbar_vm)
+	%DH_VRE_Dialogs.confirm_delete_vm = DH_VRE_ConfirmDeleteDialogVM.new(_resource_repo)
+	%DH_VRE_Dialogs.error_dialog_vm = DH_VRE_ErrorDialogVM.new(_resource_repo)
 
 	_resource_repo.start()
 

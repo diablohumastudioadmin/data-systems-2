@@ -1,10 +1,10 @@
 @tool
-class_name SuggestionProvider
+class_name DH_SuggestionProvider
 extends RefCounted
 
 ## Abstract base class for autocomplete suggestion providers.
 ## Subclass and override get_suggestions() and validate() to provide
-## domain-specific autocomplete behavior to LineEditAutocomplete.
+## domain-specific autocomplete behavior to DH_LineEditAutocomplete.
 
 
 ## Override: return an array of suggestion strings matching the current text.

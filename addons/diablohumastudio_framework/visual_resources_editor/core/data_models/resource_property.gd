@@ -1,5 +1,5 @@
 @tool
-class_name ResourceProperty
+class_name DH_VRE_ResourceProperty
 extends RefCounted
 
 var name: String
@@ -18,7 +18,7 @@ func _init(
 	hint_string = p_hint_string
 
 
-func equals(other: ResourceProperty) -> bool:
+func equals(other: DH_VRE_ResourceProperty) -> bool:
 	return (
 		name == other.name
 		and type == other.type
@@ -27,7 +27,7 @@ func equals(other: ResourceProperty) -> bool:
 	)
 
 
-static func arrays_equal(a: Array[ResourceProperty], b: Array[ResourceProperty]) -> bool:
+static func arrays_equal(a: Array[DH_VRE_ResourceProperty], b: Array[DH_VRE_ResourceProperty]) -> bool:
 	if a.size() != b.size():
 		return false
 	for i: int in a.size():

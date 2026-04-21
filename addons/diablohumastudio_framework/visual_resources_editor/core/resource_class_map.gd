@@ -1,5 +1,5 @@
 @tool
-class_name ResourceClassMap
+class_name DH_VRE_ResourceClassMap
 extends RefCounted
 
 signal classes_changed(previous: Array[String], current: Array[String])
@@ -69,29 +69,29 @@ func get_properties_from_class_names(
 	return property_lists
 
 
-func get_properties_from_class_name(class_name_str: String) -> Array[ResourceProperty]:
+func get_properties_from_class_name(class_name_str: String) -> Array[DH_VRE_ResourceProperty]:
 	var path: String = get_script_path_from_class_name(class_name_str)
 	if path.is_empty():
-		return Array([],TYPE_OBJECT, "RefCounted", ResourceProperty)
+		return Array([],TYPE_OBJECT, "RefCounted", DH_VRE_ResourceProperty)
 	return get_properties_from_script_path(path)
 
 
-func get_shared_properties(class_names: Array[String]) -> Array[ResourceProperty]:
-	var properties: Array[ResourceProperty] = []
+func get_shared_properties(class_names: Array[String]) -> Array[DH_VRE_ResourceProperty]:
+	var properties: Array[DH_VRE_ResourceProperty] = []
 	var seen_names: Dictionary[String, bool] = {}
 	for cls_name: String in class_names:
 		var script_path: String = to_path.get(cls_name, "")
 		if script_path.is_empty():
 			continue
-		for prop: ResourceProperty in get_properties_from_script_path(script_path):
+		for prop: DH_VRE_ResourceProperty in get_properties_from_script_path(script_path):
 			if not seen_names.has(prop.name):
 				seen_names[prop.name] = true
 				properties.append(prop)
 	return properties
 
 
-func get_properties_from_script_path(script_path: String) -> Array[ResourceProperty]:
-	var properties: Array[ResourceProperty] = []
+func get_properties_from_script_path(script_path: String) -> Array[DH_VRE_ResourceProperty]:
+	var properties: Array[DH_VRE_ResourceProperty] = []
 	if script_path.is_empty():
 		return properties
 
@@ -107,7 +107,7 @@ func get_properties_from_script_path(script_path: String) -> Array[ResourcePrope
 			continue
 		if prop_name in ["script", "resource_local_to_scene"]:
 			continue
-		properties.append(ResourceProperty.new(
+		properties.append(DH_VRE_ResourceProperty.new(
 			prop_name,
 			prop.type,
 			prop.get("hint", PROPERTY_HINT_NONE),

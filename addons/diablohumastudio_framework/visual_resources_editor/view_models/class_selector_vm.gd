@@ -1,14 +1,14 @@
 @tool
-class_name ClassSelectorVM
+class_name DH_VRE_ClassSelectorVM
 extends RefCounted
 
 signal browsable_classes_changed(classes: Array[String])
 signal selected_class_changed(class_name_: String)
 
-var _resource_repo: ResourceRepository
+var _resource_repo: DH_VRE_ResourceRepository
 
 
-func _init(p_resource_repo: ResourceRepository) -> void:
+func _init(p_resource_repo: DH_VRE_ResourceRepository) -> void:
 	_resource_repo = p_resource_repo
 	_resource_repo.class_registry.classes_changed.connect(_on_classes_changed)
 	_resource_repo.selected_class_changed.connect(_on_rr_selected_class_changed)

@@ -1,5 +1,5 @@
 @tool
-class_name PaginationManager
+class_name DH_VRE_PaginationManager
 extends RefCounted
 
 ## Emitted when the class/filter changes and the page must fully rebuild.
@@ -22,7 +22,7 @@ var _page_mtimes: Dictionary[String, int] = {}
 
 
 ## Hard reset to page 0. Emits page_replaced + pagination_changed.
-## Call after ResourceRepository.load_resources().
+## Call after DH_VRE_ResourceRepository.load_resources().
 func reset(all_resources: Array[Resource]) -> void:
 	_page = 0
 	current_page_resources = _slice(all_resources)

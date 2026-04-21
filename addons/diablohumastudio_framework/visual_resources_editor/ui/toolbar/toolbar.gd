@@ -1,8 +1,8 @@
 @tool
-class_name VREToolbar
+class_name DH_VRE_Toolbar
 extends HBoxContainer
 
-var vm: ToolbarVM = null:
+var vm: DH_VRE_ToolbarVM = null:
 	set(value):
 		vm = value
 		if is_node_ready():

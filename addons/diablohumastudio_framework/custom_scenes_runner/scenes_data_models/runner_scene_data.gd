@@ -1,5 +1,5 @@
 @tool
-class_name RunnerSceneData 
+class_name DH_CSR_RunnerSceneData 
 extends Resource
 
 @export var name: String

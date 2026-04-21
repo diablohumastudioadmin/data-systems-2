@@ -1,9 +1,9 @@
 @tool
-class_name VisualResourcesEditorToolbar
+class_name DH_VisualResourcesEditorToolbar
 extends DiablohumaStudioToolMenu
 
 const VISUAL_RESOURCES_EDITOR_WINDOW_SCENE: PackedScene = preload("uid://b6ssn0jpljw4r")
-var visual_resources_editor_window : VisualResourcesEditorWindow 
+var visual_resources_editor_window : DH_VRE_Window 
 
 func _enter_tree() -> void:
 	add_item("Launch Visual Editor", 0, KEY_F3)

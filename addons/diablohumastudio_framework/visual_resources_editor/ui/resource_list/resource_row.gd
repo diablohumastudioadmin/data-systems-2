@@ -1,12 +1,12 @@
 @tool
-class_name ResourceRow
+class_name DH_VRE_ResourceRow
 extends Button
 
 const RESOURCE_FIELD_LABEL_SCENE: PackedScene = preload("uid://uru49vi0kvgxy")
 const FIELD_SEPARATOR_SCENE: PackedScene = preload("uid://y2kj6h91hm8r6")
 
-var vm: ResourceRowVM = null
-var current_shared_property_list: Array[ResourceProperty] = []
+var vm: DH_VRE_ResourceRowVM = null
+var current_shared_property_list: Array[DH_VRE_ResourceProperty] = []
 var _prop_labels: Dictionary = {}
 
 
@@ -41,7 +41,7 @@ func _build_field_labels() -> void:
 			var sep: VSeparator = FIELD_SEPARATOR_SCENE.instantiate()
 			%FieldsContainer.add_child(sep)
 
-		var label: ResourceFieldLabel = RESOURCE_FIELD_LABEL_SCENE.instantiate()
+		var label: DH_VRE_ResourceFieldLabel = RESOURCE_FIELD_LABEL_SCENE.instantiate()
 		var col_name: String = current_shared_property_list[i].name
 		if owned.has(col_name):
 			_prop_labels[col_name] = label
@@ -55,7 +55,7 @@ func rebuild_fields() -> void:
 
 func update_display() -> void:
 	if not vm: return
-	for col: ResourceProperty in current_shared_property_list:
+	for col: DH_VRE_ResourceProperty in current_shared_property_list:
 		if _prop_labels.has(col.name):
 			_prop_labels[col.name].set_value(vm.resource, col)
 

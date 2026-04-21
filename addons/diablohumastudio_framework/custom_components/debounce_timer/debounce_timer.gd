@@ -1,6 +1,6 @@
 @tool
 extends Timer
-class_name DebounceTimer
+class_name DH_DebounceTimer
 
 var callback: Callable
 var args: Array

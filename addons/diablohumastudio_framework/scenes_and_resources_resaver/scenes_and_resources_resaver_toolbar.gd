@@ -1,5 +1,5 @@
 @tool
-class_name ScenesAndResourcesResaverToolbar
+class_name DH_ScenesAndResourcesResaverToolbar
 extends DiablohumaStudioToolMenu
 
 func _enter_tree() -> void:
@@ -12,9 +12,9 @@ func _enter_tree() -> void:
 func _on_menu_id_pressed(id: int):
 	match id:
 		0:
-			ScenesResaver.resave_all_scenes_in_project()
+			DH_SRR_ScenesResaver.resave_all_scenes_in_project()
 		1:
-			ResourceResaver.resave_all_ressources_in_project()
+			DH_SRR_ResourceResaver.resave_all_ressources_in_project()
 		3:
-			ScenesResaver.resave_all_scenes_in_project()
-			ResourceResaver.resave_all_ressources_in_project()
+			DH_SRR_ScenesResaver.resave_all_scenes_in_project()
+			DH_SRR_ResourceResaver.resave_all_ressources_in_project()

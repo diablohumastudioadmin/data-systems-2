@@ -1,14 +1,14 @@
 @tool
-class_name BulkEditor
+class_name DH_VRE_BulkEditor
 extends Node
 
-var selection_manager: SelectionManager = null:
+var selection_manager: DH_VRE_SelectionManager = null:
 	set(value):
 		selection_manager = value
 		if is_node_ready():
 			_connect_dependencies()
 
-var resource_repo: ResourceRepository = null:
+var resource_repo: DH_VRE_ResourceRepository = null:
 	set(value):
 		resource_repo = value
 		if is_node_ready():
@@ -67,10 +67,10 @@ func _create_bulk_proxy() -> void:
 	_bulk_proxy = script.new()
 	if selected.size() == 1:
 		var script_name: String = script.get_global_name()
-		var props: Array[ResourceProperty] = resource_repo.class_registry.get_properties_from_class_name(script_name)
+		var props: Array[DH_VRE_ResourceProperty] = resource_repo.class_registry.get_properties_from_class_name(script_name)
 		if props.is_empty():
 			props = resource_repo.class_registry.get_properties_from_class_name(resource_repo.selected_class)
-		for prop: ResourceProperty in props:
+		for prop: DH_VRE_ResourceProperty in props:
 			_bulk_proxy.set(prop.name, selected[0].get(prop.name))
 	EditorInterface.inspect_object(_bulk_proxy)
 	_inspected_selection_paths = selection_manager.selected_paths.duplicate()

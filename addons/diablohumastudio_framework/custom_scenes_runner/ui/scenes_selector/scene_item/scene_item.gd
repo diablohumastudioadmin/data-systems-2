@@ -1,12 +1,12 @@
 @tool
-class_name SceneItem
+class_name DH_CSR_SceneItem
 extends HBoxContainer
 
 signal scene_button_pressed
 signal shortcut_button_pressed
 signal remove_pressed
 
-var run_scene_data: RunnerSceneData = RunnerSceneData.new()
+var run_scene_data: DH_CSR_RunnerSceneData = DH_CSR_RunnerSceneData.new()
 var _capturing_shortcut: bool = false
 
 
@@ -23,7 +23,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_capturing_shortcut = false
 		set_process_unhandled_key_input(false)
 
-func set_data(new_data: RunnerSceneData) -> void:
+func set_data(new_data: DH_CSR_RunnerSceneData) -> void:
 	run_scene_data = new_data
 	_update_ui()
 

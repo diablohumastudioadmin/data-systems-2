@@ -1,8 +1,8 @@
 @tool
-class_name ErrorDialog
+class_name DH_VRE_ErrorDialog
 extends AcceptDialog
 
-var vm: ErrorDialogVM = null:
+var vm: DH_VRE_ErrorDialogVM = null:
 	set(value):
 		vm = value
 		if is_node_ready():

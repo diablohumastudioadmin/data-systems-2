@@ -1,10 +1,10 @@
 @tool
-class_name ConfirmDeleteDialog
+class_name DH_VRE_ConfirmDeleteDialog
 extends ConfirmationDialog
 
 var _pending_paths: Array[String] = []
 
-var vm: ConfirmDeleteDialogVM = null:
+var vm: DH_VRE_ConfirmDeleteDialogVM = null:
 	set(value):
 		vm = value
 		if is_node_ready():

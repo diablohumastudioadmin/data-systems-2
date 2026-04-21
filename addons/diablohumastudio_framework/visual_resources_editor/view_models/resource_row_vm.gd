@@ -1,15 +1,15 @@
 @tool
-class_name ResourceRowVM
+class_name DH_VRE_ResourceRowVM
 extends RefCounted
 
 signal is_selected_changed(is_selected: bool)
 
 var resource: Resource
-var _list_vm: ResourceListVM
+var _list_vm: DH_VRE_ResourceListVM
 var _is_selected: bool = false
 
 
-func _init(p_resource: Resource, p_list_vm: ResourceListVM) -> void:
+func _init(p_resource: Resource, p_list_vm: DH_VRE_ResourceListVM) -> void:
 	resource = p_resource
 	_list_vm = p_list_vm
 

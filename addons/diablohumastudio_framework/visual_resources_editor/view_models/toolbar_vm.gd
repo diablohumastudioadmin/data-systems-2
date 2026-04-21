@@ -1,16 +1,16 @@
 @tool
-class_name ToolbarVM
+class_name DH_VRE_ToolbarVM
 extends RefCounted
 
 signal actions_availability_changed()
 signal create_requested()
 signal refresh_requested()
 
-var _resource_repo: ResourceRepository
-var _selection_manager: SelectionManager
+var _resource_repo: DH_VRE_ResourceRepository
+var _selection_manager: DH_VRE_SelectionManager
 
 
-func _init(p_resource_repo: ResourceRepository, p_selection_manager: SelectionManager) -> void:
+func _init(p_resource_repo: DH_VRE_ResourceRepository, p_selection_manager: DH_VRE_SelectionManager) -> void:
 	_resource_repo = p_resource_repo
 	_selection_manager = p_selection_manager
 	_selection_manager.selection_changed.connect(_on_selection_changed)

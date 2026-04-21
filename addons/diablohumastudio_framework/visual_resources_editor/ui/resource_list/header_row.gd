@@ -7,18 +7,18 @@ const FIELD_SEPARATOR_SCENE: PackedScene = preload("uid://y2kj6h91hm8r6")
 const ARROW_UP: String = " ↑"
 const ARROW_DOWN: String = " ↓"
 
-var _vm: ResourceListVM = null
+var _vm: DH_VRE_ResourceListVM = null
 var _field_buttons: Array[Button] = []
 var _column_names: Array[String] = []
 
-var current_shared_property_list: Array[ResourceProperty] = []:
+var current_shared_property_list: Array[DH_VRE_ResourceProperty] = []:
 	set(value):
 		current_shared_property_list = value
 		if is_inside_tree():
 			_rebuild_labels()
 
 
-func set_view_model(vm: ResourceListVM) -> void:
+func set_view_model(vm: DH_VRE_ResourceListVM) -> void:
 	_vm = vm
 	%FileLabel.pressed.connect(func() -> void: _vm.request_sort(""))
 	_vm.sort_state_changed.connect(_on_sort_state_changed)

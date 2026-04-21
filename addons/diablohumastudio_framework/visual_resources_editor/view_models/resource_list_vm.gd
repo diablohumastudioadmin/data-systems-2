@@ -1,20 +1,20 @@
 @tool
-class_name ResourceListVM
+class_name DH_VRE_ResourceListVM
 extends RefCounted
 
-signal rows_replaced(rows: Array[ResourceRowVM])
+signal rows_replaced(rows: Array[DH_VRE_ResourceRowVM])
 signal rows_edited(resources: Array[Resource])
-signal columns_changed(columns: Array[ResourceProperty])
+signal columns_changed(columns: Array[DH_VRE_ResourceProperty])
 signal sort_state_changed(column: String, ascending: bool)
 signal pagination_state_changed(page: int, total_pages: int)
 signal status_text_changed(visible_count: int, selected_count: int)
 
-var resource_repo: ResourceRepository
-var selection_manager: SelectionManager
-var _pagination: PaginationManager
+var resource_repo: DH_VRE_ResourceRepository
+var selection_manager: DH_VRE_SelectionManager
+var _pagination: DH_VRE_PaginationManager
 
-var rows: Array[ResourceRowVM] = []
-var visible_columns: Array[ResourceProperty] = []
+var rows: Array[DH_VRE_ResourceRowVM] = []
+var visible_columns: Array[DH_VRE_ResourceProperty] = []
 var sort_column: String = ""
 var sort_ascending: bool = true
 var search_filter: String = ""
@@ -22,10 +22,10 @@ var _visible_count: int = 0
 var _total_pages: int = 1
 
 
-func _init(presource_repo: ResourceRepository) -> void:
+func _init(presource_repo: DH_VRE_ResourceRepository) -> void:
 	resource_repo = presource_repo
-	selection_manager = SelectionManager.new()
-	_pagination = PaginationManager.new()
+	selection_manager = DH_VRE_SelectionManager.new()
+	_pagination = DH_VRE_PaginationManager.new()
 
 	resource_repo.resources_reseted.connect(_on_resources_reseted)
 	resource_repo.resources_changed.connect(_on_resources_changed)
@@ -133,7 +133,7 @@ func _rebuild_columns() -> void:
 	var selected: String = resource_repo.selected_class
 	if selected.is_empty():
 		visible_columns.clear()
-		columns_changed.emit(Array([], TYPE_OBJECT, "RefCounted", ResourceProperty))
+		columns_changed.emit(Array([], TYPE_OBJECT, "RefCounted", DH_VRE_ResourceProperty))
 		return
 	var included: Array[String] = resource_repo.class_registry.get_descendant_classes(
 		selected, resource_repo.include_subclasses)
@@ -143,7 +143,7 @@ func _rebuild_columns() -> void:
 
 
 func _apply_sort() -> void:
-	ResourceSorter.sort(
+	DH_VRE_ResourceSorter.sort(
 		resource_repo.current_class_resources,
 		sort_column,
 		sort_ascending,
@@ -154,7 +154,7 @@ func _apply_selection_to_rows(paths: Array[String]) -> void:
 	var selected: Dictionary[String, bool] = {}
 	for path: String in paths:
 		selected[path] = true
-	for row_vm: ResourceRowVM in rows:
+	for row_vm: DH_VRE_ResourceRowVM in rows:
 		row_vm.set_selected_state(selected.has(row_vm.resource.resource_path))
 
 
@@ -169,7 +169,7 @@ func _emit_page_state() -> void:
 func _rebuild_rows(resources: Array[Resource]) -> void:
 	rows.clear()
 	for res: Resource in resources:
-		var row_vm: ResourceRowVM = ResourceRowVM.new(res, self)
+		var row_vm: DH_VRE_ResourceRowVM = DH_VRE_ResourceRowVM.new(res, self)
 		row_vm.set_selected_state(is_path_selected(res.resource_path))
 		rows.append(row_vm)
 	rows_replaced.emit(rows)
@@ -178,7 +178,7 @@ func _rebuild_rows(resources: Array[Resource]) -> void:
 func _validate_sort_column() -> void:
 	if sort_column.is_empty():
 		return
-	for prop: ResourceProperty in visible_columns:
+	for prop: DH_VRE_ResourceProperty in visible_columns:
 		if prop.name == sort_column:
 			return
 	set_sort("", true)
