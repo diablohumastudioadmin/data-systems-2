@@ -1,5 +1,5 @@
 @tool
-extends DiabloHumaStudioPlugin
+extends EditorPlugin
 
 const TOOLBAR_MENU_NAME: String = "CustomSceneRunner"
 

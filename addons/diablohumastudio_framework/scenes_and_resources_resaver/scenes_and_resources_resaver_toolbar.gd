@@ -1,8 +1,9 @@
 @tool
 class_name DH_ScenesAndResourcesResaverToolbar
-extends DiablohumaStudioToolMenu
+extends PopupMenu
 
 func _enter_tree() -> void:
+	set_meta("dhs_toolbar", true)
 	clear()
 	add_item("Resave Scenes", 0)
 	add_item("Resave Resources", 1)

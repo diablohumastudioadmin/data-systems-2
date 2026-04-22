@@ -1,6 +1,6 @@
 @tool
 class_name DH_CustomScenesRunnerToolbar
-extends DiablohumaStudioToolMenu
+extends PopupMenu
 
 const SELECT_SCENES_ITEM_ID := 1000
 
@@ -12,6 +12,7 @@ var saved_scenes_resource_path: String:
 		return script_path.get_base_dir().path_join("data/scenes.tres")
 
 func _enter_tree() -> void:
+	set_meta("dhs_toolbar", true)
 	_load_scenes()
 	_rebuild_menu()
 	id_pressed.connect(_on_menu_id_pressed)

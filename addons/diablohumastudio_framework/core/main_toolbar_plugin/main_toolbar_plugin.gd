@@ -21,24 +21,24 @@ func _add_main_toolbar_menu() -> void:
 	add_tool_submenu_item(_tool_bar_name, _diablo_huma_toolbar_menu)
 
 func _relocate_inner_to_editor():
-	var active_toolbars: Dictionary[String, DiablohumaStudioToolMenu]
+	var active_toolbars: Dictionary[String, PopupMenu]
 	active_toolbars = DH_ToolBarsAndPluginsUtils.get_diablohuma_toolbars_from_toolbar(_diablo_huma_toolbar_menu)
 	for key in active_toolbars:
 		_move_tool_bar_to_base(key, active_toolbars[key])
 
 func _relocate_inner_to_diablohuma():
-	var active_toolbars: Dictionary[String, DiablohumaStudioToolMenu]
+	var active_toolbars: Dictionary[String, PopupMenu]
 	var tool_menu: PopupMenu = DH_ToolBarsAndPluginsUtils.get_editor_tool_bar()
 	active_toolbars = DH_ToolBarsAndPluginsUtils.get_diablohuma_toolbars_from_toolbar(tool_menu)
 	for key in active_toolbars:
 		_move_tool_bar_to_diablohuma(key, active_toolbars[key])
 
-func _move_tool_bar_to_base(name: String, tool_bar: DiablohumaStudioToolMenu):
+func _move_tool_bar_to_base(name: String, tool_bar: PopupMenu):
 	var duplicated_tool_bar = DH_ToolBarsAndPluginsUtils.duplicate_menu(tool_bar)
 	DH_ToolBarsAndPluginsUtils.remove_item_in_toolbar_by_name(_diablo_huma_toolbar_menu, name)
 	add_tool_submenu_item(name, duplicated_tool_bar)
 
-func _move_tool_bar_to_diablohuma(name: String, tool_bar: DiablohumaStudioToolMenu):
+func _move_tool_bar_to_diablohuma(name: String, tool_bar: PopupMenu):
 	var duplicated_tool_bar = DH_ToolBarsAndPluginsUtils.duplicate_menu(tool_bar)
 	remove_tool_menu_item(name)
 	_diablo_huma_toolbar_menu.add_submenu_node_item(name, duplicated_tool_bar)
